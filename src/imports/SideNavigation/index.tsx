@@ -1,0 +1,322 @@
+import svgPaths from "./svg-as7mhjg5sg";
+type SpacerProps = {
+  className?: string;
+  spacer?: "4px";
+};
+
+function Spacer({ className, spacer = "4px" }: SpacerProps) {
+  return <div className={className || "relative size-[4px]"} />;
+}
+type SideNavigationProps = {
+  className?: string;
+  property1?: "CN";
+  state?: "expand";
+};
+
+function SideNavigation({ className, property1 = "CN", state = "expand" }: SideNavigationProps) {
+  return (
+    <div className={className || "bg-white h-[1084px] relative w-[232px]"}>
+      <div className="flex flex-col justify-center overflow-clip rounded-[inherit] size-full">
+        <div className="content-stretch flex flex-col items-start justify-between pt-[8px] relative size-full">
+          <div className="content-stretch flex flex-col gap-[16px] items-start relative shrink-0 w-full" data-name="content">
+            <div className="relative shrink-0 w-full" data-name="menu item 菜单选项">
+              <div className="content-stretch flex flex-col gap-[4px] items-start px-[8px] relative size-full">
+                <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/1st-light">
+                  <div className="flex flex-row items-center size-full">
+                    <div className="content-stretch flex gap-[8px] items-center px-[16px] py-[7px] relative size-full">
+                      <div className="overflow-clip relative shrink-0 size-[20px]" data-name="prefixIcon">
+                        <div className="absolute inset-[8.19%_12.5%_12.5%_12.5%]" data-name="Union">
+                          <svg className="absolute block inset-0 size-full" fill="none" height="15.8612" preserveAspectRatio="none" viewBox="0 0 15 15.8612" width="15">
+                            <path clipRule="evenodd" d={svgPaths.p315b5a80} fill="#727272" fillRule="evenodd" id="Union" />
+                          </svg>
+                        </div>
+                      </div>
+                      <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#727272] text-[14px] text-ellipsis whitespace-nowrap">设备总览</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/1st-light">
+                  <div className="flex flex-row items-center size-full">
+                    <div className="content-stretch flex gap-[8px] items-center px-[16px] py-[7px] relative size-full">
+                      <div className="relative shrink-0 size-[20px]" data-name="prefixIcon">
+                        <div className="absolute inset-[12.5%]" data-name="Union">
+                          <svg className="absolute block inset-0 size-full" fill="none" height="15" preserveAspectRatio="none" viewBox="0 0 15 15" width="15">
+                            <path clipRule="evenodd" d={svgPaths.p3b76af00} fill="#676A72" fillRule="evenodd" id="Union" />
+                          </svg>
+                        </div>
+                      </div>
+                      <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#676a72] text-[14px] text-ellipsis whitespace-nowrap">设备查询</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/1st-light">
+                  <div className="flex flex-row items-center size-full">
+                    <div className="content-stretch flex gap-[8px] items-center px-[16px] py-[7px] relative size-full">
+                      <div className="relative shrink-0 size-[20px]" data-name="prefixIcon">
+                        <div className="absolute inset-[12.5%_9.37%_12.5%_9.38%]" data-name="Union">
+                          <svg className="absolute block inset-0 size-full" fill="none" height="15" preserveAspectRatio="none" viewBox="0 0 16.2514 15" width="16.2514">
+                            <g id="Union">
+                              <path d={svgPaths.p28f67f40} fill="#676A72" />
+                              <path d={svgPaths.p13d65580} fill="#676A72" />
+                              <path d={svgPaths.p1b60f080} fill="#676A72" />
+                              <path d={svgPaths.p231bb80} fill="#676A72" />
+                            </g>
+                          </svg>
+                        </div>
+                      </div>
+                      <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#727272] text-[14px] text-ellipsis whitespace-nowrap">设备注册</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="relative shrink-0 w-full" data-name="item/normalMenu/1st-light">
+                  <div className="content-stretch flex flex-col gap-[4px] items-start relative size-full">
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/1st">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center px-[16px] py-[7px] relative size-full">
+                          <div className="content-stretch flex flex-[1_0_0] gap-[8px] items-center min-w-px overflow-clip relative" data-name="prefix content">
+                            <div className="relative shrink-0 size-[20px]" data-name="card">
+                              <div className="absolute inset-[18.75%_6.25%]" data-name="Union">
+                                <svg className="absolute block inset-0 size-full" fill="none" height="12.5" preserveAspectRatio="none" viewBox="0 0 17.5 12.5" width="17.5">
+                                  <g id="Union">
+                                    <path d={svgPaths.p3c437a30} fill="#141414" />
+                                    <path d={svgPaths.p38607500} fill="#141414" />
+                                  </g>
+                                </svg>
+                              </div>
+                            </div>
+                            <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#141414] text-[14px] text-ellipsis whitespace-nowrap">物联卡管理</p>
+                          </div>
+                          <Spacer className="flex flex-row items-center self-stretch" />
+                          <div className="relative shrink-0 size-[16px]" data-name="chevron-up">
+                            <div className="absolute inset-[31.76%_22.13%_34.62%_22.13%]" data-name="Union">
+                              <svg className="absolute block inset-0 size-full" fill="none" height="5.37886" preserveAspectRatio="none" viewBox="0 0 8.91924 5.37886" width="8.91924">
+                                <path d={svgPaths.p2bdcce80} fill="#141414" id="Union" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/2nd-light">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center pl-[44px] pr-[16px] py-[7px] relative size-full">
+                          <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#676a72] text-[14px] text-ellipsis whitespace-nowrap">物联卡查询</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/2nd-light">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center pl-[44px] pr-[16px] py-[7px] relative size-full">
+                          <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#676a72] text-[14px] text-ellipsis whitespace-nowrap">物联卡统计</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="relative shrink-0 w-full" data-name="item/normalMenu/1st-light">
+                  <div className="content-stretch flex flex-col gap-[4px] items-start relative size-full">
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/1st">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center px-[16px] py-[7px] relative size-full">
+                          <div className="content-stretch flex flex-[1_0_0] gap-[8px] items-center min-w-px overflow-clip relative" data-name="prefix content">
+                            <div className="relative shrink-0 size-[20px]" data-name="Large screen">
+                              <div className="absolute inset-[11.11%_11.11%_12.5%_11.11%]" data-name="Union">
+                                <svg className="absolute block inset-0 size-full" fill="none" height="15.2777" preserveAspectRatio="none" viewBox="0 0 15.5556 15.2777" width="15.5556">
+                                  <g id="Union">
+                                    <path d={svgPaths.p98443b0} fill="#141414" />
+                                    <path d={svgPaths.p3239d500} fill="#141414" />
+                                    <path d={svgPaths.p53904f0} fill="#141414" />
+                                  </g>
+                                </svg>
+                              </div>
+                            </div>
+                            <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#141414] text-[14px] text-ellipsis whitespace-nowrap">运维管理</p>
+                          </div>
+                          <Spacer className="flex flex-row items-center self-stretch" />
+                          <div className="relative shrink-0 size-[16px]" data-name="chevron-up">
+                            <div className="absolute inset-[31.76%_22.13%_34.62%_22.13%]" data-name="Union">
+                              <svg className="absolute block inset-0 size-full" fill="none" height="5.37886" preserveAspectRatio="none" viewBox="0 0 8.91924 5.37886" width="8.91924">
+                                <path d={svgPaths.p2bdcce80} fill="#141414" id="Union" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/2nd-light">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center pl-[44px] pr-[16px] py-[7px] relative size-full">
+                          <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#676a72] text-[14px] text-ellipsis whitespace-nowrap">设备批量操作</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/2nd-light">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center pl-[44px] pr-[16px] py-[7px] relative size-full">
+                          <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#676a72] text-[14px] text-ellipsis whitespace-nowrap">设备运维监控</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/2nd-light">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center pl-[44px] pr-[16px] py-[7px] relative size-full">
+                          <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#676a72] text-[14px] text-ellipsis whitespace-nowrap">平台操作日志</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/2nd-light">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center pl-[44px] pr-[16px] py-[7px] relative size-full">
+                          <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#676a72] text-[14px] text-ellipsis whitespace-nowrap">用户反馈管理</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="relative shrink-0 w-full" data-name="item/normalMenu/1st-light">
+                  <div className="content-stretch flex flex-col gap-[4px] items-start relative size-full">
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/1st">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center px-[16px] py-[7px] relative size-full">
+                          <div className="content-stretch flex flex-[1_0_0] gap-[8px] items-center min-w-px overflow-clip relative" data-name="prefix content">
+                            <div className="overflow-clip relative shrink-0 size-[20px]" data-name="usergroup">
+                              <div className="absolute inset-[6.25%_3.13%_10%_6.25%]" data-name="Union">
+                                <svg className="absolute block inset-0 size-full" fill="none" height="16.751" preserveAspectRatio="none" viewBox="0 0 18.125 16.751" width="18.125">
+                                  <path d={svgPaths.p11290b00} fill="#141414" id="Union" />
+                                </svg>
+                              </div>
+                            </div>
+                            <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#141414] text-[14px] text-ellipsis whitespace-nowrap">权限管理</p>
+                          </div>
+                          <Spacer className="flex flex-row items-center self-stretch" />
+                          <div className="relative shrink-0 size-[16px]" data-name="chevron-up">
+                            <div className="absolute inset-[31.76%_22.13%_34.62%_22.13%]" data-name="Union">
+                              <svg className="absolute block inset-0 size-full" fill="none" height="5.37886" preserveAspectRatio="none" viewBox="0 0 8.91924 5.37886" width="8.91924">
+                                <path d={svgPaths.p2bdcce80} fill="#141414" id="Union" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/2nd-light">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center pl-[44px] pr-[16px] py-[7px] relative size-full">
+                          <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#676a72] text-[14px] text-ellipsis whitespace-nowrap">用户管理</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/2nd-light">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center pl-[44px] pr-[16px] py-[7px] relative size-full">
+                          <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#676a72] text-[14px] text-ellipsis whitespace-nowrap">角色管理</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="relative shrink-0 w-full" data-name="item/normalMenu/1st-light">
+                  <div className="content-stretch flex flex-col gap-[4px] items-start relative size-full">
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/1st">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center px-[16px] py-[7px] relative size-full">
+                          <div className="content-stretch flex flex-[1_0_0] gap-[8px] items-center min-w-px overflow-clip relative" data-name="prefix content">
+                            <div className="overflow-clip relative shrink-0 size-[20px]" data-name="setting">
+                              <div className="absolute inset-[7.22%_12.11%]" data-name="Union">
+                                <svg className="absolute block inset-0 size-full" fill="none" height="17.1132" preserveAspectRatio="none" viewBox="0 0 15.1554 17.1132" width="15.1554">
+                                  <g id="Union">
+                                    <path clipRule="evenodd" d={svgPaths.p3b5d8600} fill="#141414" fillRule="evenodd" />
+                                    <path clipRule="evenodd" d={svgPaths.p2b6e1c00} fill="#141414" fillRule="evenodd" />
+                                  </g>
+                                </svg>
+                              </div>
+                            </div>
+                            <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#141414] text-[14px] text-ellipsis whitespace-nowrap">系统配置</p>
+                          </div>
+                          <Spacer className="flex flex-row items-center self-stretch" />
+                          <div className="relative shrink-0 size-[16px]" data-name="chevron-up">
+                            <div className="absolute inset-[31.76%_22.13%_34.62%_22.13%]" data-name="Union">
+                              <svg className="absolute block inset-0 size-full" fill="none" height="5.37886" preserveAspectRatio="none" viewBox="0 0 8.91924 5.37886" width="8.91924">
+                                <path d={svgPaths.p2bdcce80} fill="#141414" id="Union" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/2nd-light">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center pl-[44px] pr-[16px] py-[7px] relative size-full">
+                          <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#676a72] text-[14px] text-ellipsis whitespace-nowrap">硬件类型管理</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/2nd-light">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center pl-[44px] pr-[16px] py-[7px] relative size-full">
+                          <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#676a72] text-[14px] text-ellipsis whitespace-nowrap">软件版本管理</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/2nd-light">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center pl-[44px] pr-[16px] py-[7px] relative size-full">
+                          <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#676a72] text-[14px] text-ellipsis whitespace-nowrap">软件更新包管理</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/2nd-light">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center pl-[44px] pr-[16px] py-[7px] relative size-full">
+                          <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#676a72] text-[14px] text-ellipsis whitespace-nowrap">Profile管理</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/2nd-light">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center pl-[44px] pr-[16px] py-[7px] relative size-full">
+                          <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#676a72] text-[14px] text-ellipsis whitespace-nowrap">Fault信息管理</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white relative rounded-[6px] shrink-0 w-full" data-name="item/normalMenu/2nd-light">
+                      <div className="flex flex-row items-center size-full">
+                        <div className="content-stretch flex items-center pl-[44px] pr-[16px] py-[7px] relative size-full">
+                          <p className="[word-break:break-word] flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#676a72] text-[14px] text-ellipsis whitespace-nowrap">规则配置</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white h-[56px] relative shrink-0 w-full" data-name=".master/item normalMenu/menuOperations">
+            <div aria-hidden className="absolute border-[#dfe1e8] border-solid border-t inset-0 pointer-events-none" />
+            <div className="flex flex-row items-center size-full">
+              <div className="content-stretch flex gap-[8px] items-center px-[16px] py-[14px] relative size-full">
+                <div className="overflow-clip relative rounded-[4px] shrink-0 size-[32px]" data-name="Button 按钮">
+                  <div className="-translate-x-1/2 -translate-y-1/2 absolute left-1/2 size-[16px] top-1/2" data-name="view-list">
+                    <div className="absolute inset-[21.88%_12.5%]" data-name="Union">
+                      <svg className="absolute block inset-0 size-full" fill="none" height="9" preserveAspectRatio="none" viewBox="0 0 12 9" width="12">
+                        <g id="Union">
+                          <path d="M12 1H0V0H12V1Z" fill="#141414" />
+                          <path d="M12 5H0V4H12V5Z" fill="#141414" />
+                          <path d="M0 9H12V8H0V9Z" fill="#141414" />
+                        </g>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function SideNavigation1() {
+  return <SideNavigation className="bg-white relative size-full" />;
+}
