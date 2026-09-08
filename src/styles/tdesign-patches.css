@@ -1,0 +1,234 @@
+/**
+ * ============================================================================
+ * TDesign 结构性补丁
+ * ============================================================================
+ * 与 tdesign-bridge.css 的分工：
+ *   bridge   改 --td-* 变量，管颜色 / 字体 / 圆角这类「能用 token 表达」的差异
+ *   patches  改 CSS 属性本身，管 overflow / display 这类「token 表达不了」的结构差异
+ *
+ * 规则：
+ *   1. 一律做成**可选择加上的 class**，不要无条件覆盖 .t-* 选择器 ——
+ *      否则会波及仓库里所有同类组件实例。
+ *   2. 每条规则都要写清楚「哪个页面因为什么需要它」，否则日后没人敢删。
+ *
+ * ⚠ 加载顺序：必须在 tdesign.css 之后引入。
+ *   这里是直接覆盖属性（不是 var() 延迟解析），依赖「同特异性时后来者胜」。
+ *   另外 Tailwind 的工具类在 @layer utilities 里，而 TDesign 的 CSS 是无 layer 的，
+ *   无 layer 样式优先级高于任何 layer —— 所以这类覆盖**不能**用 Tailwind 工具类写，
+ *   必须是无 layer 的原生 CSS。这也是本文件存在的原因。
+ */
+
+/**
+ * 让 Tabs 不裁剪面板内溢出的浮层。
+ *
+ * 起因：`.t-tabs` 与 `.t-tabs__content` 都带 `overflow: hidden`（用于滑块动画与
+ * 横向滚动）。面板内如果有绝对定位的浮层，就会被裁掉。
+ *
+ * 使用方：`RuleConfigurationContent` 的 HelpTooltip —— 气泡定位在
+ * `bottom: calc(100% + 7px)`，第一个字段的气泡会向上越出面板约 5px；气泡是
+ * `whitespace-nowrap`，较长的 hint 文案还会横向溢出数百像素。两个方向都会被裁。
+ *
+ * ⚠ 只在面板内确有溢出浮层时加这个 class。Tabs 项过多需要横向滚动的场景**不要**加，
+ *   那里的 overflow: hidden 是必需的。
+ *
+ * 更彻底的做法是把 HelpTooltip 改成 portal 渲染（浮层挂到 body 上，天然不受祖先
+ * overflow 影响）。等这类气泡需要第二个调用方时再抽共享组件，届时可以一并解决。
+ */
+.tdesign-tabs-overflow-visible,
+.tdesign-tabs-overflow-visible .t-tabs__content {
+  overflow: visible;
+}
+
+/**
+ * IoT 列表页模板的定制 Table 外观。
+ *
+ * 使用方：`IoTListPageTemplate`。底层必须保持为 TDesign Table，但视觉继续遵循
+ * IOT_Web_template：46px 表头、54px 数据行、24px 水平内边距和 324px 空态。
+ *
+ * ⚠ 这些规则只在 `.iot-list-page-table` 下生效，不要提升为全局 `.t-table` 覆盖；
+ * 其他 TDesign Table 仍应使用组件自身的 small / medium / large 规格。
+ */
+.iot-list-page-table {
+  color: var(--text-color-primary);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+}
+
+/* 横向滚动由模板外层容器统一负责，避免出现嵌套滚动条。 */
+.iot-list-page-table .t-table__content {
+  overflow: visible;
+}
+
+.iot-list-page-table .t-table__header tr,
+.iot-list-page-table .t-table__header th {
+  height: 46px;
+}
+
+.iot-list-page-table .t-table__header th {
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--component-stroke);
+  background-color: var(--bg-color-secondarycontainer);
+  color: var(--text-color-secondary);
+  font-size: var(--text-body);
+  font-weight: 400;
+  line-height: var(--text-body--line-height);
+}
+
+.iot-list-page-table .t-table__body > tr:not(.t-table__empty-row) {
+  height: 54px;
+}
+
+.iot-list-page-table .t-table__body > tr:not(.t-table__empty-row) > td {
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--component-stroke);
+  background-color: var(--bg-color-container);
+  color: var(--text-color-primary);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+}
+
+.iot-list-page-table .t-table__body > tr:not(.t-table__empty-row):hover > td {
+  background-color: var(--bg-color-container-hover);
+}
+
+.iot-list-page-table .t-table__body > tr:last-child:not(.t-table__empty-row) > td {
+  border-bottom: 0;
+}
+
+.iot-list-page-table .t-table__header th.iot-list-page-table__actions {
+  padding-right: 24px;
+  padding-left: 24px;
+}
+
+.iot-list-page-table
+  .t-table__body
+  > tr:not(.t-table__empty-row)
+  > td.iot-list-page-table__actions {
+  padding: 8px 16px;
+}
+
+.iot-list-page-table .t-table__header th.iot-list-page-table__details {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.iot-list-page-table
+  .t-table__body
+  > tr:not(.t-table__empty-row)
+  > td.iot-list-page-table__details {
+  padding: 8px;
+}
+
+.iot-list-page-table .t-table__empty-row,
+.iot-list-page-table .t-table__empty-row > td {
+  height: 324px;
+}
+
+.iot-list-page-table .t-table__empty-row > td {
+  padding: 0;
+  border-bottom: 0;
+  background-color: var(--bg-color-container);
+}
+
+.iot-list-page-table .t-table__empty {
+  display: flex;
+  min-height: 324px;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color-secondary);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+}
+
+/**
+ * IoT 列表页分页器会在 TDesign Pagination 右侧追加页码摘要。
+ * TDesign 根节点默认 width: 100%，会把同级摘要挤压折行；仅在该组合场景下
+ * 恢复为内容宽度，窄屏时交由外层 flex-wrap 将整组控件换行。
+ */
+.iot-list-page-pagination-controls > .t-pagination {
+  width: auto;
+  flex-shrink: 0;
+}
+
+/**
+ * 设备批量操作页的 IESS / AWS 模块切换使用 medium filled RadioGroup。
+ * Figma 组件以 component-stroke 作为组底色；同时将 TDesign medium 默认左右各
+ * 16px 的内边距收紧为 8px，避免短标签的选中滑块留白过大。
+ * 滑块尺寸由 RadioGroup 按按钮宽度自动重算，无需覆盖选中态颜色或尺寸。
+ */
+.batch-operations-module-radio.t-radio-group.t-size-m {
+  column-gap: var(--td-comp-margin-xs);
+  background-color: var(--component-stroke);
+}
+
+.batch-operations-module-radio.t-radio-group.t-size-m .t-radio-button {
+  padding-inline: var(--td-comp-paddingLR-s);
+}
+
+/**
+ * 设备批量操作页在 IoT 列表模板中保留固定 52px 的选择列。
+ * 模板数据列默认 24px 水平内边距不适用于仅承载 16px Checkbox 的窄列。
+ */
+.iot-list-page-table .t-table__header th.batch-operations-selection-column,
+.iot-list-page-table
+  .t-table__body
+  > tr:not(.t-table__empty-row)
+  > td.batch-operations-selection-column {
+  padding-right: 12px;
+  padding-left: 12px;
+  text-align: center;
+}
+
+/**
+ * 设备批量操作页详细查询面板的连续 Select 组合。
+ *
+ * IOT Delivery 详细查询稿将同组 Select 无间距拼接，相邻描边重叠 1px，
+ * 仅首尾保留外侧圆角。focus-within 提升当前 Select，确保品牌色焦点描边
+ * 不会被相邻控件覆盖。窄屏恢复为有间距的纵向独立控件。
+ */
+.batch-operations-filter-chain {
+  display: flex;
+  min-width: 0;
+  align-items: stretch;
+}
+
+.batch-operations-filter-chain > .t-select__wrap {
+  position: relative;
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.batch-operations-filter-chain > .t-select__wrap + .t-select__wrap {
+  margin-left: -1px;
+}
+
+.batch-operations-filter-chain > .t-select__wrap:focus-within {
+  z-index: 1;
+}
+
+.batch-operations-filter-chain > .t-select__wrap .t-input {
+  border-radius: 0;
+}
+
+.batch-operations-filter-chain > .t-select__wrap:first-child .t-input {
+  border-radius: var(--td-radius-default) 0 0 var(--td-radius-default);
+}
+
+.batch-operations-filter-chain > .t-select__wrap:last-child .t-input {
+  border-radius: 0 var(--td-radius-default) var(--td-radius-default) 0;
+}
+
+@media (max-width: 767px) {
+  .batch-operations-filter-chain {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .batch-operations-filter-chain > .t-select__wrap + .t-select__wrap {
+    margin-left: 0;
+  }
+
+  .batch-operations-filter-chain > .t-select__wrap .t-input {
+    border-radius: var(--td-radius-default);
+  }
+}

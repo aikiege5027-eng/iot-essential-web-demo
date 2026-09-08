@@ -1,13 +1,28 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowRightLeft, ChevronLeft, ChevronRight, RotateCw } from "lucide-react";
+import { ArrowRightLeft } from "lucide-react";
 import figmaSidebarPaths from "../../imports/IotWebTemplateUntitledEmbedFilterButton3StateCollapsed/svg-slzfzlnwha";
 import svgPaths from "../../imports/Events-1/svg-sie2nzrjk8";
 import accountMenuSvgPaths from "../../imports/个人信息/svg-8fxy3hc6dq";
-import sideNavigationSvgPaths from "../../imports/SideNavigation/svg-as7mhjg5sg";
-import managementSideNavigationSvgPaths from "../../imports/SideNavigation-1/svg-orisdonto9";
-import technicianSideNavigationSvgPaths from "../../imports/SideNavigation-2/svg-9ivxva3ssw";
+// 直接从具体模块导入而非 layout/index 桶文件：EventsApp 只用到这两个组件，
+// 走桶文件会把 AppShell、nav-items 一并带进产物
+import { SideNav, type SideNavEntry } from "./layout/SideNav";
+import { TopNav } from "./layout/TopNav";
+import {
+  NavOperationsIcon,
+  NavOverviewIcon,
+  NavPermissionIcon,
+  NavProvisioningIcon,
+  NavSearchIcon,
+  NavSettingsIcon,
+  NavSimCardIcon,
+} from "./icons/nav-icons";
 import { ACCOUNTS, type AppAccount } from "../data/accounts";
 import type { AppNotification, UpgradeApproval } from "../data/approvalWorkflow";
+import {
+  DEFAULT_BATCH_DISPATCH_RULE,
+  DEFAULT_NKE_FLOOR_LEARNING_RULE,
+  DEFAULT_UNBIND_APPROVAL_RULE,
+} from "../data/ruleConfiguration";
 import { LiveDataContent } from "./LiveDataContent";
 import { DeviceArchiveContent } from "./DeviceArchiveContent";
 import BatchOperationsContent from "./BatchOperationsContent";
@@ -15,15 +30,6 @@ import ApprovalCenterContent from "./ApprovalCenterContent";
 import TaskListContent from "./TaskListContent";
 import RuleConfigurationContent from "./RuleConfigurationContent";
 import TaskProgressContent from "./TaskProgressContent";
-
-function PageNavigationControls({ onBack, onForward, onRefresh }: { onBack: () => void; onForward: () => void; onRefresh: () => void }) {
-  const controls = [
-    { label: "返回", icon: ChevronLeft, onClick: onBack },
-    { label: "前进", icon: ChevronRight, onClick: onForward },
-    { label: "刷新", icon: RotateCw, onClick: onRefresh },
-  ];
-  return <div className="ml-8 flex items-center gap-1 border-l border-[#e7e7e7] pl-4">{controls.map(({ label, icon: Icon, onClick }) => <button key={label} type="button" aria-label={label} title={label} onClick={onClick} className="flex size-7 items-center justify-center rounded-[4px] text-[#141414] hover:bg-[#f5f7fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1450f5]"><Icon className="size-4 stroke-[1.5]" /></button>)}</div>;
-}
 
 const translations = {
   en: {
@@ -316,82 +322,7 @@ const translations = {
   },
 };
 
-function Content() {
-  return (
-    <div className="content-stretch flex gap-[24px] h-[32px] items-center relative shrink-0" data-name="content">
-      <div className="content-stretch flex flex-col items-start overflow-clip relative shrink-0" data-name=".master/item headerMenu/menuLogo">
-        <div className="content-stretch flex h-[28px] items-center overflow-clip relative shrink-0" data-name="item/menuLogo/baseLogo-light">
-          <div className="h-[28px] relative shrink-0 w-[71.6px]" data-name="KONE">
-            <svg className="absolute block inset-0 size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 71.6004 28">
-              <g id="Vector">
-                <path d={svgPaths.p32cebaf0} fill="var(--fill-0, #1450F5)" />
-                <path d={svgPaths.p373e9b00} fill="var(--fill-0, #1450F5)" />
-                <path d={svgPaths.p1adcf9f0} fill="var(--fill-0, #1450F5)" />
-                <path d={svgPaths.p10952800} fill="var(--fill-0, #1450F5)" />
-                <path d={svgPaths.p2a30a00} fill="var(--fill-0, #1450F5)" />
-              </g>
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Frame2() {
-  return (
-    <div className="content-stretch flex gap-[24px] items-center relative shrink-0">
-      <Content />
-      <p className="font-['PingFang_SC:Semibold',sans-serif] leading-[26px] not-italic relative shrink-0 text-[#141414] text-[18px] text-center whitespace-nowrap">IOT Essential</p>
-    </div>
-  );
-}
-
-function Frame1() {
-  return (
-    <div className="content-stretch flex gap-[8px] items-center relative shrink-0">
-      <div className="overflow-clip relative rounded-[4px] shrink-0 size-[32px]" data-name="Button 按钮">
-        <div className="-translate-x-1/2 -translate-y-1/2 absolute left-1/2 size-[16px] top-1/2" data-name="chevron-left">
-          <div className="absolute flex inset-[18.75%_31.25%_18.75%_33.98%] items-center justify-center" style={{ containerType: "size" }}>
-            <div className="-rotate-180 -scale-x-100 flex-none h-[100cqh] w-[100cqw]">
-              <div className="relative size-full" data-name="Union">
-                <svg className="absolute block inset-0 size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 5.56346 10">
-                  <path clipRule="evenodd" d={svgPaths.p2f116d80} fill="var(--fill-0, #141414)" fillRule="evenodd" id="Union" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="overflow-clip relative rounded-[4px] shrink-0 size-[32px]" data-name="Button 按钮">
-        <div className="-translate-x-1/2 -translate-y-1/2 absolute left-1/2 overflow-clip size-[16px] top-1/2" data-name="chevron-right">
-          <div className="absolute flex inset-[19.27%_33.98%_18.23%_31.25%] items-center justify-center" style={{ containerType: "size" }}>
-            <div className="flex-none h-[100cqh] rotate-180 w-[100cqw]">
-              <div className="relative size-full" data-name="Union">
-                <svg className="absolute block inset-0 size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 5.56346 10">
-                  <path clipRule="evenodd" d={svgPaths.p2f116d80} fill="var(--fill-0, #959595)" fillRule="evenodd" id="Union" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="overflow-clip relative rounded-[4px] shrink-0 size-[32px]" data-name="Button 按钮">
-        <div className="-translate-x-1/2 -translate-y-1/2 absolute left-1/2 size-[16px] top-1/2" data-name="refresh-2">
-          <div className="absolute inset-[6.25%]" data-name="Union">
-            <svg className="absolute block inset-0 size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 14 14">
-              <path clipRule="evenodd" d={svgPaths.p8641600} fill="var(--fill-0, #141414)" fillRule="evenodd" id="Union" />
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Frame() {
-  return <Frame2 />;
-}
+/* Frame2（logo + 产品名）已由设计系统的 TopNav 承担，此处不再重复实现。 */
 
 function HeaderActionIcon({ children, label, onClick }: { children: React.ReactNode; label: string; onClick?: () => void }) {
   const Component = onClick ? "button" : "div";
@@ -504,105 +435,90 @@ function Frame3({ language, onLanguageChange, user, onLogout, onSwitchAccount, t
   </div>;
 }
 
-type SidebarIconName =
-  | "overview"
-  | "search"
-  | "provisioning"
-  | "iot"
-  | "permissions"
-  | "operation-history"
-  | "approval-center"
-  | "monitoring"
-  | "batch-operations"
-  | "feedback"
-  | "settings";
+/**
+ * 构建侧边导航数据。
+ *
+ * 导航渲染已交给设计系统的 SideNav 组件，这里只负责「有哪些项」：
+ *   - item id 是页面分发的契约（activeSidebarItem），不可改动
+ *   - label 沿用本文件的 translations，保持与迁移前逐字一致
+ *   - 可见性按 visibleItems（角色权限）过滤，逻辑与迁移前完全相同
+ *
+ * 说明：迁移前这里还有 managerNavigation / technicianNavigation 两个开关，
+ * 用于在三份 Figma 导出的图标路径之间切换。经比对，三份路径数据完全相同，
+ * 该切换不产生任何视觉差异，故一并移除，图标统一走 icons/nav-icons。
+ */
+export function buildSideNavItems(t: typeof translations.en, visibleItems: string[]): SideNavEntry[] {
+  const canShow = (id: string) => visibleItems.includes(id);
 
-function FigmaSidebarIcon({ name, className, managerNavigation = false, technicianNavigation = false }: { name: SidebarIconName; className?: string; managerNavigation?: boolean; technicianNavigation?: boolean }) {
-  const svgClass = `size-5 shrink-0 ${className || ""}`;
+  const topLevel = [
+    { id: 'overview', label: t.equipmentOverview, icon: <NavOverviewIcon /> },
+    { id: 'search', label: t.equipmentSearch, icon: <NavSearchIcon /> },
+    { id: 'provisioning', label: t.provisioning, icon: <NavProvisioningIcon /> },
+  ];
 
-  switch (name) {
-    case "overview":
-      return <svg aria-hidden="true" className={svgClass} fill="none" viewBox="0 0 20 20"><path d={managerNavigation ? managementSideNavigationSvgPaths.p315b5a80 : sideNavigationSvgPaths.p315b5a80} fill="currentColor" transform="translate(2.5 2.07)" /></svg>;
-    case "search":
-      return <svg aria-hidden="true" className={svgClass} fill="none" viewBox="0 0 20 20"><path clipRule="evenodd" d={technicianNavigation ? technicianSideNavigationSvgPaths.p3b76af00 : managerNavigation ? managementSideNavigationSvgPaths.p3b76af00 : sideNavigationSvgPaths.p3b76af00} fill="currentColor" fillRule="evenodd" transform="translate(2.5 2.5)" /></svg>;
-    case "provisioning":
-      return <svg aria-hidden="true" className={svgClass} fill="none" viewBox="0 0 20 20"><g fill="currentColor" transform="translate(1.875 2.5)"><path d={technicianNavigation ? technicianSideNavigationSvgPaths.p28f67f40 : managerNavigation ? managementSideNavigationSvgPaths.p28f67f40 : sideNavigationSvgPaths.p28f67f40} /><path d={technicianNavigation ? technicianSideNavigationSvgPaths.p13d65580 : managerNavigation ? managementSideNavigationSvgPaths.p13d65580 : sideNavigationSvgPaths.p13d65580} /><path d={technicianNavigation ? technicianSideNavigationSvgPaths.p1b60f080 : managerNavigation ? managementSideNavigationSvgPaths.p1b60f080 : sideNavigationSvgPaths.p1b60f080} /><path d={technicianNavigation ? technicianSideNavigationSvgPaths.p231bb80 : managerNavigation ? managementSideNavigationSvgPaths.p231bb80 : sideNavigationSvgPaths.p231bb80} /></g></svg>;
-    case "iot":
-      return <svg aria-hidden="true" className={svgClass} fill="none" viewBox="0 0 20 20"><g fill="currentColor" transform="translate(1.25 3.75)"><path d={managerNavigation ? managementSideNavigationSvgPaths.p3c437a30 : sideNavigationSvgPaths.p3c437a30} /><path d={managerNavigation ? managementSideNavigationSvgPaths.p38607500 : sideNavigationSvgPaths.p38607500} /></g></svg>;
-    case "permissions":
-      return <svg aria-hidden="true" className={svgClass} fill="none" viewBox="0 0 20 20"><path d={sideNavigationSvgPaths.p11290b00} fill="currentColor" transform="translate(.625 1.25)" /></svg>;
-    case "operation-history":
-      return <svg aria-hidden="true" className={svgClass} fill="none" viewBox="0 0 20 20"><path clipRule="evenodd" d={figmaSidebarPaths.p34913e80} fill="currentColor" fillRule="evenodd" transform="translate(3.125 1.875)" /></svg>;
-    case "approval-center":
-      return <svg aria-hidden="true" className={svgClass} fill="none" viewBox="0 0 20 20"><path d="M10 2.25a3.25 3.25 0 1 1 0 6.5 3.25 3.25 0 0 1 0-6.5Zm0 1.25a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm-5.5 6h11v2.2l-1.25 1v3.3H5.75v-3.3l-1.25-1V9.5Zm1.25 1.25v.35l1.25 1v2.4h6v-2.4l1.25-1v-.35h-8.5ZM8.4 12h3.2v1.25H8.4V12Z" fill="currentColor" /></svg>;
-    case "monitoring":
-      return <svg aria-hidden="true" className={svgClass} fill="none" viewBox="0 0 20 20"><g fill="currentColor" transform="translate(2.222 2.222)"><path d={sideNavigationSvgPaths.p98443b0} /><path d={sideNavigationSvgPaths.p3239d500} /><path d={sideNavigationSvgPaths.p53904f0} /></g></svg>;
-    case "batch-operations":
-      return <svg aria-hidden="true" className={svgClass} fill="none" viewBox="0 0 20 20"><path clipRule="evenodd" d={figmaSidebarPaths.pb1de680} fill="currentColor" fillRule="evenodd" transform="translate(3.125 1.875)" /></svg>;
-    case "feedback":
-      return <svg aria-hidden="true" className={svgClass} fill="none" viewBox="0 0 20 20"><path clipRule="evenodd" d={figmaSidebarPaths.pc5545f0} fill="currentColor" fillRule="evenodd" transform="translate(3.75 2.5)" /></svg>;
-    case "settings":
-      return <svg aria-hidden="true" className={svgClass} fill="none" viewBox="0 0 20 20"><g fill="currentColor" transform="translate(2.422 1.443)"><path clipRule="evenodd" d={sideNavigationSvgPaths.p3b5d8600} fillRule="evenodd" /><path clipRule="evenodd" d={sideNavigationSvgPaths.p2b6e1c00} fillRule="evenodd" /></g></svg>;
+  const groups = [
+    {
+      id: 'iot', label: t.iotCardMgmt, icon: <NavSimCardIcon />,
+      children: [
+        { id: 'iot-card-query', label: t.iotCardQuery },
+        { id: 'iot-card-statistics', label: t.iotCardStatistics },
+      ],
+    },
+    {
+      // 迁移前该标题为硬编码中文，英文环境下同样显示「运维管理」。
+      // 设计稿 EN 变体也未翻译此项，此处保持原样以免改变现有内容。
+      id: 'operations', label: '运维管理', icon: <NavOperationsIcon />,
+      children: [
+        { id: 'batch-operations', label: t.deviceBatchOperations },
+        { id: 'monitoring', label: t.deviceOpsMonitoring },
+        { id: 'operation-history', label: t.operationHistory },
+        { id: 'feedback', label: t.userFeedbackManagement },
+      ],
+    },
+    {
+      id: 'permissions', label: t.permissionMgmt, icon: <NavPermissionIcon />,
+      children: [
+        { id: 'user-management', label: t.userManagement },
+        { id: 'role-management', label: t.roleManagement },
+      ],
+    },
+    {
+      id: 'settings', label: t.systemSettings, icon: <NavSettingsIcon />,
+      children: [
+        { id: 'hardware-types', label: t.hardwareTypeManagement },
+        { id: 'software-versions', label: t.softwareVersionManagement },
+        { id: 'software-packages', label: t.softwarePackageManagement },
+        { id: 'profile-management', label: t.profileManagement },
+        // 同样是迁移前的硬编码中文，保持不变
+        { id: 'fault-management', label: 'Fault信息管理' },
+        { id: 'rule-configuration', label: '规则配置' },
+      ],
+    },
+  ];
+
+  // 管理员视角只展示物联卡分组，与迁移前的判定条件一致
+  const isManagementNavigation =
+    canShow('iot-card-query') && visibleItems.length === 5 && !canShow('monitoring');
+  const displayedGroups = isManagementNavigation
+    ? groups.filter((group) => group.id === 'iot')
+    : groups;
+
+  const items: SideNavEntry[] = topLevel.filter((item) => canShow(item.id));
+
+  for (const group of displayedGroups) {
+    const groupVisible = canShow(group.id) || group.children.some((child) => canShow(child.id));
+    if (!groupVisible) continue;
+    items.push({
+      id: group.id,
+      label: group.label,
+      icon: group.icon,
+      children: group.children.filter((child) => canShow(child.id)),
+    });
   }
+
+  return items;
 }
 
-function SidebarChevron({ expanded, managerNavigation = false }: { expanded: boolean; managerNavigation?: boolean }) {
-  return (
-    <svg aria-hidden="true" className={`size-4 shrink-0 transition-transform ${expanded ? "" : "rotate-180"}`} fill="none" viewBox="0 0 16 16">
-      <path d={managerNavigation ? managementSideNavigationSvgPaths.p2bdcce80 : sideNavigationSvgPaths.p2bdcce80} fill="currentColor" transform="translate(3.54 5.31)" />
-    </svg>
-  );
-}
-
-type SidebarMenuItem = { id: string; label: string; icon: SidebarIconName };
-type SidebarMenuGroup = SidebarMenuItem & { children: SidebarMenuItem[] };
-
-function MenuItem({ t, isCollapsed, activeItem, onItemChange, visibleItems }: { t: typeof translations.en; isCollapsed: boolean; activeItem: string | null; onItemChange: (item: string) => void; visibleItems: string[] }) {
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({ iot: true, operations: true, permissions: true, settings: true });
-  const toggleGroup = (group: string) => setExpandedGroups((current) => ({ ...current, [group]: !current[group] }));
-
-  const topLevelItems: SidebarMenuItem[] = [
-    { id: "overview", label: t.equipmentOverview, icon: "overview" },
-    { id: "search", label: t.equipmentSearch, icon: "search" },
-    { id: "provisioning", label: t.provisioning, icon: "provisioning" },
-  ];
-  const groups: SidebarMenuGroup[] = [
-    { id: "iot", label: t.iotCardMgmt, icon: "iot", children: [{ id: "iot-card-query", label: t.iotCardQuery, icon: "iot" }, { id: "iot-card-statistics", label: t.iotCardStatistics, icon: "iot" }] },
-    { id: "operations", label: "运维管理", icon: "monitoring", children: [{ id: "batch-operations", label: t.deviceBatchOperations, icon: "batch-operations" }, { id: "monitoring", label: t.deviceOpsMonitoring, icon: "monitoring" }, { id: "operation-history", label: t.operationHistory, icon: "operation-history" }, { id: "feedback", label: t.userFeedbackManagement, icon: "feedback" }] },
-    { id: "permissions", label: t.permissionMgmt, icon: "permissions", children: [{ id: "user-management", label: t.userManagement, icon: "permissions" }, { id: "role-management", label: t.roleManagement, icon: "permissions" }] },
-    { id: "settings", label: t.systemSettings, icon: "settings", children: [{ id: "hardware-types", label: t.hardwareTypeManagement, icon: "settings" }, { id: "software-versions", label: t.softwareVersionManagement, icon: "settings" }, { id: "software-packages", label: t.softwarePackageManagement, icon: "settings" }, { id: "profile-management", label: t.profileManagement, icon: "settings" }, { id: "fault-management", label: "Fault信息管理", icon: "settings" }, { id: "rule-configuration", label: "规则配置", icon: "settings" }] },
-  ];
-  const isManagementNavigation = visibleItems.includes("iot-card-query") && visibleItems.length === 5 && !visibleItems.includes("monitoring");
-  const isTechnicianNavigation = visibleItems.length === 2 && visibleItems.includes("search") && visibleItems.includes("provisioning");
-  const displayedTopLevelItems = topLevelItems;
-  const displayedGroups = isManagementNavigation ? groups.filter((group) => group.id === "iot") : groups;
-  const isGroupVisible = (group: SidebarMenuGroup) => visibleItems.includes(group.id) || group.children.some((child) => visibleItems.includes(child.id));
-  const renderItem = (item: SidebarMenuItem) => {
-    const isActive = activeItem === item.id;
-    return <button key={item.id} onClick={() => onItemChange(item.id)} title={isCollapsed ? item.label : undefined} className={`group flex min-h-[36px] w-full items-center gap-2 rounded-[6px] border-0 px-4 py-[7px] text-left font-['PingFang_SC:Regular',sans-serif] font-normal text-[14px] leading-[22px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#1450f5] ${isCollapsed ? "justify-center px-2" : ""} ${isActive ? "bg-[#f3f6fe] text-[#1450f5]" : "bg-white text-[#676a72] hover:bg-[#f5f7fa] hover:text-[#141414]"}`}><FigmaSidebarIcon name={item.icon} managerNavigation={isManagementNavigation} technicianNavigation={isTechnicianNavigation} />{!isCollapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}</button>;
-  };
-
-  return <nav aria-label="Primary navigation" className="w-full px-2 font-['PingFang_SC:Regular',sans-serif] font-normal">
-    <div className={`flex flex-col gap-1 ${isCollapsed ? "items-center" : ""}`}>
-      {displayedTopLevelItems.filter((item) => visibleItems.includes(item.id)).map(renderItem)}
-      {displayedGroups.filter(isGroupVisible).map((group) => {
-        const isExpanded = expandedGroups[group.id];
-        return <div key={group.id} className="w-full">
-          <button onClick={() => !isCollapsed && toggleGroup(group.id)} title={isCollapsed ? group.label : undefined} className={`group flex min-h-[36px] w-full items-center gap-2 rounded-[6px] border-0 px-4 py-[7px] text-left font-['PingFang_SC:Regular',sans-serif] font-normal text-[14px] leading-[22px] text-[#141414] transition-colors hover:bg-[#f5f7fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#1450f5] ${isCollapsed ? "justify-center px-2" : ""}`}><FigmaSidebarIcon name={group.icon} managerNavigation={isManagementNavigation} />{!isCollapsed && <span className="min-w-0 flex-1 truncate">{group.label}</span>}{!isCollapsed && <SidebarChevron expanded={isExpanded} managerNavigation={isManagementNavigation} />}</button>
-          {!isCollapsed && isExpanded && <div className="flex flex-col gap-1 py-1">{group.children.filter((child) => visibleItems.includes(child.id)).map((child) => <button key={child.id} onClick={() => onItemChange(child.id)} className={`min-h-[36px] w-full rounded-[6px] border-0 py-[7px] pl-11 pr-4 text-left font-['PingFang_SC:Regular',sans-serif] font-normal text-[14px] leading-[22px] transition-colors ${activeItem === child.id ? "bg-[#f3f6fe] text-[#1450f5]" : "text-[#676a72] hover:bg-[#f5f7fa] hover:text-[#141414]"}`}>{child.label}</button>)}</div>}
-        </div>;
-      })}
-    </div>
-  </nav>;
-}
-
-function Content1({ t, isCollapsed, activeItem, onItemChange, visibleItems }: { t: typeof translations.en; isCollapsed: boolean; activeItem: string | null; onItemChange: (item: string) => void; visibleItems: string[] }) {
-  return (
-    <div className="content-stretch flex min-h-0 flex-1 flex-col gap-[16px] items-start overflow-y-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden w-full" data-name="content">
-      <MenuItem t={t} isCollapsed={isCollapsed} activeItem={activeItem} onItemChange={onItemChange} visibleItems={visibleItems} />
-    </div>
-  );
-}
 
 function Frame5() {
   return (
@@ -2749,6 +2665,9 @@ export default function Events({
   const [activeSidebarItem, setActiveSidebarItem] = useState<string | null>(null);
   const [isTaskProgressPage, setIsTaskProgressPage] = useState(false);
   const [progressRefreshKey, setProgressRefreshKey] = useState(0);
+  const [batchDispatchRule, setBatchDispatchRule] = useState(DEFAULT_BATCH_DISPATCH_RULE);
+  const [unbindApprovalRule, setUnbindApprovalRule] = useState(DEFAULT_UNBIND_APPROVAL_RULE);
+  const [nkeFloorLearningRule, setNkeFloorLearningRule] = useState(DEFAULT_NKE_FLOOR_LEARNING_RULE);
   const [approvalTab, setApprovalTab] = useState<"initiated" | "pending">("initiated");
   const tabRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -2822,49 +2741,39 @@ export default function Events({
 
   return (
     <div className="bg-[#f5f7fa] relative size-full flex" data-name="Events">
-      {/* Top Navigation - Fixed */}
-      <div className="fixed bg-white flex h-[56px] items-center justify-between left-0 right-0 px-[24px] py-[12px] top-0 z-30" data-name="headerMenu 顶部菜单导航">
-        <div aria-hidden="true" className="absolute border-[#e7e7e7] border-b border-solid inset-0 pointer-events-none" />
-        <div className="flex min-w-0 items-center">
-          <Frame />
-          {isTaskProgressPage && <PageNavigationControls onBack={() => setIsTaskProgressPage(false)} onForward={() => setIsTaskProgressPage(true)} onRefresh={() => setProgressRefreshKey((current) => current + 1)} />}
-          <p className="ml-[28px] rounded-[4px] border border-[#e7e7e7] bg-[#f7f7f7] px-2 py-1 whitespace-nowrap text-[12px] leading-5 text-[#a1a4aa]">本 Demo 仅演示交互与内容，开发样式请以 Figma 设计交付为准，勿直接基于 Demo 开发。</p>
-        </div>
-        <Frame3 language={language} onLanguageChange={toggleLanguage} user={displayUser} onLogout={onLogout} onSwitchAccount={onSwitchAccount} taskBadgeCount={taskBadgeCount ?? 2} notifications={notifications ?? []} onMarkNotificationsRead={() => onMarkNotificationsRead?.()} onOpenApprovalCenter={() => { setIsTaskProgressPage(false); setActiveSidebarItem("approval-center"); setApprovalTab("pending"); }} onOpenTaskList={() => { setIsTaskProgressPage(false); setActiveSidebarItem("task-list"); }} onOpenMessageCenter={() => { setIsTaskProgressPage(false); setActiveSidebarItem("message-center"); }} />
-      </div>
-
-      {/* Left Sidebar - Fixed, collapsible */}
-      <div
-        className="fixed bg-white flex flex-col items-start left-0 overflow-hidden pt-[8px] top-[56px] bottom-0 z-20 transition-[width] duration-300 ease-in-out"
-        style={{ width: sidebarWidth }}
-        data-name="Menu 侧边菜单导航"
+      {/* 顶部导航 —— 设计系统组件，固定定位由外部 className 提供。
+          任务进度视图下开启 pageControls（返回/前进/刷新），
+          这组控件在顶栏中是可选元素，其余视图不显示。
+          右区的消息中心与账号菜单属于业务功能，通过 trailing 插槽传入。 */}
+      <TopNav
+        className="fixed left-0 right-0 top-0 z-40"
+        pageControls={isTaskProgressPage ? {
+          onBack: () => setIsTaskProgressPage(false),
+          onForward: () => setIsTaskProgressPage(true),
+          onRefresh: () => setProgressRefreshKey((current) => current + 1),
+          labels: language === 'en'
+            ? { back: 'Back', forward: 'Forward', refresh: 'Refresh' }
+            : { back: '返回', forward: '前进', refresh: '刷新' },
+        } : undefined}
+        trailing={<Frame3 language={language} onLanguageChange={toggleLanguage} user={displayUser} onLogout={onLogout} onSwitchAccount={onSwitchAccount} taskBadgeCount={taskBadgeCount ?? 2} notifications={notifications ?? []} onMarkNotificationsRead={() => onMarkNotificationsRead?.()} onOpenApprovalCenter={() => { setIsTaskProgressPage(false); setActiveSidebarItem("approval-center"); setApprovalTab("pending"); }} onOpenTaskList={() => { setIsTaskProgressPage(false); setActiveSidebarItem("task-list"); }} onOpenMessageCenter={() => { setIsTaskProgressPage(false); setActiveSidebarItem("message-center"); }} />}
       >
-        <Content1 t={t} isCollapsed={isCollapsed} activeItem={activeSidebarItem} onItemChange={handleSidebarItemChange} visibleItems={displayUser.sidebarPermissions} />
-        <div className="bg-white h-[56px] relative shrink-0 w-full" data-name=".master/item normalMenu/menuOperations">
-          <div aria-hidden="true" className="absolute border-[#dfe1e8] border-solid border-t inset-0 pointer-events-none" />
-          <div className="flex flex-row items-center size-full">
-            <button
-              onClick={() => setIsCollapsed(prev => !prev)}
-              className={`content-stretch flex gap-[8px] items-center ${isCollapsed ? 'justify-center px-[8px]' : 'px-[16px]'} py-[14px] relative size-full bg-transparent border-0 cursor-pointer group`}
-              title={isCollapsed ? (language === 'en' ? 'Expand sidebar' : '展开侧边栏') : (language === 'en' ? 'Collapse sidebar' : '收起侧边栏')}
-            >
-              <div className="overflow-clip relative rounded-[4px] shrink-0 size-[32px] group-hover:bg-[#f0f0f0] transition-colors" data-name="Button 按钮">
-                <div className="-translate-x-1/2 -translate-y-1/2 absolute left-1/2 size-[16px] top-1/2" data-name="view-list">
-                  <div className="absolute inset-[21.88%_12.5%]" data-name="Union">
-                    <svg className="absolute block inset-0 size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 12 9">
-                      <g id="Union">
-                        <path d="M12 1H0V0H12V1Z" fill="var(--fill-0, #141414)" />
-                        <path d="M12 5H0V4H12V5Z" fill="var(--fill-0, #141414)" />
-                        <path d="M0 9H12V8H0V9Z" fill="var(--fill-0, #141414)" />
-                      </g>
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
+        <p className="rounded-sm border border-stroke bg-secondarycontainer px-2 py-1 whitespace-nowrap text-foot12 text-disabled">本 Demo 仅演示交互与内容，开发样式请以 Figma 设计交付为准，勿直接基于 Demo 开发。</p>
+      </TopNav>
+
+      {/* 侧边导航 —— 设计系统组件。宽度（展开 232 / 折叠 64）由组件内部控制，
+          主内容区的 marginLeft 仍用 sidebarWidth 保持同步。 */}
+      <SideNav
+        className="fixed left-0 top-[56px] bottom-0 z-20 transition-[width] duration-300 ease-in-out"
+        items={buildSideNavItems(t, displayUser.sidebarPermissions)}
+        activeId={activeSidebarItem}
+        onSelect={handleSidebarItemChange}
+        collapsed={isCollapsed}
+        onToggleCollapsed={() => setIsCollapsed((prev) => !prev)}
+        ariaLabel={language === 'en' ? 'Primary navigation' : '主导航'}
+        collapseLabels={language === 'en'
+          ? { expand: 'Expand sidebar', collapse: 'Collapse sidebar' }
+          : { expand: '展开侧边栏', collapse: '收起侧边栏' }}
+      />
 
       {/* Main Content Area - Scrollable, margin matches sidebar width */}
       <div
@@ -2874,22 +2783,24 @@ export default function Events({
       >
         <div className="flex min-h-[calc(100vh-56px)] flex-col bg-[#f5f7fa]">
           {isTaskProgressPage ? (
-            <TaskProgressContent key={progressRefreshKey} language={language} />
+            <TaskProgressContent key={progressRefreshKey} language={language} batchRule={batchDispatchRule} />
           ) : isBatchOperationsPage ? (
-            <div className="mx-[16px] mt-[20px] md:mx-[24px]">
-              <BatchOperationsContent language={language} onSubmitForApproval={(submission) => onSubmitUpgradeApproval?.({ initiator: displayUser, ...submission })} />
-            </div>
+            <BatchOperationsContent language={language} onSubmitForApproval={(submission) => onSubmitUpgradeApproval?.({ initiator: displayUser, ...submission })} />
           ) : isApprovalCenterPage ? (
-            <div className="mx-[16px] mt-[20px] md:mx-[24px]">
-              <ApprovalCenterContent language={language} currentUser={displayUser} approvals={approvals ?? []} defaultTab={approvalTab} onReview={(id, result, reviewRemark) => onReviewUpgradeApproval?.(id, result, reviewRemark)} onReapply={(id, submissionRemark) => onReapplyUpgradeApproval?.(id, submissionRemark)} />
-            </div>
+            <ApprovalCenterContent language={language} currentUser={displayUser} approvals={approvals ?? []} defaultTab={approvalTab} onReview={(id, result, reviewRemark) => onReviewUpgradeApproval?.(id, result, reviewRemark)} onReapply={(id, submissionRemark) => onReapplyUpgradeApproval?.(id, submissionRemark)} />
           ) : isTaskListPage ? (
-            <div className="mx-[16px] mt-[20px] md:mx-[24px]">
-              <TaskListContent language={language} approvals={approvals ?? []} onOpenTaskProgress={() => { setIsTaskProgressPage(true); scrollContainerRef.current?.scrollTo({ top: 0 }); }} />
-            </div>
+            <TaskListContent language={language} approvals={approvals ?? []} onOpenTaskProgress={() => { setIsTaskProgressPage(true); scrollContainerRef.current?.scrollTo({ top: 0 }); }} />
           ) : isRuleConfigurationPage ? (
             <div className="mx-[16px] mt-[20px] md:mx-[24px]">
-              <RuleConfigurationContent language={language} />
+              <RuleConfigurationContent
+                language={language}
+                batchRule={batchDispatchRule}
+                unbindRule={unbindApprovalRule}
+                nkeRule={nkeFloorLearningRule}
+                onSaveBatchRule={setBatchDispatchRule}
+                onSaveUnbindRule={setUnbindApprovalRule}
+                onSaveNkeRule={setNkeFloorLearningRule}
+              />
             </div>
           ) : isDevelopmentPage ? (
             <div className="mx-[16px] mt-[20px] md:mx-[24px]">

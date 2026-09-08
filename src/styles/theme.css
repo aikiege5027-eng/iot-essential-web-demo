@@ -1,84 +1,298 @@
+/**
+ * ============================================================================
+ * KONE IoT Design System — Color Tokens
+ * ============================================================================
+ * 单一事实来源：Figma「Design Token China」
+ *   颜色 https://www.figma.com/design/vuD3onrb6PS5UtMrGdgbrA/Design-Token-China?node-id=3477-5033
+ *
+ * 变量命名与 Figma 中的变量名保持逐字一致（--brand-color、--text-color-primary …），
+ * 这样设计师和开发讨论时用的是同一个词，不需要在两套命名之间做心算翻译。
+ * 请勿为了「更像 Tailwind」而重命名这些变量。
+ *
+ * 分三层，业务代码只允许消费第 2 层：
+ *   第 1 层  原子色阶     --brand-color / --success-color / …（含 hover/active/light 等状态）
+ *   第 2 层  语义 token   --text-color-* / --bg-color-* / --component-stroke / …
+ *   第 3 层  shadcn 桥接  把 shadcn/ui 的 --primary 等映射到第 1、2 层
+ */
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* ==========================================================================
+   * 第 1 层 · 原子色阶（Figma 官方值，勿改）
+   * ====================================================================== */
+
+  /* --- 品牌色 KONE Blue -------------------------------------------------- */
+  --brand-color: #1450f5;
+  --brand-color-hover: #4373f7;
+  --brand-color-active: #1444c8;
+  --brand-color-disabled: #a1b9fb;
+  --brand-color-light: #f3f6fe;
+  --brand-color-light-hover: #d0dcfd;
+  --brand-color-light-active: #a1b9fb;
+  --brand-color-light-disabled: #f3f6fe;
+  --brand-color-focus: #d0dcfd;
+
+  /* --- 成功 / 在线 / 已恢复 ---------------------------------------------- */
+  --success-color: #1ed273;
+  --success-color-hover: #4bdb8f;
+  --success-color-active: #16b662;
+  --success-color-disabled: #8ceeba;
+  --success-color-light: #dbfbea;
+  --success-color-focus: #b2f5d2;
+
+  /* --- 警告 / 已暂停 ----------------------------------------------------- */
+  --warning-color: #f98600;
+  --warning-color-hover: #ffb145;
+  --warning-color-active: #d97019;
+  --warning-color-disabled: #ffd18d;
+  --warning-color-light: #fff1db;
+  --warning-color-focus: #ffe1b3;
+
+  /* --- 错误 / 故障 / 告警 ------------------------------------------------ */
+  --error-color: #f51414;
+  --error-color-hover: #f74343;
+  --error-color-active: #c41010;
+  --error-color-disabled: #fba1a1;
+  --error-color-light: #fef3f3;
+  --error-color-focus: #fdd0d0;
+
+  /* --- 灰阶 -------------------------------------------------------------- */
+  --grey-400: #c8cad0;
+
+  /* ==========================================================================
+   * 第 2 层 · 语义 token —— 业务代码只用这一层
+   * ====================================================================== */
+
+  /* --- 文字 -------------------------------------------------------------- */
+  --text-color-primary: #141414;
+  --text-color-secondary: #676a72;
+  --text-color-placeholder: #8f9195;
+  --text-color-disabled: #abadb2;
+  --text-color-white: #ffffff;
+  --text-color-brand: #1450f5;
+  --text-color-link: #1450f5;
+
+  /* --- 背景：page < container < secondarycontainer < component ----------
+   * container         卡片、弹窗等「浮起」的容器
+   * secondarycontainer 容器内的次级分区
+   * component         输入框、按钮底等控件自身的底色 */
+  --bg-color-page: #f5f7fa;
+  --bg-color-container: #ffffff;
+  --bg-color-container-hover: #f5f7fa;
+  --bg-color-container-active: #dfe1e8;
+  --bg-color-secondarycontainer: #f5f7fa;
+  --bg-color-secondarycontainer-hover: #dfe1e8;
+  --bg-color-secondarycontainer-active: #c8cad0;
+  --bg-color-component: #f2f4f7;
+  --bg-color-component-hover: #dfe1e8;
+  --bg-color-component-active: #8f9195;
+  --bg-color-component-disabled: #f2f4f7;
+
+  /* --- 描边 -------------------------------------------------------------
+   * stroke 分割线、卡片描边（弱）  border 输入框、可交互控件（强） */
+  --component-stroke: #dfe1e8;
+  --component-border: #c8cad0;
+
+  /* --- 图标 -------------------------------------------------------------- */
+  --icon-primary: #141414;
+  --icon-inactive: #8f9195;
+  --icon-warning: #f98600;
+
+  /* --- 状态面（状态圆点、徽章、时间轴色块的填充色）---------------------- */
+  --surface-success: var(--success-color);
+  --surface-warning: var(--warning-color);
+  --surface-alert: var(--error-color);
+
+  /* --- 状态文字：与基础状态色保持同源 ----------------------------------
+   * text-success / text-warning / text-error 与状态点、TDesign 状态色统一，
+   * 不再维护独立的压深文字色。 */
+  --text-color-success: var(--success-color);
+  --text-color-warning: var(--warning-color);
+  --text-color-error: var(--error-color);
+
+  /* ==========================================================================
+   * 圆角 / 阴影
+   * ======================================================================
+   * 设计稿实测为离散档位而非等比计算：4px(96 处) 6px(71) 8px(40) 3px(37) 12px(16)
+   * 阴影只有两级。命名用 --elevation-* 而非 --shadow-*，后者是 Tailwind v4
+   * 的保留命名空间，同名会在 @theme inline 里形成 var() 自引用。 */
+  --elevation-popover: 0 4px 5px rgba(0, 0, 0, 0.1);
+  --elevation-modal: 0 8px 10px rgba(0, 0, 0, 0.1);
+
+  /* ==========================================================================
+   * 第 3 层 · shadcn/ui 桥接
+   * ======================================================================
+   * shadcn 的 46 个组件依赖这组固定变量名，这里把它们接到官方 token 上。
+   * 修正记录：原值 --primary: #030213 是 Figma Make 的默认占位色（近黑），
+   * 与 KONE Blue #1450f5 无关，导致 shadcn 组件与业务组件长期两套视觉。 */
+  --background: var(--bg-color-container);
+  --foreground: var(--text-color-primary);
+  --card: var(--bg-color-container);
+  --card-foreground: var(--text-color-primary);
+  --popover: var(--bg-color-container);
+  --popover-foreground: var(--text-color-primary);
+  --primary: var(--brand-color);
+  --primary-foreground: var(--text-color-white);
+  --secondary: var(--bg-color-secondarycontainer);
+  --secondary-foreground: var(--text-color-primary);
+  --muted: var(--bg-color-component);
+  --muted-foreground: var(--text-color-secondary);
+  --accent: var(--brand-color-light);
+  --accent-foreground: var(--brand-color-active);
+  --destructive: var(--error-color);
+  --destructive-foreground: var(--text-color-white);
+  --border: var(--component-stroke);
+  --input: var(--component-border);
+  --input-background: var(--bg-color-container);
+  --switch-background: var(--grey-400);
+  --ring: var(--brand-color);
+
   --font-size: 16px;
-  --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
-  --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #030213;
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0.0058 264.53);
-  --secondary-foreground: #030213;
-  --muted: #ececf0;
-  --muted-foreground: #717182;
-  --accent: #e9ebef;
-  --accent-foreground: #030213;
-  --destructive: #d4183d;
-  --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
-  --input: transparent;
-  --input-background: #f3f3f5;
-  --switch-background: #cbced4;
-  --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  /* 圆角基准，保留仅为向后兼容；新代码请用 rounded-sm/md/lg 工具类 */
+  --radius: 6px;
+
+  /* 图表色板：以 KONE Blue 起头，其后为可区分的定性色序 */
+  --chart-1: #1450f5;
+  --chart-2: #1ed273;
+  --chart-3: #f98600;
+  --chart-4: #0dd2e1;
+  --chart-5: #722ed1;
+
+  --sidebar: var(--bg-color-container);
+  --sidebar-foreground: var(--text-color-primary);
+  --sidebar-primary: var(--brand-color);
+  --sidebar-primary-foreground: var(--text-color-white);
+  --sidebar-accent: var(--brand-color-light);
+  --sidebar-accent-foreground: var(--brand-color-active);
+  --sidebar-border: var(--component-stroke);
+  --sidebar-ring: var(--brand-color);
 }
 
+/**
+ * ============================================================================
+ * 暗色模式
+ * ============================================================================
+ * 【注意】以下暗色值不是 Figma 官方 token，是本仓库的推导值。
+ * Figma 颜色页存在暗色模式（--bg-color-container 在暗色下为 #141414），
+ * 但完整暗色映射尚未从设计侧取得，上线暗色前需与设计确认。
+ */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --text-color-primary: #ffffff;
+  --text-color-secondary: #b3b5ba;
+  --text-color-placeholder: #8f9195;
+  --text-color-disabled: #676a72;
+
+  --bg-color-page: #0d0d0d;
+  --bg-color-container: #141414;
+  --bg-color-container-hover: #1f1f1f;
+  --bg-color-container-active: #2b2b2b;
+  --bg-color-secondarycontainer: #1f1f1f;
+  --bg-color-secondarycontainer-hover: #2b2b2b;
+  --bg-color-secondarycontainer-active: #3a3a3a;
+  --bg-color-component: #1f1f1f;
+  --bg-color-component-hover: #2b2b2b;
+  --bg-color-component-active: #4a4a4a;
+  --bg-color-component-disabled: #1a1a1a;
+
+  --component-stroke: #2b2b2b;
+  --component-border: #43464f;
+
+  --icon-primary: #ffffff;
+  --icon-inactive: #8f9195;
+
+  /* 暗色下品牌与状态色需提亮，否则在深底上发闷 */
+  --brand-color: #4373f7;
+  --brand-color-hover: #6b8ffa;
+  --brand-color-active: #1450f5;
+  --brand-color-light: #16224a;
+  --brand-color-light-hover: #1d2c5e;
+  --brand-color-focus: #1d2c5e;
+
+  --success-color-light: #10331f;
+  --warning-color-light: #33240a;
+  --error-color-light: #3d1212;
+
+  /* 状态文字继续继承基础 success / warning / error，不在暗色下单独改色。 */
+
+  --elevation-popover: 0 4px 5px rgba(0, 0, 0, 0.4);
+  --elevation-modal: 0 8px 10px rgba(0, 0, 0, 0.5);
 }
 
+/**
+ * ============================================================================
+ * 暴露为 Tailwind 工具类
+ * ============================================================================
+ * 生成的用法示例：
+ *   text-primary  text-secondary  text-link          文字
+ *   bg-page  bg-container  bg-component             背景
+ *   border-stroke  border-component                 描边
+ *   text-success  text-warning  text-error          状态文字（与基础状态色一致）
+ *   bg-surface-success  bg-success-light            状态填充 / 浅底
+ */
 @theme inline {
+  /* --- 文字 --- */
+  --color-primary-text: var(--text-color-primary);
+  --color-secondary-text: var(--text-color-secondary);
+  --color-placeholder: var(--text-color-placeholder);
+  --color-disabled: var(--text-color-disabled);
+  --color-white-text: var(--text-color-white);
+  --color-brand: var(--text-color-brand);
+  --color-link: var(--text-color-link);
+  --color-success: var(--text-color-success);
+  --color-warning: var(--text-color-warning);
+  --color-error: var(--text-color-error);
+
+  /* --- 背景 --- */
+  --color-page: var(--bg-color-page);
+  --color-container: var(--bg-color-container);
+  --color-container-hover: var(--bg-color-container-hover);
+  --color-container-active: var(--bg-color-container-active);
+  --color-secondarycontainer: var(--bg-color-secondarycontainer);
+  --color-secondarycontainer-hover: var(--bg-color-secondarycontainer-hover);
+  --color-component: var(--bg-color-component);
+  --color-component-hover: var(--bg-color-component-hover);
+  --color-component-disabled: var(--bg-color-component-disabled);
+
+  /* --- 描边 --- */
+  --color-stroke: var(--component-stroke);
+  --color-component-border: var(--component-border);
+
+  /* --- 图标 --- */
+  --color-icon-primary: var(--icon-primary);
+  --color-icon-inactive: var(--icon-inactive);
+  --color-icon-warning: var(--icon-warning);
+
+  /* --- 状态填充与浅底 --- */
+  --color-surface-success: var(--surface-success);
+  --color-surface-warning: var(--surface-warning);
+  --color-surface-alert: var(--surface-alert);
+  /* 承载白色文字的红底（计数徽标等）。
+   * --surface-alert #f51414 上的白字仅 4.21:1，未达 12px 文字的 AA 阈值；
+   * --error-color-active #c41010 为 6.12:1，且是官方色阶内的既有值。 */
+  --color-error-active: var(--error-color-active);
+  --color-success-light: var(--success-color-light);
+  --color-warning-light: var(--warning-color-light);
+  --color-error-light: var(--error-color-light);
+  --color-brand-light: var(--brand-color-light);
+
+  /* focus 档同时也是「浅底提示块」的天然描边色（浅底 + 同色系稍深描边） */
+  --color-success-focus: var(--success-color-focus);
+  --color-warning-focus: var(--warning-color-focus);
+  --color-error-focus: var(--error-color-focus);
+
+  /* --- 品牌色阶 --- */
+  --color-brand-base: var(--brand-color);
+  --color-brand-hover: var(--brand-color-hover);
+  --color-brand-active: var(--brand-color-active);
+  --color-brand-disabled: var(--brand-color-disabled);
+  --color-brand-focus: var(--brand-color-focus);
+
+  /* --- shadcn/ui 桥接（勿删，46 个组件依赖）--- */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -105,10 +319,6 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -117,6 +327,17 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* --- 圆角（设计稿实测档位）--- */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* --- 阴影 --- */
+  --shadow-popover: var(--elevation-popover);
+  --shadow-modal: var(--elevation-modal);
 }
 
 @layer base {
@@ -128,60 +349,42 @@
     @apply bg-background text-foreground;
   }
 
-  /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
-
   html {
     font-size: var(--font-size);
   }
 
+  /**
+   * h1–h4 / label / button / input 的默认排版。
+   * 位于 @layer base，因此任何 Tailwind 工具类（text-body、text-h5 等）都能覆盖它。
+   * 尺寸对应 Figma 排版表，详见 fonts.css。
+   */
   h1 {
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    @apply text-h2 font-semibold;
   }
 
   h2 {
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    @apply text-h4 font-semibold;
   }
 
   h3 {
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    @apply text-h5 font-medium;
   }
 
   h4 {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    @apply text-h7 font-medium;
   }
 
-  label {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
+  label,
   button {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    @apply text-body font-medium;
   }
 
   input {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-normal);
-    line-height: 1.5;
+    @apply text-body font-normal;
   }
 
-  /* Custom scrollbar styles - hidden by default, shown on scroll, always reserves space */
+  /* 自定义滚动条：默认隐藏，滚动时显现，但始终占位以避免布局跳动 */
   .custom-scrollbar {
-    /* Firefox */
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
     transition: scrollbar-color 0.3s ease;
@@ -193,7 +396,6 @@
     scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
   }
 
-  /* Webkit browsers (Chrome, Safari, Edge) - scrollbar always takes up space but appears/disappears */
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
     background: transparent;

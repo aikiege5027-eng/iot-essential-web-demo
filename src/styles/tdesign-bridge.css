@@ -1,0 +1,173 @@
+/**
+ * ============================================================================
+ * KONE Token → TDesign Token 桥接层
+ * ============================================================================
+ * 作用：让 tdesign-react 的所有组件由 KONE 品牌 token 驱动，而不是 TDesign 默认蓝。
+ *
+ * 为什么这样能成立：
+ *   KONE「Design Token China」本身就是从 TDesign 派生的 —— 两边的语义 token
+ *   命名逐字相同（bg-color-container、text-color-primary、component-stroke…），
+ *   状态色也共用同一套 base/hover/active/disabled/light/focus 结构。
+ *   两处硬证据：
+ *     · TDesign 把 light-hover 与 focus 都指向色阶第 2 阶，
+ *       而 KONE 的 --brand-color-light-hover 与 --brand-color-focus 恰好同为 #d0dcfd
+ *     · TDesign 自带 --td-font-family 已是 "PingFang SC, Microsoft YaHei"
+ *   所以这里几乎是 1:1 改名，不是强行适配。
+ *
+ * ⚠ 单一事实来源：本文件只做「引用」，不写任何硬编码色值。
+ *   所有值都指向 theme.css 里的 KONE token —— 改 KONE token，TDesign 组件跟着变。
+ *
+ * ⚠ 加载顺序：必须在 tdesign.css 之后引入，否则被 TDesign 默认值覆盖。
+ *   （CSS 自定义属性的 var() 是延迟解析的，因此本文件与 theme.css 的先后无所谓，
+ *     只有「谁覆盖谁」的那一层需要在 tdesign.css 之后。）
+ */
+
+:root,
+:root[theme-mode='light'] {
+  /* ==========================================================================
+   * 品牌色
+   * ==========================================================================
+   * 采用「改色阶」而非「改语义」：TDesign 的 brand-color / -hover / -active /
+   * -disabled / -light / -focus 全部派生自色阶，改色阶可让下游状态自动保持一致。
+   *
+   * 色阶位置对应关系（来自 TDesign 源码）：
+   *   1 = light   2 = light-hover & focus   3 = disabled
+   *   6 = hover   7 = base                  8 = active
+   */
+  --td-brand-color-1: var(--brand-color-light);
+  --td-brand-color-2: var(--brand-color-light-hover);
+  --td-brand-color-3: var(--brand-color-disabled);
+  --td-brand-color-6: var(--brand-color-hover);
+  --td-brand-color-7: var(--brand-color);
+  --td-brand-color-8: var(--brand-color-active);
+
+  /* 色阶 4 / 5 / 9 / 10 保留 TDesign 默认值 —— KONE 官方 token 未定义这四阶。
+   * 影响极小：所有品牌语义 token 只用到 1/2/3/6/7/8，这四阶仅被少数直接引用色阶
+   * 的组件用到。若后续设计补齐，在此处补上即可。 */
+
+  /* --td-text-color-link 默认派生自色阶 8（= active，偏深）。
+   * KONE 规范中 link 与 brand 同为 #1450f5，故显式覆盖，不走派生。 */
+  --td-text-color-brand: var(--text-color-brand);
+  --td-text-color-link: var(--text-color-link);
+
+  /* ==========================================================================
+   * 文字
+   * ==========================================================================
+   * 这里改语义而非色阶：TDesign 的文字色派生自 --td-font-gray-1..4（rgba 灰阶），
+   * 而 KONE 用的是不透明色值且没有对应的 4 阶灰，直接改语义更准确。
+   */
+  --td-text-color-primary: var(--text-color-primary);
+  --td-text-color-secondary: var(--text-color-secondary);
+  --td-text-color-placeholder: var(--text-color-placeholder);
+  --td-text-color-disabled: var(--text-color-disabled);
+  --td-text-color-anti: var(--text-color-white);
+
+  /* ==========================================================================
+   * 背景
+   * ======================================================================== */
+  --td-bg-color-page: var(--bg-color-page);
+  --td-bg-color-container: var(--bg-color-container);
+  --td-bg-color-container-hover: var(--bg-color-container-hover);
+  --td-bg-color-container-active: var(--bg-color-container-active);
+  --td-bg-color-container-select: var(--bg-color-container);
+  --td-bg-color-secondarycontainer: var(--bg-color-secondarycontainer);
+  --td-bg-color-secondarycontainer-hover: var(--bg-color-secondarycontainer-hover);
+  --td-bg-color-secondarycontainer-active: var(--bg-color-secondarycontainer-active);
+  --td-bg-color-component: var(--bg-color-component);
+  --td-bg-color-component-hover: var(--bg-color-component-hover);
+  --td-bg-color-component-active: var(--bg-color-component-active);
+  --td-bg-color-component-disabled: var(--bg-color-component-disabled);
+
+  /* ==========================================================================
+   * 描边
+   * ==========================================================================
+   * stroke 弱（分割线/卡片），border 强（输入框/可交互控件）。
+   * TDesign 的 border-level-1/2 与之一一对应。
+   */
+  --td-component-stroke: var(--component-stroke);
+  --td-component-border: var(--component-border);
+  --td-border-level-1-color: var(--component-stroke);
+  --td-border-level-2-color: var(--component-border);
+
+  /* ==========================================================================
+   * 状态色
+   * ==========================================================================
+   * 同样改色阶，让 hover / active / disabled / light / focus 自动派生。
+   * 色阶位置来自 TDesign 源码，success 与 warning 一致，error 整体下移一阶：
+   *   success / warning:  1=light 2=focus 3=disabled 4=hover 5=base 6=active
+   *   error:              1=light 2=focus 3=disabled 5=hover 6=base 7=active
+   */
+  --td-success-color-1: var(--success-color-light);
+  --td-success-color-2: var(--success-color-focus);
+  --td-success-color-3: var(--success-color-disabled);
+  --td-success-color-4: var(--success-color-hover);
+  --td-success-color-5: var(--success-color);
+  --td-success-color-6: var(--success-color-active);
+
+  --td-warning-color-1: var(--warning-color-light);
+  --td-warning-color-2: var(--warning-color-focus);
+  --td-warning-color-3: var(--warning-color-disabled);
+  --td-warning-color-4: var(--warning-color-hover);
+  --td-warning-color-5: var(--warning-color);
+  --td-warning-color-6: var(--warning-color-active);
+
+  --td-error-color-1: var(--error-color-light);
+  --td-error-color-2: var(--error-color-focus);
+  --td-error-color-3: var(--error-color-disabled);
+  --td-error-color-5: var(--error-color-hover);
+  --td-error-color-6: var(--error-color);
+  --td-error-color-7: var(--error-color-active);
+
+  /* ==========================================================================
+   * 圆角
+   * ==========================================================================
+   * 唯一的实质性差异：TDesign 的 radius-default 是 3px，
+   * 而 KONE 规范（Figma IOT Delivery / radius-default）是 4px。
+   * medium 两边同为 6px，无需改。
+   */
+  --td-radius-default: 4px;
+
+  /* ==========================================================================
+   * 字体
+   * ==========================================================================
+   * TDesign 默认已是 "PingFang SC, Microsoft YaHei, Arial Regular"，
+   * 这里改为引用我们的 --font-sans，保证与非 TDesign 区域完全同源。
+   */
+  --td-font-family: var(--font-sans);
+}
+
+/**
+ * 暗色模式
+ * ----------------------------------------------------------------------------
+ * TDesign 通过 :root.dark / [theme-mode='dark'] 切换；本项目 theme.css 用的是
+ * .dark 类（next-themes）。这里让两套机制对齐：.dark 下同样把 KONE 暗色 token
+ * 灌给 TDesign。
+ *
+ * ⚠ theme.css 中的暗色值是本仓库推导值，非 Figma 官方交付，见 steering 说明。
+ */
+:root.dark,
+:root[theme-mode='dark'],
+.dark {
+  --td-brand-color-1: var(--brand-color-light);
+  --td-brand-color-2: var(--brand-color-light-hover);
+  --td-brand-color-6: var(--brand-color-hover);
+  --td-brand-color-7: var(--brand-color);
+  --td-brand-color-8: var(--brand-color-active);
+
+  --td-text-color-primary: var(--text-color-primary);
+  --td-text-color-secondary: var(--text-color-secondary);
+  --td-text-color-placeholder: var(--text-color-placeholder);
+  --td-text-color-disabled: var(--text-color-disabled);
+
+  --td-bg-color-page: var(--bg-color-page);
+  --td-bg-color-container: var(--bg-color-container);
+  --td-bg-color-container-hover: var(--bg-color-container-hover);
+  --td-bg-color-container-active: var(--bg-color-container-active);
+  --td-bg-color-component: var(--bg-color-component);
+  --td-bg-color-component-hover: var(--bg-color-component-hover);
+
+  --td-component-stroke: var(--component-stroke);
+  --td-component-border: var(--component-border);
+  --td-border-level-1-color: var(--component-stroke);
+  --td-border-level-2-color: var(--component-border);
+}

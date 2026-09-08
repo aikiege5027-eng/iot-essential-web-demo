@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
+import { Tabs } from "tdesign-react";
 import sidePanelSvgPaths from "../../imports/PageTypeOverlayContentSidePanel-1/svg-o1xlcz3uwi";
 import rejectDialogSvgPaths from "../../imports/PageTypeOverlayContentDialogContent/svg-51182gu1a5";
-import tableSvgPaths from "../../imports/Frame3426/svg-vnnbtkf6mg";
 import toastSvgPaths from "../../imports/ToastMessage/svg-5yubahwo3j";
 import emptyApprovalIllustration from "../../imports/MainContent/a61db6f0d80700688e3c9c49f1c3d1437e8f0bd9.png";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { IoTListPageTemplate, type IoTTableColumn } from "./templates/iot-list-page";
 import type { AppAccount } from "../data/accounts";
 import { getApprovalTaskContext, type UpgradeApproval } from "../data/approvalWorkflow";
+
+const { TabPanel } = Tabs;
 
 type Language = "en" | "cn";
 type Tab = "initiated" | "pending" | "processed";
@@ -25,14 +28,14 @@ function StatusPill({ status, language, pendingAsInProgress = false }: { status:
 function TableStatus({ status, language }: { status: UpgradeApproval["status"]; language: Language }) {
   const t = copy[language];
   const state = status === "approved"
-    ? { label: t.approvalPassed, dot: "bg-[#1ed273]", text: "text-[#1ed273]" }
+    ? { label: t.approvalPassed, color: "text-success" }
     : status === "rejected"
-      ? { label: t.rejected, dot: "bg-[#f51414]", text: "text-[#f51414]" }
-      : { label: t.pendingStatus, dot: "bg-[#f98600]", text: "text-[#f98600]" };
+      ? { label: t.rejected, color: "text-error" }
+      : { label: t.pendingStatus, color: "text-warning" };
 
   return (
-    <span className={`inline-flex items-center gap-1 text-[14px] leading-[22px] ${state.text}`}>
-      <span aria-hidden="true" className={`size-[6px] rounded-full ${state.dot}`} />
+    <span className={`inline-flex items-center gap-1 text-body ${state.color}`}>
+      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
       {state.label}
     </span>
   );
@@ -184,126 +187,134 @@ export default function ApprovalCenterContent({ language, currentUser, approvals
     setDetailApproval(null);
   };
 
-  return (
-    <section className="overflow-hidden rounded-[8px] border border-[#dfe1e8] bg-white font-['PingFang_SC:Regular',sans-serif]" aria-label={t.title}>
-      <header className="flex h-[68px] items-center px-5 pb-4 pt-6">
-        <h1 className="font-['PingFang_SC:Semibold',sans-serif] text-[20px] font-semibold leading-7 text-[#141414]">{t.title}</h1>
-      </header>
+  const actionColumn: IoTTableColumn<UpgradeApproval> = {
+    id: "action",
+    title: t.action,
+    width: 145,
+    render: (row) => {
+      if (activeTab === "initiated" && row.status === "pending") {
+        return (
+          <button
+            type="button"
+            onClick={() => setWithdrawnIds((current) => new Set(current).add(row.id))}
+            className="whitespace-nowrap rounded-xs text-link hover:underline"
+          >
+            {t.withdraw}
+          </button>
+        );
+      }
 
-      <div className="rounded-b-[6px] bg-white px-5 py-[2px]">
-        <nav className="border-b border-[#dfe1e8]" aria-label={t.title}>
-          <div className="flex items-start">
-            {(["initiated", "pending", "processed"] as const).map((tab) => {
-              const isActive = activeTab === tab;
-              return (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className={`relative p-2 font-['PingFang_SC:Regular',sans-serif] transition-colors ${isActive ? "border-b-[3px] border-[#1450f5]" : "border-b-[3px] border-transparent hover:bg-[#fafbfc]"}`}
-                >
-                  <span className={`flex items-center rounded-[3px] bg-white px-2 py-[5px] text-[14px] leading-[22px] ${isActive ? "font-medium text-[#1450f5]" : "text-[#676a72]"}`}>
-                    {tab === "initiated" ? t.initiated : tab === "pending" ? t.pending : t.processed}
-                  </span>
-                </button>
-              );
-            })}
+      if (activeTab === "pending" && row.status === "pending") {
+        return (
+          <div className="flex items-center gap-6 whitespace-nowrap">
+            <button
+              type="button"
+              onClick={() => handleReview(row.id, "approved")}
+              className="rounded-xs text-link hover:underline"
+            >
+              {t.agree}
+            </button>
+            <button
+              type="button"
+              onClick={() => setDetailApproval(row)}
+              className="rounded-xs text-link hover:underline"
+            >
+              {t.reject}
+            </button>
           </div>
-        </nav>
+        );
+      }
 
-        {rows.length === 0 ? (
-          <div className="mt-6 flex h-[492px] w-full flex-col items-center justify-center">
+      if (row.status === "rejected") {
+        return (
+          <button
+            type="button"
+            onClick={() => setDetailApproval(row)}
+            className="whitespace-nowrap rounded-xs text-link hover:underline"
+          >
+            {t.viewReason}
+          </button>
+        );
+      }
+
+      return <span className="text-secondary-text">—</span>;
+    },
+  };
+
+  const columns: IoTTableColumn<UpgradeApproval>[] = activeTab === "pending"
+    ? [
+        { id: "content", title: t.content, render: (row) => <span className="text-primary-text">{row.content}</span> },
+        { id: "submitter", title: t.submitter, width: 220, render: (row) => <span className="text-primary-text">{row.initiatorEmail}</span> },
+        { id: "initiatedAt", title: t.initiatedAt, width: 168, render: (row) => <span className="whitespace-nowrap text-primary-text">{row.initiatedAt}</span> },
+        actionColumn,
+      ]
+    : activeTab === "initiated"
+      ? [
+          { id: "content", title: t.content, render: (row) => <span className="text-primary-text">{row.content}</span> },
+          { id: "initiatedAt", title: t.initiatedAt, width: 168, render: (row) => <span className="whitespace-nowrap text-primary-text">{row.initiatedAt}</span> },
+          { id: "approver", title: t.approver, width: 145, render: (row) => <span className="text-primary-text">{row.approverRole ?? row.approverName}</span> },
+          { id: "completedAt", title: t.completedAt, width: 168, render: (row) => <span className="whitespace-nowrap text-primary-text">{row.completedAt ?? "-"}</span> },
+          { id: "status", title: t.status, width: 120, render: (row) => <TableStatus status={row.status} language={language} /> },
+          actionColumn,
+        ]
+      : [
+          { id: "content", title: t.content, render: (row) => <span className="text-primary-text">{row.content}</span> },
+          { id: "initiatedAt", title: t.initiatedAt, width: 168, render: (row) => <span className="whitespace-nowrap text-primary-text">{row.initiatedAt}</span> },
+          { id: "approver", title: t.approver, width: 145, render: (row) => <span className="text-primary-text">{row.approverEmail}</span> },
+          { id: "approvalAt", title: t.approvalAt, width: 168, render: (row) => <span className="whitespace-nowrap text-primary-text">{row.completedAt ?? "-"}</span> },
+          { id: "status", title: t.status, width: 120, render: (row) => <TableStatus status={row.status} language={language} /> },
+          actionColumn,
+        ];
+
+  return (
+    <>
+      <IoTListPageTemplate<UpgradeApproval>
+        title={t.title}
+        filterMode="normal"
+        filters={[]}
+        columns={columns}
+        rows={rows}
+        getRowKey={(row) => row.id}
+        onRowOpen={setDetailApproval}
+        rowOpenLabel={t.taskDetails}
+        minTableWidth={940}
+        tableCaption={t.title}
+        beforeTable={(
+          <div className="mb-6 px-5 py-[2px]">
+            <Tabs<Tab>
+              value={activeTab}
+              onChange={setActiveTab}
+              theme="normal"
+              size="medium"
+              placement="top"
+            >
+              <TabPanel value="initiated" label={t.initiated} />
+              <TabPanel value="pending" label={t.pending} />
+              <TabPanel value="processed" label={t.processed} />
+            </Tabs>
+          </div>
+        )}
+        emptyContent={(
+          <div className="flex flex-col items-center justify-center">
             <ImageWithFallback src={emptyApprovalIllustration} alt={t.emptyTitle} className="mb-[-8px] size-[200px] object-cover" />
             <div className="flex flex-col items-center gap-2 whitespace-nowrap">
-              <p className="font-['PingFang_SC:Semibold',sans-serif] text-[16px] font-semibold leading-6 text-[#141414]">{t.emptyTitle}</p>
-              <p className="text-[12px] leading-5 text-[#676a72]">{activeTab === "initiated" ? t.emptyInitiated : activeTab === "pending" ? t.emptyPending : t.emptyProcessed}</p>
+              <p className="text-h7 font-semibold text-primary-text">{t.emptyTitle}</p>
+              <p className="text-foot12 text-secondary-text">
+                {activeTab === "initiated" ? t.emptyInitiated : activeTab === "pending" ? t.emptyPending : t.emptyProcessed}
+              </p>
             </div>
           </div>
-        ) : (
-          <>
-        <div className="mt-6 overflow-x-auto rounded-[6px] border border-[#dfe1e8]">
-          <table className="w-full min-w-[940px] table-fixed border-collapse text-left text-[14px] leading-[22px]">
-            <colgroup>
-              <col />
-              {activeTab === "pending" && <col className="w-[220px]" />}
-              <col className="w-[168px]" />
-              {activeTab !== "pending" && <col className="w-[145px]" />}
-              {(activeTab === "initiated" || activeTab === "processed") && <col className="w-[168px]" />}
-              {activeTab !== "pending" && <col className="w-[120px]" />}
-              <col className="w-[145px]" />
-              <col className="w-[48px]" />
-            </colgroup>
-            <thead className="bg-[#f5f7fa] text-[#8f9195]">
-              <tr className="h-[46px] border-b border-[#dfe1e8]">
-                <th scope="col" className="px-6 py-3 font-normal">{t.content}</th>
-                {activeTab === "pending" && <th scope="col" className="px-6 py-3 font-normal">{t.submitter}</th>}
-                <th scope="col" className="px-6 py-3 font-normal">{t.initiatedAt}</th>
-                {activeTab !== "pending" && <th scope="col" className="px-6 py-3 font-normal">{activeTab === "initiated" || activeTab === "processed" ? t.approver : t.currentNode}</th>}
-                {activeTab === "initiated" && <th scope="col" className="px-6 py-3 font-normal">{t.completedAt}</th>}
-                {activeTab === "processed" && <th scope="col" className="px-6 py-3 font-normal">{t.approvalAt}</th>}
-                {activeTab !== "pending" && <th scope="col" className="px-6 py-3 font-normal">{t.status}</th>}
-                <th scope="col" className="px-7 py-3 font-normal">{t.action}</th>
-                <th scope="col" className="px-4 py-3"><span className="sr-only">{t.taskDetails}</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr
-                  key={row.id}
-                  tabIndex={0}
-                  onClick={() => setDetailApproval(row)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") setDetailApproval(row);
-                  }}
-                  className="h-[54px] cursor-pointer border-b border-[#e7e7e7] bg-white last:border-b-0 hover:bg-[#fafbfc] focus-visible:bg-[#f3f6fe] focus-visible:outline-none"
-                >
-                  <td className="truncate px-6 py-4 text-[#141414]">{row.content}</td>
-                  {activeTab === "pending" && <td className="truncate px-6 py-4 text-[#141414]">{row.initiatorEmail}</td>}
-                  <td className="whitespace-nowrap px-6 py-4 text-[#141414]">{row.initiatedAt}</td>
-                  {activeTab !== "pending" && <td className="truncate px-6 py-4 text-[#141414]">{activeTab === "initiated" ? (row.approverRole ?? row.approverName) : activeTab === "processed" ? row.approverEmail : row.currentNode}</td>}
-                  {activeTab === "initiated" && <td className="whitespace-nowrap px-6 py-4 text-[#141414]">{row.completedAt ?? "-"}</td>}
-                  {activeTab === "processed" && <td className="whitespace-nowrap px-6 py-4 text-[#141414]">{row.completedAt ?? "-"}</td>}
-                  {activeTab !== "pending" && <td className="px-6 py-4"><TableStatus status={row.status} language={language} /></td>}
-                  <td className="px-6 py-4">
-                    {activeTab === "initiated" && row.status === "pending" ? (
-                      <button type="button" onClick={(event) => { event.stopPropagation(); setWithdrawnIds((current) => new Set(current).add(row.id)); }} className="rounded-[3px] whitespace-nowrap text-[#1450f5] hover:underline">{t.withdraw}</button>
-                    ) : activeTab === "pending" && row.status === "pending" ? (
-                      <div className="flex items-center gap-6 whitespace-nowrap">
-                        <button type="button" onClick={(event) => { event.stopPropagation(); handleReview(row.id, "approved"); }} className="rounded-[3px] text-[#1450f5] hover:underline">{t.agree}</button>
-                        <button type="button" onClick={(event) => { event.stopPropagation(); setDetailApproval(row); }} className="rounded-[3px] text-[#1450f5] hover:underline">{t.reject}</button>
-                      </div>
-                    ) : row.status === "rejected" ? (
-                      <button type="button" onClick={(event) => { event.stopPropagation(); setDetailApproval(row); }} className="rounded-[3px] whitespace-nowrap text-[#1450f5] hover:underline">{t.viewReason}</button>
-                    ) : <span className="text-[#8f9195]">—</span>}
-                  </td>
-                  <td className="px-4 py-[11px]">
-                    <button type="button" aria-label={t.taskDetails} onClick={(event) => { event.stopPropagation(); setDetailApproval(row); }} className="flex size-8 items-center justify-center rounded-full hover:bg-[#f5f7fa]">
-                      <span className="relative size-4 overflow-hidden" aria-hidden="true">
-                        <span className="absolute inset-[19.27%_33.98%_18.23%_31.25%]">
-                          <svg className="block size-full rotate-180" fill="none" height="10" preserveAspectRatio="none" viewBox="0 0 5.56346 10" width="5.56346">
-                            <path clipRule="evenodd" d={tableSvgPaths.p2f116d80} fill="#8F9195" fillRule="evenodd" />
-                          </svg>
-                        </span>
-                      </span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <footer className="flex h-16 items-center justify-between px-6 text-[14px] leading-[22px] text-[#676a72]">
-          <span>{t.total} {rows.length} {t.records}</span>
-          <div className="flex items-center gap-2">
-            <button type="button" aria-label="Previous page" disabled className="flex size-8 items-center justify-center rounded-[4px] text-[#abadb2] disabled:cursor-not-allowed">‹</button>
-            <span className="flex size-8 items-center justify-center rounded-[4px] bg-[#1450f5] text-white">1</span>
-            <span>{t.page}</span>
-          </div>
-        </footer>
-          </>
         )}
-      </div>
+        hideTableWhenEmpty
+        pagination={rows.length > 0 ? {
+          current: 1,
+          pageSize: rows.length,
+          total: rows.length,
+          totalContent: `${t.total} ${rows.length} ${t.records}`,
+          pageSummary: t.page,
+          onChange: () => undefined,
+        } : undefined}
+      />
 
       {reviewToast && (
         <div role="status" className="fixed left-1/2 top-[68px] z-[140] flex -translate-x-1/2 items-center gap-6 rounded-[6px] border-[0.5px] border-[#c8cad0] bg-white px-4 py-[13px] text-[14px] leading-[22px] text-[#141414] shadow-[0_8px_10px_rgba(0,0,0,0.1)]">
@@ -324,6 +335,6 @@ export default function ApprovalCenterContent({ language, currentUser, approvals
           onReview={(result, reviewRemark) => { handleReview(detailApproval.id, result, reviewRemark); setDetailApproval(null); }}
         />
       )}
-    </section>
+    </>
   );
 }

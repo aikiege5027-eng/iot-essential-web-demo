@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Button, Dropdown, RadioGroup, Select } from "tdesign-react";
 import type { UpgradeDetail } from "../data/approvalWorkflow";
+import {
+  IoTListPageTemplate,
+  type IoTFilterField,
+  type IoTTableColumn,
+} from "./templates/iot-list-page";
 import batchSvgPaths from "../../imports/IotWebTemplateUntitledEmbedFilterButton3StateCollapsed-1/svg-k7keowhjm7";
 import upgradeSvgPaths from "../../imports/IotWebTemplate批量升级OverlayContentDialogContent/svg-uj64kmlbtu";
 import upgradeSelectedSvgPaths from "../../imports/IotWebTemplate批量升级OverlayContentDialogContent-2/svg-p0m9k99e2p";
@@ -7,9 +13,11 @@ import toastSvgPaths from "../../imports/ToastMessage/svg-5yubahwo3j";
 
 type Language = "en" | "cn";
 type Operation = "restart" | "upgrade" | "config";
+type BatchModule = "iess" | "aws";
 
 type Device = {
   id: string;
+  module: BatchModule;
   type: string;
   typeCode: "connection-310" | "connection-320" | "connection-330";
   company: "kone" | "giant-kone" | "kone-hk";
@@ -30,6 +38,7 @@ const devices: Device[] = Array.from({ length: 20000 }, (_, index) => {
   const typeName = typeCode === "connection-310" ? "KONE Connection 310" : typeCode === "connection-330" ? "KONE Connection 330" : "KONE Connection 320";
   return {
     id: String(deviceNumber),
+    module: index % 2 === 0 ? "iess" : "aws",
     type: typeName,
     typeCode,
     company,
@@ -183,20 +192,6 @@ function BatchOperationIcon({ operation }: { operation: Operation }) {
   return <svg aria-hidden="true" className="size-4" fill="none" viewBox="0 0 16 16"><g fill="currentColor" transform="translate(1.46 .46)"><path d={batchSvgPaths.p249a2fb0} /><path d={batchSvgPaths.p32af2800} /><path d={batchSvgPaths.p20b73a80} /><path d={batchSvgPaths.p15c9d200} /><path d={batchSvgPaths.p2e4b7980} /><path d={batchSvgPaths.p3988e800} /><path d={batchSvgPaths.p5a3c800} /></g></svg>;
 }
 
-function FilterSelect({ value, onChange, placeholder, disabled = false, options = [] }: { value?: string; onChange?: (value: string) => void; placeholder: string; disabled?: boolean; options?: { value: string; label: string }[] }) {
-  return (
-    <select
-      value={value || ""}
-      onChange={(event) => onChange?.(event.target.value)}
-      disabled={disabled}
-      className={`h-8 min-w-0 flex-1 appearance-none rounded-[4px] border border-[#c8cad0] bg-white bg-[linear-gradient(45deg,transparent_50%,#8f9195_50%),linear-gradient(135deg,#8f9195_50%,transparent_50%)] bg-[position:calc(100%-12px)_13px,calc(100%-8px)_13px] bg-[size:4px_4px,4px_4px] bg-no-repeat px-2 pr-7 text-[14px] leading-[22px] outline-none ${disabled ? "cursor-not-allowed bg-[#f2f4f7] text-[#abadb2]" : "text-[#8f9195] focus:border-[#1450f5]"}`}
-    >
-      <option value="">{placeholder}</option>
-      {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-    </select>
-  );
-}
-
 function TableCheckbox({ checked, onChange, label, disabled = false }: { checked: boolean; onChange: () => void; label: string; disabled?: boolean }) {
   return (
     <button
@@ -207,9 +202,9 @@ function TableCheckbox({ checked, onChange, label, disabled = false }: { checked
       aria-disabled={disabled}
       disabled={disabled}
       onClick={onChange}
-      className={`flex size-4 items-center justify-center rounded-[4px] border transition-colors ${checked ? "border-[#1450f5] bg-[#1450f5]" : "border-[#c8cad0] bg-white hover:border-[#1450f5]"} ${disabled ? "cursor-not-allowed opacity-55" : ""}`}
+      className={`flex size-4 items-center justify-center rounded-sm border transition-colors ${checked ? "border-brand-base bg-brand-base text-white-text" : "border-component-border bg-container hover:border-brand-base"} ${disabled ? "cursor-not-allowed opacity-55" : ""}`}
     >
-      {checked && <svg aria-hidden="true" className="size-3" fill="none" viewBox="0 0 12 12"><path d="M2.4 6.1 4.75 8.3 9.65 3.55" stroke="white" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg>}
+      {checked && <svg aria-hidden="true" className="size-3" fill="none" viewBox="0 0 12 12"><path d="M2.4 6.1 4.75 8.3 9.65 3.55" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg>}
     </button>
   );
 }
@@ -396,18 +391,22 @@ function BulkSystemUpgradeDialog({ language, selectedDevices, onClose, onComplet
 
 export default function BatchOperationsContent({ language, onSubmitForApproval }: { language: Language; onSubmitForApproval?: (submission: { scheduledAt: string; packages: Record<string, string>; upgradeDetails: UpgradeDetail[]; submissionRemark?: string }) => void }) {
   const t = copy[language];
+  const [activeModule, setActiveModule] = useState<BatchModule>("iess");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
   const [upgradeError, setUpgradeError] = useState("");
   const [statusFilter, setStatusFilter] = useState<Device["status"] | "all">("all");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [company, setCompany] = useState("");
-  const [deviceTypeFilter, setDeviceTypeFilter] = useState("");
+  const [deviceTypeFilters, setDeviceTypeFilters] = useState<Device["typeCode"][]>([]);
+  const [hardwareTypeFilters, setHardwareTypeFilters] = useState<string[]>([]);
+  const [softwareVersionFilters, setSoftwareVersionFilters] = useState<string[]>([]);
   const [hasQueried, setHasQueried] = useState(false);
   const [appliedCompany, setAppliedCompany] = useState("");
-  const [appliedDeviceType, setAppliedDeviceType] = useState("");
+  const [appliedDeviceTypes, setAppliedDeviceTypes] = useState<Device["typeCode"][]>([]);
+  const [appliedHardwareTypes, setAppliedHardwareTypes] = useState<string[]>([]);
+  const [appliedSoftwareVersions, setAppliedSoftwareVersions] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectAllResults, setSelectAllResults] = useState(false);
   const [isQueryLoading, setIsQueryLoading] = useState(false);
@@ -425,14 +424,61 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
     if (queryTimerRef.current !== null) window.clearTimeout(queryTimerRef.current);
   }, []);
 
+  const hardwareTypeOptions = useMemo(() => {
+    const availableHardwareTypes = devices
+      .filter((device) => device.module === activeModule)
+      .filter((device) => !company || device.company === company)
+      .filter((device) => deviceTypeFilters.length === 0 || deviceTypeFilters.includes(device.typeCode))
+      .map((device) => device.km);
+
+    return Array.from(new Set(availableHardwareTypes))
+      .sort()
+      .map((value) => ({ value, label: value }));
+  }, [activeModule, company, deviceTypeFilters]);
+
+  const softwareVersionOptions = useMemo(() => {
+    const availableVersions = devices
+      .filter((device) => device.module === activeModule)
+      .filter((device) => !company || device.company === company)
+      .filter((device) => deviceTypeFilters.length === 0 || deviceTypeFilters.includes(device.typeCode))
+      .filter((device) => hardwareTypeFilters.length === 0 || hardwareTypeFilters.includes(device.km))
+      .map((device) => ({
+        value: `${device.km}::${device.version}`,
+        label: `${device.km}-${device.version}`,
+      }));
+
+    return Array.from(
+      new Map(availableVersions.map((option) => [option.value, option])).values(),
+    ).sort((left, right) => left.label.localeCompare(right.label));
+  }, [activeModule, company, deviceTypeFilters, hardwareTypeFilters]);
+
+  const handleDeviceTypeChange = (value: unknown) => {
+    const nextDeviceTypes = (Array.isArray(value) ? value : []).map(String) as Device["typeCode"][];
+    setDeviceTypeFilters(nextDeviceTypes);
+    setHardwareTypeFilters([]);
+    setSoftwareVersionFilters([]);
+  };
+
+  const handleHardwareTypeChange = (value: unknown) => {
+    const nextHardwareTypes = (Array.isArray(value) ? value : []).map(String);
+    setHardwareTypeFilters(nextHardwareTypes);
+    setSoftwareVersionFilters([]);
+  };
+
   const visibleDevices = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     return devices.filter((device) => {
       const matchesQuery = !normalized || [device.id, device.type, device.serial].some((value) => value.toLowerCase().includes(normalized));
-      const matchesAppliedFilters = !hasQueried || (device.company === appliedCompany && device.typeCode === appliedDeviceType);
-      return matchesQuery && matchesAppliedFilters && (statusFilter === "all" || device.status === statusFilter);
+      const softwareVersionKey = `${device.km}::${device.version}`;
+      const matchesAppliedFilters = !hasQueried || (
+        (!appliedCompany || device.company === appliedCompany)
+        && (appliedDeviceTypes.length === 0 || appliedDeviceTypes.includes(device.typeCode))
+        && (appliedHardwareTypes.length === 0 || appliedHardwareTypes.includes(device.km))
+        && (appliedSoftwareVersions.length === 0 || appliedSoftwareVersions.includes(softwareVersionKey))
+      );
+      return device.module === activeModule && matchesQuery && matchesAppliedFilters && (statusFilter === "all" || device.status === statusFilter);
     });
-  }, [appliedCompany, appliedDeviceType, hasQueried, query, statusFilter]);
+  }, [activeModule, appliedCompany, appliedDeviceTypes, appliedHardwareTypes, appliedSoftwareVersions, hasQueried, query, statusFilter]);
 
   const pageSize = 20;
   const totalPages = Math.max(1, Math.ceil(visibleDevices.length / pageSize));
@@ -456,7 +502,6 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
   };
   const toggleDevice = (id: string) => setSelected((current) => current.includes(id) ? current.filter((selectedId) => selectedId !== id) : current.length >= manualSelectionLimit ? current : [...current, id]);
   const runOperation = (operation: Operation) => {
-    setIsMenuOpen(false);
     if (operation === "upgrade") {
       if (selected.length === 0) { setUpgradeError(t.selectDeviceFirst); return; }
       setUpgradeError("");
@@ -465,110 +510,313 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
     }
     setLastOperation(operation);
   };
-  const reset = () => { if (queryTimerRef.current !== null) window.clearTimeout(queryTimerRef.current); setIsQueryLoading(false); setQuery(""); setSelected([]); setSelectAllResults(false); setStatusFilter("all"); setCompany(""); setDeviceTypeFilter(""); setAppliedCompany(""); setAppliedDeviceType(""); setHasQueried(false); setCurrentPage(1); setLastOperation(null); setUpgradeError(""); };
+  const reset = () => {
+    if (queryTimerRef.current !== null) window.clearTimeout(queryTimerRef.current);
+    setIsQueryLoading(false);
+    setQuery("");
+    setSelected([]);
+    setSelectAllResults(false);
+    setStatusFilter("all");
+    setCompany("");
+    setDeviceTypeFilters([]);
+    setHardwareTypeFilters([]);
+    setSoftwareVersionFilters([]);
+    setAppliedCompany("");
+    setAppliedDeviceTypes([]);
+    setAppliedHardwareTypes([]);
+    setAppliedSoftwareVersions([]);
+    setHasQueried(false);
+    setCurrentPage(1);
+    setLastOperation(null);
+    setUpgradeError("");
+  };
+  const handleModuleChange = (module: BatchModule) => {
+    if (module === activeModule) return;
+    reset();
+    setIsFilterOpen(false);
+    setActiveModule(module);
+  };
   const submitQuery = () => {
     if (isQueryLoading) return;
     setSelected([]); setSelectAllResults(false); setCurrentPage(1); setUpgradeError(""); setIsQueryLoading(true);
     if (queryTimerRef.current !== null) window.clearTimeout(queryTimerRef.current);
     queryTimerRef.current = window.setTimeout(() => {
-      setAppliedCompany(company); setAppliedDeviceType(deviceTypeFilter); setHasQueried(Boolean(company && deviceTypeFilter)); setIsQueryLoading(false); queryTimerRef.current = null;
+      setAppliedCompany(company);
+      setAppliedDeviceTypes([...deviceTypeFilters]);
+      setAppliedHardwareTypes([...hardwareTypeFilters]);
+      setAppliedSoftwareVersions([...softwareVersionFilters]);
+      setHasQueried(Boolean(company || deviceTypeFilters.length || hardwareTypeFilters.length || softwareVersionFilters.length));
+      setIsQueryLoading(false);
+      queryTimerRef.current = null;
     }, 700);
   };
-  const hasActiveFilter = Boolean(company || deviceTypeFilter || statusFilter !== "all");
   const hasExceededResultLimit = visibleDevices.length > 5000;
 
   const operationLabel: Record<Operation, string> = { restart: t.restart, upgrade: t.upgrade, config: t.config };
   const statusLabel: Record<Device["status"], string> = { online: t.online, offline: t.offline, disconnected: t.disconnected };
-  const statusColor: Record<Device["status"], string> = { online: "#1ed273", offline: "#f51414", disconnected: "#ff8a00" };
+  const statusClass: Record<Device["status"], string> = { online: "text-success", offline: "text-placeholder", disconnected: "text-warning" };
+  const dataColumnWidth = "calc(20% - 10.4px)";
+
+  const filterFields: IoTFilterField[] = [
+    { id: "company", label: t.chooseCompany, value: company, onChange: setCompany },
+    {
+      id: "device-type",
+      label: t.chooseDeviceType,
+      value: deviceTypeFilters.join(","),
+      onChange: (value) => handleDeviceTypeChange(value ? value.split(",") : []),
+    },
+    {
+      id: "hardware-type",
+      label: t.chooseHardwareType,
+      value: hardwareTypeFilters.join(","),
+      onChange: (value) => handleHardwareTypeChange(value ? value.split(",") : []),
+    },
+    {
+      id: "software-version",
+      label: t.chooseSoftwareVersion,
+      value: softwareVersionFilters.join(","),
+      onChange: (value) => setSoftwareVersionFilters(value ? value.split(",") : []),
+    },
+    {
+      id: "status",
+      label: t.onlineStatus,
+      value: statusFilter === "all" ? "" : statusFilter,
+      onChange: (value) => setStatusFilter((value || "all") as Device["status"] | "all"),
+    },
+  ];
+
+  const columns: IoTTableColumn<Device>[] = [
+    {
+      id: "selection",
+      title: <TableCheckbox checked={selectAllResults || selectedAll} onChange={toggleAll} disabled={selectAllResults || (manualSelectionAtLimit && !selectedAll)} label={language === "cn" ? "选择当前页设备" : "Select current page devices"} />,
+      width: 52,
+      align: "center",
+      ellipsis: false,
+      className: "batch-operations-selection-column",
+      render: (device) => <TableCheckbox checked={selectAllResults || selected.includes(device.id)} onChange={() => toggleDevice(device.id)} disabled={selectAllResults || (manualSelectionAtLimit && !selected.includes(device.id))} label={`${language === "cn" ? "选择设备" : "Select device"} ${device.id}`} />,
+    },
+    {
+      id: "device-type",
+      title: t.deviceType,
+      width: dataColumnWidth,
+      render: (device) => <span className="block truncate text-primary-text" title={device.type}>{device.type}</span>,
+    },
+    {
+      id: "connection",
+      title: t.connection,
+      width: dataColumnWidth,
+      render: (device) => <span className={`inline-flex items-center gap-1 ${statusClass[device.status]}`}><span aria-hidden="true" className="size-1.5 rounded-full bg-current" />{statusLabel[device.status]}</span>,
+    },
+    {
+      id: "serial",
+      title: t.serial,
+      width: dataColumnWidth,
+      render: (device) => <span className="block truncate text-primary-text" title={device.serial}>{device.serial}</span>,
+    },
+    {
+      id: "version",
+      title: t.version,
+      width: dataColumnWidth,
+      render: (device) => <span className="text-primary-text">{device.version}</span>,
+    },
+    {
+      id: "device-number",
+      title: t.deviceNo,
+      width: dataColumnWidth,
+      render: (device) => <span className="text-primary-text">{device.id}</span>,
+    },
+  ];
 
   return (
-    <section className="overflow-hidden rounded-[8px] border border-[#dfe1e8] bg-white font-['PingFang_SC:Regular',sans-serif] font-normal" aria-label={t.title}>
-      {isUpgradeOpen && <BulkSystemUpgradeDialog language={language} selectedDevices={devices.filter((device) => selected.includes(device.id))} onClose={() => setIsUpgradeOpen(false)} onComplete={(submission) => { setIsUpgradeOpen(false); setLastOperation("upgrade"); setIsSuccessToastVisible(true); onSubmitForApproval?.(submission); }} />}
-      {isSuccessToastVisible && <div role="status" className="fixed left-1/2 top-[68px] z-[120] flex -translate-x-1/2 items-center gap-6 rounded-[6px] border-[0.5px] border-[#c8cad0] bg-white px-4 py-[13px] text-[14px] leading-[22px] text-[#141414] shadow-[0_8px_10px_rgba(0,0,0,0.1)]"><div className="flex items-center gap-2"><span className="relative size-5 shrink-0" aria-hidden="true"><svg className="absolute inset-[6.25%] size-[87.5%]" fill="none" preserveAspectRatio="none" viewBox="0 0 17.5 17.5"><path d={toastSvgPaths.p2cd67100} fill="#1ED273" /></svg></span><span className="whitespace-nowrap">{t.upgradeSubmitted}</span></div><button type="button" onClick={() => setIsSuccessToastVisible(false)} aria-label={t.cancel} className="relative flex size-4 shrink-0 items-center justify-center rounded-[3px] hover:bg-[#f5f7fa]"><span className="absolute inset-[25.03%]"><svg className="size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 7.99031 7.99033"><path d={toastSvgPaths.p1e5ad00} fill="#676A72" /></svg></span></button></div>}
-      <div className="px-5 pb-4 pt-6">
-        <h1 className="text-[20px] font-semibold leading-7 text-[#141414]">{t.title}</h1>
-      </div>
-      <div className="space-y-4 px-5 pb-5 pt-0">
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-0">
-          <div className="flex min-w-[280px] flex-1 items-center gap-4">
-            <label className="flex h-8 w-full max-w-[400px] items-center rounded-[4px] border border-[#d0d0d0] bg-white pl-1 pr-2 focus-within:border-[#1450f5]">
-              <svg aria-hidden="true" className="mr-1 size-4 text-[#727272]" fill="none" viewBox="0 0 16 16"><path d={batchSvgPaths.p396f6980} fill="currentColor" transform="translate(2 2)" /></svg>
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.placeholder} className="h-full min-w-0 flex-1 border-0 bg-transparent text-[14px] text-[#141414] outline-none placeholder:text-[#959595]" />
-            </label>
-            <div className="relative">
-              <button type="button" aria-label={t.filter} aria-expanded={isFilterOpen} onClick={() => setIsFilterOpen((current) => !current)} className={`flex size-8 items-center justify-center rounded-[4px] border transition-colors ${hasActiveFilter ? "border-[#1450f5] bg-[#f3f6fe] text-[#1450f5]" : isFilterOpen ? "border-[#c8cad0] bg-[#f5f7fa] text-[#141414]" : "border-transparent bg-[#f2f4f7] text-[#141414] hover:bg-[#e8ebf0]"}`}>
-                <svg aria-hidden="true" className="size-4" fill="none" viewBox="0 0 16 16"><path d={batchSvgPaths.p1d949680} fill="currentColor" transform="translate(2 2)" /></svg>
-              </button>
-            </div>
-          </div>
+    <>
+      <IoTListPageTemplate<Device>
+        title={t.title}
+        filterMode="embedded"
+        filters={filterFields}
+        filterExpanded={isFilterOpen}
+        onFilterExpandedChange={setIsFilterOpen}
+        embeddedSearch={{
+          value: query,
+          onChange: setQuery,
+          placeholder: t.placeholder,
+        }}
+        embeddedFilterLabels={language === "cn"
+          ? { expand: "展开筛选", collapse: "收起筛选" }
+          : { expand: "Expand filters", collapse: "Collapse filters" }}
+        headerTrailing={
+          <fieldset className="m-0 min-w-0 border-0 p-0">
+            <legend className="sr-only">{language === "cn" ? "选择模块" : "Select module"}</legend>
+            <RadioGroup<BatchModule>
+              className="batch-operations-module-radio"
+              name="batch-operation-module"
+              value={activeModule}
+              onChange={handleModuleChange}
+              theme="button"
+              variant="default-filled"
+              size="medium"
+              options={[
+                { label: "IESS", value: "iess" },
+                { label: "AWS", value: "aws" },
+              ]}
+            />
+          </fieldset>
+        }
+        embeddedActions={
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <button type="button" onClick={() => setIsMenuOpen((current) => !current)} className="flex h-8 items-center gap-1 rounded-[4px] border-0 bg-[#f2f4f7] py-[5px] pl-4 pr-2 text-[14px] leading-[22px] text-[#141414] hover:bg-[#e8ebf0]">
-                {t.batch}<svg aria-hidden="true" className={`size-4 transition-transform ${isMenuOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16"><path d={batchSvgPaths.p1df28700} fill="currentColor" transform="translate(3.54 5.31)" /></svg>
-              </button>
-              {isMenuOpen && <div className="absolute right-0 top-9 z-20 w-[120px] rounded-[8px] bg-white px-[6px] py-2 shadow-[0_4px_5px_rgba(0,0,0,0.1)]">{(["restart", "upgrade", "config"] as Operation[]).map((operation) => <button key={operation} type="button" onClick={() => runOperation(operation)} className="flex w-full items-center gap-[6px] rounded-[4px] px-[6px] py-[3px] text-left text-[14px] leading-[22px] text-[#141414] hover:bg-[#f2f4f7]"><BatchOperationIcon operation={operation} />{operationLabel[operation]}</button>)}</div>}
-            </div>
-            <button type="button" onClick={reset} className="h-8 rounded-[4px] border-0 bg-[#f2f4f7] px-4 text-[14px] leading-[22px] text-[#141414] hover:bg-[#e8ebf0]">{t.reset}</button>
-            <button type="button" disabled={isQueryLoading} onClick={submitQuery} className="flex h-8 items-center justify-center gap-1.5 rounded-[4px] border-0 bg-[#1450f5] px-4 text-[14px] leading-[22px] text-white hover:bg-[#0e43d0] disabled:cursor-wait disabled:bg-[#7d9cf8]">{isQueryLoading && <span aria-hidden="true" className="size-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />}{isQueryLoading ? (language === "cn" ? "查询中" : "Searching") : t.query}</button>
+            <Dropdown
+              trigger="click"
+              placement="bottom-right"
+              minColumnWidth={160}
+              options={(Object.keys(operationLabel) as Operation[]).map((operation) => ({
+                content: operationLabel[operation],
+                value: operation,
+                prefixIcon: <BatchOperationIcon operation={operation} />,
+              }))}
+              onClick={(option) => runOperation(option.value as Operation)}
+            >
+              <Button
+                size="medium"
+                theme="default"
+                variant="base"
+                suffix={<svg aria-hidden="true" className="size-4" fill="none" viewBox="0 0 16 16"><path d={batchSvgPaths.p1df28700} fill="currentColor" transform="translate(3.54 5.31)" /></svg>}
+              >
+                {t.batch}
+              </Button>
+            </Dropdown>
+            <Button size="medium" theme="default" variant="base" onClick={reset}>
+              {t.reset}
+            </Button>
+            <Button size="medium" theme="primary" variant="base" loading={isQueryLoading} disabled={isQueryLoading} onClick={submitQuery}>
+              {isQueryLoading ? (language === "cn" ? "查询中" : "Searching") : t.query}
+            </Button>
           </div>
-        </div>
-        {isFilterOpen && (
-          <div className="rounded-[6px] bg-[#fafbfc] px-4 pb-4 pt-2">
-            <div className="text-[14px] leading-[22px] text-[#141414]">{t.dataScope}</div>
-            <div className="mt-1 grid grid-cols-1 gap-0 sm:grid-cols-2 lg:grid-cols-6">
-              <FilterSelect value={company} onChange={setCompany} placeholder={t.chooseCompany} options={[{ value: "kone", label: language === "cn" ? "通力" : "KONE" }, { value: "giant-kone", label: language === "cn" ? "巨人通力" : "Giant KONE" }, { value: "kone-hk", label: language === "cn" ? "通力香港" : "KONE Hong Kong" }]} />
-              <FilterSelect placeholder={t.chooseRegion} disabled />
-              <FilterSelect placeholder={t.chooseBranch} disabled />
-              <FilterSelect placeholder={t.chooseOffice} disabled />
-              <FilterSelect placeholder={t.choosePg} disabled />
-              <FilterSelect placeholder={t.chooseWorkgroup} disabled />
+        }
+        embeddedFilterContent={
+          <div className="space-y-6 pb-6">
+            <div>
+              <div className="text-body text-primary-text">{t.dataScope}</div>
+              <div className="batch-operations-filter-chain mt-2">
+                <Select
+                  value={company || undefined}
+                  onChange={(value) => {
+                    setCompany(String(value ?? ""));
+                    setHardwareTypeFilters([]);
+                    setSoftwareVersionFilters([]);
+                  }}
+                  placeholder={t.chooseCompany}
+                  clearable
+                  options={[
+                    { value: "kone", label: language === "cn" ? "通力" : "KONE" },
+                    { value: "giant-kone", label: language === "cn" ? "巨人通力" : "Giant KONE" },
+                    { value: "kone-hk", label: language === "cn" ? "通力香港" : "KONE Hong Kong" },
+                  ]}
+                  size="medium"
+                />
+                <Select placeholder={t.chooseRegion} disabled size="medium" />
+                <Select placeholder={t.chooseBranch} disabled size="medium" />
+                <Select placeholder={t.chooseOffice} disabled size="medium" />
+                <Select placeholder={t.choosePg} disabled size="medium" />
+                <Select placeholder={t.chooseWorkgroup} disabled size="medium" />
+              </div>
             </div>
-            <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_238px]">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_238px]">
               <div>
-                <div className="mb-2 text-[14px] leading-[22px] text-[#141414]">{t.deviceFilter}</div>
-                <div className="grid grid-cols-1 gap-0 sm:grid-cols-3">
-                  <FilterSelect value={deviceTypeFilter} onChange={setDeviceTypeFilter} placeholder={t.chooseDeviceType} options={[{ value: "connection-310", label: "KONE Connection 310" }, { value: "connection-320", label: "KONE Connection 320" }, { value: "connection-330", label: "KONE Connection 330" }]} />
-                  <FilterSelect placeholder={t.chooseHardwareType} disabled />
-                  <FilterSelect placeholder={t.chooseSoftwareVersion} disabled />
+                <div className="text-body text-primary-text">{t.deviceFilter}</div>
+                <div className="batch-operations-filter-chain mt-2">
+                  <Select
+                    value={deviceTypeFilters}
+                    onChange={handleDeviceTypeChange}
+                    placeholder={t.chooseDeviceType}
+                    clearable
+                    multiple
+                    minCollapsedNum={1}
+                    options={[
+                      { value: "connection-310", label: "KONE Connection 310" },
+                      { value: "connection-320", label: "KONE Connection 320" },
+                      { value: "connection-330", label: "KONE Connection 330" },
+                    ]}
+                    size="medium"
+                  />
+                  <Select
+                    value={hardwareTypeFilters}
+                    onChange={handleHardwareTypeChange}
+                    placeholder={t.chooseHardwareType}
+                    clearable
+                    disabled={deviceTypeFilters.length === 0}
+                    multiple
+                    minCollapsedNum={1}
+                    options={hardwareTypeOptions}
+                    size="medium"
+                  />
+                  <Select
+                    value={softwareVersionFilters}
+                    onChange={(value) => setSoftwareVersionFilters((Array.isArray(value) ? value : []).map(String))}
+                    placeholder={t.chooseSoftwareVersion}
+                    clearable
+                    disabled={hardwareTypeFilters.length === 0}
+                    multiple
+                    minCollapsedNum={1}
+                    options={softwareVersionOptions}
+                    size="medium"
+                  />
                 </div>
               </div>
               <div>
-                <div className="mb-2 text-[14px] leading-[22px] text-[#141414]">{t.onlineStatus}</div>
-                <FilterSelect value={statusFilter === "all" ? "" : statusFilter} onChange={(value) => setStatusFilter((value || "all") as Device["status"] | "all")} placeholder={t.chooseContent} options={[{ value: "online", label: t.online }, { value: "disconnected", label: t.disconnected }, { value: "offline", label: t.offline }]} />
+                <div className="text-body text-primary-text">{t.onlineStatus}</div>
+                <Select
+                  className="mt-2 w-full"
+                  value={statusFilter === "all" ? undefined : statusFilter}
+                  onChange={(value) => setStatusFilter((String(value ?? "") || "all") as Device["status"] | "all")}
+                  placeholder={t.chooseContent}
+                  clearable
+                  options={[
+                    { value: "online", label: t.online },
+                    { value: "disconnected", label: t.disconnected },
+                    { value: "offline", label: t.offline },
+                  ]}
+                  size="medium"
+                />
               </div>
             </div>
           </div>
-        )}
-        {hasQueried && <div className={`flex flex-wrap items-center justify-between gap-3 rounded-[6px] px-4 py-[10px] text-[14px] leading-[22px] text-[#141414] ${hasExceededResultLimit ? "bg-[#fff1db]" : "bg-[#f3f6fe]"}`}>
-          <div className="flex min-w-0 items-center gap-2"><svg aria-hidden="true" className={`size-5 shrink-0 ${hasExceededResultLimit ? "text-[#f98600]" : "text-[#1450f5]"}`} fill="none" viewBox="0 0 16 16"><path d={batchSvgPaths.p1d949680} fill="currentColor" transform="translate(2 2)" /></svg><span>{language === "cn" ? (hasExceededResultLimit ? `共有${visibleDevices.length}台设备符合筛选结果，已超出5000上限，若全选，则自动拆分为多任务执行，提交后请留意任务列表中拆分任务的处理状态。` : `共有${visibleDevices.length}台设备符合筛选结果。`) : (hasExceededResultLimit ? `${visibleDevices.length} devices match the filters and exceed the 5,000-device limit. Selecting all will split execution into multiple tasks; check the task list after submission.` : `${visibleDevices.length} devices match the filters.`)}</span></div>
-          <div className="flex shrink-0 items-center gap-2"><TableCheckbox checked={selectAllResults} onChange={toggleAllResults} label={language === "cn" ? "全部选择筛选结果" : "Select all filtered results"} /><span>{language === "cn" ? "全部选择" : "Select all"}</span></div>
-        </div>}
-        {hasQueried && manualSelectionAtLimit && <p className="-mt-2 px-1 text-[12px] leading-5 text-[#8f9195]">{language === "cn" ? "当前手动勾选最多支持500台" : "Manual selection supports up to 500 devices."}</p>}
-        {upgradeError && <div role="alert" className="rounded-[4px] bg-[#fff1f0] px-3 py-2 text-[13px] text-[#d92d20]">{upgradeError}</div>}
-        {lastOperation && <div className="rounded-[4px] bg-[#f3f6fe] px-3 py-2 text-[13px] text-[#1450f5]">{lastOperation === "upgrade" ? t.upgradeReady : operationLabel[lastOperation]} · {t.selected} {selected.length} {t.deviceUnit}</div>}
-        <div className="relative overflow-x-auto rounded-[6px] border border-[#dfe1e8]">
-          {isQueryLoading && <div className="absolute inset-0 z-10 flex min-h-[280px] items-center justify-center bg-white/85 backdrop-blur-[1px]"><div className="flex items-center gap-2 rounded-[6px] bg-white px-4 py-3 text-[14px] leading-[22px] text-[#1450f5] shadow-[0_4px_10px_rgba(0,0,0,0.08)]"><span aria-hidden="true" className="size-4 animate-spin rounded-full border-2 border-[#b8cafb] border-t-[#1450f5]" />{language === "cn" ? "正在查询设备数据…" : "Searching device data…"}</div></div>}
-          <table className="w-full min-w-[820px] border-collapse text-left text-[14px]">
-            <thead className="bg-[#f5f7fa] text-[#8f9195]"><tr className="h-[46px] border-b border-[#dfe1e8]"><th className="w-[52px] px-3 text-center"><TableCheckbox checked={selectAllResults || selectedAll} onChange={toggleAll} disabled={selectAllResults || (manualSelectionAtLimit && !selectedAll)} label={language === "cn" ? "选择当前页设备" : "Select current page devices"} /></th><th className="font-normal">{t.deviceType}</th><th className="font-normal">{t.connection}</th><th className="font-normal">{t.serial}</th><th className="font-normal">{t.version}</th><th className="font-normal">{t.deviceNo}</th></tr></thead>
-            <tbody>{pagedDevices.map((device) => <tr key={device.id} className="h-[54px] border-b border-[#eef0f4] last:border-b-0 hover:bg-[#fafbfc]"><td className="px-3 text-center"><TableCheckbox checked={selectAllResults || selected.includes(device.id)} onChange={() => toggleDevice(device.id)} disabled={selectAllResults || (manualSelectionAtLimit && !selected.includes(device.id))} label={`${language === "cn" ? "选择设备" : "Select device"} ${device.id}`} /></td><td className="text-[#141414]">{device.type}</td><td><span className="inline-flex items-center gap-1" style={{ color: statusColor[device.status] }}><i className="size-1 rounded-full bg-current" />{statusLabel[device.status]}</span></td><td className="text-[#141414]">{device.serial}</td><td className="text-[#141414]">{device.version}</td><td className="text-[#141414]">{device.id}</td></tr>)}</tbody>
-          </table>
-          {pagedDevices.length === 0 && <div className="border-t border-[#eef0f4] px-4 py-8 text-center text-[14px] text-[#8f9195]">{language === "cn" ? "暂无符合条件的设备" : "No matching devices"}</div>}
-        </div>
-        {visibleDevices.length > 0 && <div className="flex flex-wrap items-center justify-between gap-3 pt-4 text-[14px] leading-[22px] text-[#676a72]">
-          <span>{language === "cn" ? `共 ${visibleDevices.length} 台设备` : `${visibleDevices.length} devices`}</span>
-          <div className="flex items-center gap-2">
-            <button type="button" disabled={currentPage === 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} className="flex size-8 items-center justify-center rounded-[4px] border border-[#c8cad0] bg-white text-[#676a72] disabled:cursor-not-allowed disabled:opacity-40">‹</button>
-            {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
-              const startPage = Math.min(Math.max(1, currentPage - 2), Math.max(1, totalPages - 4));
-              const page = startPage + index;
-              return <button key={page} type="button" onClick={() => setCurrentPage(page)} className={`size-8 rounded-[4px] border text-[14px] ${page === currentPage ? "border-[#1450f5] bg-[#1450f5] text-white" : "border-[#c8cad0] bg-white text-[#141414] hover:border-[#1450f5]"}`}>{page}</button>;
-            })}
-            {totalPages > 5 && <><span className="px-1 text-[#8f9195]">…</span><button type="button" onClick={() => setCurrentPage(totalPages)} className={`size-8 rounded-[4px] border text-[14px] ${currentPage === totalPages ? "border-[#1450f5] bg-[#1450f5] text-white" : "border-[#c8cad0] bg-white text-[#141414]"}`}>{totalPages}</button></>}
-            <button type="button" disabled={currentPage === totalPages} onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} className="flex size-8 items-center justify-center rounded-[4px] border border-[#c8cad0] bg-white text-[#676a72] disabled:cursor-not-allowed disabled:opacity-40">›</button>
-            <span className="ml-2 text-[#8f9195]">{language === "cn" ? `第 ${currentPage} / ${totalPages} 页` : `${currentPage} / ${totalPages}`}</span>
+        }
+        beforeTable={(hasQueried || upgradeError || lastOperation) ? (
+          <div className="space-y-4 px-5 pb-4">
+            {hasQueried && <div className={`flex flex-wrap items-center justify-between gap-3 rounded-md px-4 py-[10px] text-body text-primary-text ${hasExceededResultLimit ? "bg-warning-light" : "bg-brand-light"}`}>
+              <div className="flex min-w-0 items-center gap-2"><svg aria-hidden="true" className={`size-5 shrink-0 ${hasExceededResultLimit ? "text-warning" : "text-brand"}`} fill="none" viewBox="0 0 16 16"><path d={batchSvgPaths.p1d949680} fill="currentColor" transform="translate(2 2)" /></svg><span>{language === "cn" ? (hasExceededResultLimit ? `共有${visibleDevices.length}台设备符合筛选结果，已超出5000上限，若全选，则自动拆分为多任务执行，提交后请留意任务列表中拆分任务的处理状态。` : `共有${visibleDevices.length}台设备符合筛选结果。`) : (hasExceededResultLimit ? `${visibleDevices.length} devices match the filters and exceed the 5,000-device limit. Selecting all will split execution into multiple tasks; check the task list after submission.` : `${visibleDevices.length} devices match the filters.`)}</span></div>
+              <div className="flex shrink-0 items-center gap-2"><TableCheckbox checked={selectAllResults} onChange={toggleAllResults} label={language === "cn" ? "全部选择筛选结果" : "Select all filtered results"} /><span>{language === "cn" ? "全部选择" : "Select all"}</span></div>
+            </div>}
+            {hasQueried && manualSelectionAtLimit && <p className="px-1 text-foot12 text-secondary-text">{language === "cn" ? "当前手动勾选最多支持500台" : "Manual selection supports up to 500 devices."}</p>}
+            {upgradeError && <div role="alert" className="rounded-sm bg-error-light px-3 py-2 text-body text-error">{upgradeError}</div>}
+            {lastOperation && <div className="rounded-sm bg-brand-light px-3 py-2 text-body text-brand">{lastOperation === "upgrade" ? t.upgradeReady : operationLabel[lastOperation]} · {t.selected} {selected.length} {t.deviceUnit}</div>}
           </div>
-        </div>}
-      </div>
-    </section>
+        ) : undefined}
+        columns={columns}
+        rows={pagedDevices}
+        getRowKey={(device) => device.id}
+        loading={isQueryLoading}
+        loadingMode="overlay"
+        loadingContent={
+          <div className="flex items-center gap-2 rounded-md bg-container px-4 py-3 text-body text-brand shadow-popover">
+            <span aria-hidden="true" className="size-4 animate-spin rounded-full border-2 border-stroke border-t-brand-base" />
+            {language === "cn" ? "正在查询设备数据…" : "Searching device data…"}
+          </div>
+        }
+        emptyText={language === "cn" ? "暂无符合条件的设备" : "No matching devices"}
+        tableCaption={language === "cn" ? "设备批量操作列表" : "Device batch operations list"}
+        minTableWidth={820}
+        pagination={visibleDevices.length > 0 ? {
+          current: currentPage,
+          pageSize,
+          total: visibleDevices.length,
+          totalContent: language === "cn" ? `共 ${visibleDevices.length} 台设备` : `${visibleDevices.length} devices`,
+          pageSummary: language === "cn" ? `第 ${currentPage} / ${totalPages} 页` : `${currentPage} / ${totalPages}`,
+          onChange: (current) => setCurrentPage(current),
+        } : undefined}
+      />
+
+      {isUpgradeOpen && <BulkSystemUpgradeDialog language={language} selectedDevices={devices.filter((device) => device.module === activeModule && selected.includes(device.id))} onClose={() => setIsUpgradeOpen(false)} onComplete={(submission) => { setIsUpgradeOpen(false); setLastOperation("upgrade"); setIsSuccessToastVisible(true); onSubmitForApproval?.(submission); }} />}
+      {isSuccessToastVisible && <div role="status" className="fixed left-1/2 top-[68px] z-[120] flex -translate-x-1/2 items-center gap-6 rounded-md border border-stroke bg-container px-4 py-[13px] text-body text-primary-text shadow-modal"><div className="flex items-center gap-2"><span className="relative size-5 shrink-0 text-success" aria-hidden="true"><svg className="absolute inset-[6.25%] size-[87.5%]" fill="none" preserveAspectRatio="none" viewBox="0 0 17.5 17.5"><path d={toastSvgPaths.p2cd67100} fill="currentColor" /></svg></span><span className="whitespace-nowrap">{t.upgradeSubmitted}</span></div><button type="button" onClick={() => setIsSuccessToastVisible(false)} aria-label={t.cancel} className="relative flex size-4 shrink-0 items-center justify-center rounded-xs text-secondary-text hover:bg-container-hover"><span className="absolute inset-[25.03%]"><svg className="size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 7.99031 7.99033"><path d={toastSvgPaths.p1e5ad00} fill="currentColor" /></svg></span></button></div>}
+    </>
   );
 }

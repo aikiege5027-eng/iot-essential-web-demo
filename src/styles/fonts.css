@@ -1,0 +1,128 @@
+/**
+ * ============================================================================
+ * KONE IoT Design System — Typography Tokens
+ * ============================================================================
+ * 单一事实来源：Figma「Design Token China」
+ *   字体 https://www.figma.com/design/vuD3onrb6PS5UtMrGdgbrA/Design-Token-China?node-id=184-1388
+ *
+ * 字族统一 PingFang SC，三档字重：Regular 400 / Medium 500 / Semibold 600。
+ * 全表无字间距（letterSpacing: 0），无斜体。
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * ⚠ 不要再写 font-['PingFang_SC:Medium',sans-serif]
+ *
+ * 这是 Figma 导出的产物，本仓库现存 232 处，其中 64 处 Medium 变体
+ * 无一附带真正的字重类。原因：它把字重塞进了字族名里，而
+ * "PingFang SC:Medium" 不是可解析的字族，浏览器匹配失败后静默回退到
+ * sans-serif 400 —— 设计稿要求的中黑字重全部丢失，且不会有任何报错。
+ *
+ * 正确写法：字族由 body 继承，字号行高用 text-* token，字重用 font-* 工具类
+ *   <p className="text-body font-medium text-primary-text">
+ * ────────────────────────────────────────────────────────────────────────────
+ */
+
+@theme {
+  /* --------------------------------------------------------------------------
+   * 字族
+   * ------------------------------------------------------------------------ */
+  --font-sans:
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system,
+    BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
+
+  /* 等宽：设备 ID、故障码、时间戳等需要按列对齐的数据 */
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas,
+    "Liberation Mono", monospace;
+
+  /* --------------------------------------------------------------------------
+   * 排版尺度（字号与行高成对绑定，与 Figma 排版表逐行对应）
+   *
+   * Figma 名称        token          字号/行高   典型用途
+   * ─────────────────────────────────────────────────────────────────────────
+   * Foot 10          text-foot10     10/16     角标、图例、密集表格
+   * Foot 12          text-foot12     12/20     辅助说明、时间戳、标签
+   * Body 14          text-body       14/22     正文默认（占全站 223 处）
+   * H7 16            text-h7         16/24     卡片标题、区块小标题
+   * H6 18            text-h6         18/26     区块标题
+   * H5 20            text-h5         20/28     页面小标题
+   * H4 24            text-h4         24/32     页面标题
+   * H3 28            text-h3         28/36     大标题
+   * H2 30            text-h2         30/44     模块级大标题
+   * H1 38            text-h1         38/56     首屏主标题
+   * Headline/small   text-headline-sm 24/32    Semibold 语气更强的标题
+   * Headline/medium  text-headline    28/36
+   * Headline/large   text-headline-lg 36/44
+   * Display/medium   text-display     48/56    监控大盘核心指标
+   * Display/large    text-display-lg  64/72
+   * ------------------------------------------------------------------------ */
+
+  --text-foot10: 10px;
+  --text-foot10--line-height: 16px;
+
+  --text-foot12: 12px;
+  --text-foot12--line-height: 20px;
+
+  --text-body: 14px;
+  --text-body--line-height: 22px;
+
+  --text-h7: 16px;
+  --text-h7--line-height: 24px;
+
+  --text-h6: 18px;
+  --text-h6--line-height: 26px;
+
+  --text-h5: 20px;
+  --text-h5--line-height: 28px;
+
+  --text-h4: 24px;
+  --text-h4--line-height: 32px;
+
+  --text-h3: 28px;
+  --text-h3--line-height: 36px;
+
+  --text-h2: 30px;
+  --text-h2--line-height: 44px;
+
+  --text-h1: 38px;
+  --text-h1--line-height: 56px;
+
+  /* Headline / Display 在 Figma 中固定为 Semibold，使用时无需再加 font-semibold */
+  --text-headline-sm: 24px;
+  --text-headline-sm--line-height: 32px;
+  --text-headline-sm--font-weight: 600;
+
+  --text-headline: 28px;
+  --text-headline--line-height: 36px;
+  --text-headline--font-weight: 600;
+
+  --text-headline-lg: 36px;
+  --text-headline-lg--line-height: 44px;
+  --text-headline-lg--font-weight: 600;
+
+  --text-display: 48px;
+  --text-display--line-height: 56px;
+  --text-display--font-weight: 600;
+
+  --text-display-lg: 64px;
+  --text-display-lg--line-height: 72px;
+  --text-display-lg--font-weight: 600;
+}
+
+@layer base {
+  /**
+   * 字族在 body 统一继承，业务组件不需要（也不应该）再声明 font-family。
+   * font-synthesis: none 阻止浏览器为中文字体伪造粗体/斜体，避免糊字。
+   */
+  body {
+    font-family: var(--font-sans);
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* 表格数字等宽对齐，避免逐行列宽跳动 */
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+}

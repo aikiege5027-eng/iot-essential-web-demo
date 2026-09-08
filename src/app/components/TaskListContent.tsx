@@ -1,8 +1,11 @@
 import { useMemo, useState } from "react";
+import { Dropdown, Tooltip as TDesignTooltip } from "tdesign-react";
 import taskSvgPaths from "../../imports/IoT-20/svg-kodl3bnq28";
-import ProgressTooltip from "../../imports/Tooltip文字提示";
 import taskTypeSvgPaths from "../../imports/类型标签/svg-sje9m5ctx7";
 import { getApprovalDeviceCount, getApprovalTaskContext, type UpgradeApproval } from "../data/approvalWorkflow";
+import { IoTListPageTemplate } from "./templates/iot-list-page";
+import type { IoTTableColumn } from "./templates/iot-list-page";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 type Language = "en" | "cn";
 type TaskStatus = "queued" | "running" | "paused" | "success" | "failed";
@@ -31,8 +34,8 @@ const seededTasks: Task[] = [
 ];
 
 const copy = {
-  cn: { title: "任务列表", type: "任务类型", started: "开始时间", ended: "结束时间", name: "任务名称", quantity: "任务数量", status: "任务状态", action: "操作", taskProgress: "查看任务进度", queued: "队列中", running: "进行中", paused: "任务暂停", subtaskPaused: "暂停", success: "任务成功", failed: "任务失败", executionFailed: "执行失败", verificationFailed: "验证失败", verificationSucceeded: "验证成功", total: "共", records: "项数据" },
-  en: { title: "Task List", type: "Task type", started: "Start time", ended: "End time", name: "Task name", quantity: "Task quantity", status: "Task status", action: "Action", taskProgress: "View task progress", queued: "Queued", running: "In progress", paused: "Paused", subtaskPaused: "Paused", success: "Successful", failed: "Failed", executionFailed: "Execution failed", verificationFailed: "Validation failed", verificationSucceeded: "Validation succeeded", total: "Total ", records: " records" },
+  cn: { title: "任务列表", type: "任务类型", started: "开始时间", ended: "结束时间", name: "任务名称", quantity: "任务数量", status: "任务状态", action: "操作", batchTaskView: "查看任务视图", singleTaskDetails: "查看任务详情", queued: "队列中", running: "进行中", paused: "任务暂停", subtaskPaused: "暂停", success: "任务成功", failed: "任务失败", executionFailed: "执行失败", verificationFailed: "验证失败", verificationSucceeded: "验证成功", total: "共", records: "项数据" },
+  en: { title: "Task List", type: "Task type", started: "Start time", ended: "End time", name: "Task name", quantity: "Task quantity", status: "Task status", action: "Action", batchTaskView: "View task overview", singleTaskDetails: "View task details", queued: "Queued", running: "In progress", paused: "Paused", subtaskPaused: "Paused", success: "Successful", failed: "Failed", executionFailed: "Execution failed", verificationFailed: "Validation failed", verificationSucceeded: "Validation succeeded", total: "Total ", records: " records" },
 };
 
 function TaskTypeTag({ type }: { type: string }) {
@@ -66,24 +69,56 @@ function SubtaskStatusLabel({ status, language }: { status: SubtaskStatus; langu
   return <span className={`inline-flex items-center gap-1 ${config[status].className}`}><i className="size-1.5 rounded-full bg-current" />{config[status].label}</span>;
 }
 
-function TaskProgressButton({ label, onClick }: { label: string; onClick?: () => void }) {
+function TaskStatusCell({ task, language }: { task: Task; language: Language }) {
+  if (task.quantity === 1) return <StatusLabel status={task.status} language={language} />;
+
   return (
-    <div className="group relative inline-flex size-8 shrink-0 items-center justify-center">
-      <button type="button" aria-label={label} onClick={onClick} className="relative size-full rounded-full hover:bg-[#f5f7fa] focus-visible:bg-[#f5f7fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1450f5]">
-        <span className="absolute left-1/2 top-1/2 size-[18px] -translate-x-1/2 -translate-y-1/2 overflow-clip" aria-hidden="true">
-          <span className="absolute inset-[12.5%_14.33%_12.5%_12.5%]"><svg className="block size-full" fill="none" height="13.4999" preserveAspectRatio="none" viewBox="0 0 13.1705 13.4999" width="13.1705"><path clipRule="evenodd" d={taskSvgPaths.p1021cbf2} fill="#141414" fillRule="evenodd" /></svg></span>
-        </span>
-      </button>
-      <div role="tooltip" className="pointer-events-none invisible absolute bottom-[calc(100%+2px)] left-1/2 z-40 w-[112px] -translate-x-1/2 opacity-0 transition-[opacity,visibility] duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
-        <ProgressTooltip />
-      </div>
-    </div>
+    <TDesignTooltip
+      trigger="hover"
+      placement="bottom-left"
+      delay={[0, 100]}
+      theme="light"
+      showArrow={false}
+      overlayStyle={{ background: "transparent", border: 0, boxShadow: "none", padding: 0 }}
+      overlayInnerStyle={{ background: "transparent", border: 0, boxShadow: "none", padding: 0 }}
+      content={(
+        <div className="w-[172px] rounded-md bg-container p-3 shadow-popover">
+          {(["queued", "running", "executionFailed", "verificationFailed", "verificationSucceeded", "paused"] as SubtaskStatus[]).map((status) => (
+            <div key={status} className="flex items-center justify-between py-1 text-body">
+              <SubtaskStatusLabel status={status} language={language} />
+              <span className="text-primary-text">{task.summary?.[status] ?? 0}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    >
+      <span className="inline-flex">
+        <StatusLabel status={task.status} language={language} />
+      </span>
+    </TDesignTooltip>
+  );
+}
+
+function TaskProgressButton({ label, tooltip, onClick }: { label: string; tooltip: string; onClick?: () => void }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button type="button" aria-label={label} onClick={onClick} className="relative size-8 shrink-0 rounded-full text-icon-primary hover:bg-component focus-visible:bg-component focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-base">
+          <span className="absolute left-1/2 top-1/2 size-[18px] -translate-x-1/2 -translate-y-1/2 overflow-clip" aria-hidden="true">
+            <span className="absolute inset-[12.5%_14.33%_12.5%_12.5%]"><svg className="block size-full" fill="none" height="13.4999" preserveAspectRatio="none" viewBox="0 0 13.1705 13.4999" width="13.1705"><path clipRule="evenodd" d={taskSvgPaths.p1021cbf2} fill="currentColor" fillRule="evenodd" /></svg></span>
+          </span>
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" sideOffset={2} theme="light" showArrow>
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
 function MoreIconButton({ label }: { label: string }) {
   return (
-    <button type="button" aria-label={label} className="relative size-8 shrink-0 rounded-full hover:bg-[#f5f7fa] focus-visible:bg-[#f5f7fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1450f5]">
+    <button type="button" aria-label={label} className="relative size-8 shrink-0 rounded-full hover:bg-component focus-visible:bg-component focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-base">
       <span className="absolute left-1/2 top-1/2 size-[18px] -translate-x-1/2 -translate-y-1/2 overflow-clip" aria-hidden="true"><span className="absolute inset-[14.29%_42.86%]"><svg className="block size-full" fill="none" height="12.8571" preserveAspectRatio="none" viewBox="0 0 2.57143 12.8571" width="2.57143"><path d={taskSvgPaths.p29f58d00} fill="#abadb2" /></svg></span></span>
     </button>
   );
@@ -92,24 +127,27 @@ function MoreIconButton({ label }: { label: string }) {
 function MoreActionsMenu({ task, language, onResume, onRestart, onDelete }: { task: Task; language: Language; onResume: () => void; onRestart: () => void; onDelete: () => void }) {
   const labels = language === "cn" ? { more: "更多操作", resume: "继续", restart: "重新开始", delete: "删除" } : { more: "More actions", resume: "Resume", restart: "Restart", delete: "Delete" };
   const actions = task.status === "paused"
-    ? [{ label: labels.resume, onClick: onResume }]
+    ? [{ id: "resume", label: labels.resume, onClick: onResume }]
     : task.status === "failed"
-      ? [{ label: labels.restart, onClick: onRestart }, { label: labels.delete, onClick: onDelete }]
+      ? [{ id: "restart", label: labels.restart, onClick: onRestart }, { id: "delete", label: labels.delete, onClick: onDelete }]
       : task.status === "success"
-        ? [{ label: labels.delete, onClick: onDelete }]
+        ? [{ id: "delete", label: labels.delete, onClick: onDelete }]
         : [];
 
   if (actions.length === 0) return null;
 
   return (
-    <div className="group relative inline-flex size-8 shrink-0 items-center justify-center">
-      <button type="button" aria-label={labels.more} aria-haspopup="menu" className="relative size-full rounded-full hover:bg-[#f5f7fa] focus-visible:bg-[#f5f7fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1450f5]">
-        <span className="absolute left-1/2 top-1/2 size-[18px] -translate-x-1/2 -translate-y-1/2 overflow-clip" aria-hidden="true"><span className="absolute inset-[14.29%_42.86%]"><svg className="block size-full" fill="none" height="12.8571" preserveAspectRatio="none" viewBox="0 0 2.57143 12.8571" width="2.57143"><path d={taskSvgPaths.p29f58d00} fill="#abadb2" /></svg></span></span>
+    <Dropdown
+      trigger="click"
+      placement="bottom-right"
+      minColumnWidth={112}
+      options={actions.map((action) => ({ content: action.label, value: action.id }))}
+      onClick={(option) => actions.find((action) => action.id === option.value)?.onClick()}
+    >
+      <button type="button" aria-label={labels.more} aria-haspopup="menu" className="relative size-8 shrink-0 rounded-full hover:bg-component focus-visible:bg-component focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-base">
+        <span className="absolute left-1/2 top-1/2 size-[18px] -translate-x-1/2 -translate-y-1/2 overflow-clip" aria-hidden="true"><span className="absolute inset-[14.29%_42.86%]"><svg className="block size-full" fill="none" height="12.8571" preserveAspectRatio="none" viewBox="0 0 2.57143 12.8571" width="2.57143"><path d={taskSvgPaths.p29f58d00} fill="currentColor" className="text-disabled" /></svg></span></span>
       </button>
-      <div role="menu" aria-label={labels.more} className="invisible absolute right-0 top-full z-40 w-[112px] rounded-[6px] border-[0.5px] border-[#c8cad0] bg-white p-[6px] opacity-0 shadow-[0_4px_5px_rgba(0,0,0,0.1)] transition-[opacity,visibility] duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
-        {actions.map((action) => <button key={action.label} type="button" role="menuitem" onClick={action.onClick} className="flex h-[28px] w-full items-center rounded-[4px] px-2 py-[3px] text-left text-[14px] font-normal leading-[22px] text-[#141414] hover:bg-[#f1f1f1] active:bg-[#dfe1e8] focus:bg-[#dfe1e8] focus:outline-none">{action.label}</button>)}
-      </div>
-    </div>
+    </Dropdown>
   );
 }
 
@@ -143,8 +181,89 @@ export default function TaskListContent({ language, approvals, onOpenTaskProgres
   const activePage = Math.min(currentPage, totalPages);
   const visibleTasks = tasks.slice((activePage - 1) * pageSize, activePage * pageSize);
 
-  return <section className="overflow-visible rounded-[8px] border border-[#dfe1e8] bg-white font-['PingFang_SC:Regular',sans-serif]" aria-label={t.title}>
-    <header className="px-5 pb-3 pt-6"><h1 className="text-[20px] font-semibold leading-7 text-[#141414]">{t.title}</h1></header>
-    <div className="px-5 pb-5 pt-1"><div className="overflow-visible rounded-[6px] border border-[#dfe1e8]"><table className="w-full min-w-[880px] border-collapse text-left text-[14px]"><thead className="bg-[#f5f7fa] text-[#8f9195]"><tr className="h-[40px] border-b border-[#dfe1e8]"><th className="w-[112px] px-4 font-normal">{t.type}</th><th className="w-[176px] px-4 font-normal">{t.started}</th><th className="w-[176px] px-4 font-normal">{t.ended}</th><th className="px-4 font-normal">{t.name}</th><th className="w-[100px] px-4 font-normal">{t.quantity}</th><th className="w-[116px] px-4 font-normal">{t.status}</th><th className="w-[84px] px-4 font-normal">{t.action}</th></tr></thead><tbody>{visibleTasks.map((task) => <tr key={task.id} className="h-[52px] border-b border-[#e7e7e7] last:border-b-0 hover:bg-[#fafbfc]"><td className="px-4"><TaskTypeTag type={task.type} /></td><td className="px-4 text-[#141414]">{task.startedAt}</td><td className="px-4 text-[#141414]">{task.endedAt}</td><td className="max-w-[240px] truncate px-4 text-[#141414]" title={task.name}>{task.name}</td><td className="px-4 text-[#141414]">{task.quantity}</td><td className="px-4">{task.quantity > 1 ? <div className="group relative inline-flex"><StatusLabel status={task.status} language={language} /><div className="pointer-events-none absolute top-[calc(100%+8px)] left-0 z-[60] hidden w-[152px] rounded-[6px] bg-white p-3 shadow-[0_4px_10px_rgba(0,0,0,0.12)] group-hover:block">{(["queued", "running", "executionFailed", "verificationFailed", "verificationSucceeded", "paused"] as SubtaskStatus[]).map((status) => <div key={status} className="flex items-center justify-between py-1 text-[12px]"><SubtaskStatusLabel status={status} language={language} /><span className="text-[#141414]">{task.summary?.[status] ?? 0}</span></div>)}</div></div> : <StatusLabel status={task.status} language={language} />}</td><td className="px-4"><div className="flex items-center"><TaskProgressButton label={t.taskProgress} onClick={task.quantity > 1 ? onOpenTaskProgress : undefined} />{task.quantity > 1 ? <MoreActionsMenu task={task} language={language} onResume={() => setTaskRunning(task.id)} onRestart={() => setTaskRunning(task.id)} onDelete={() => deleteTask(task.id)} /> : <MoreIconButton label={language === "cn" ? "更多操作" : "More actions"} />}</div></td></tr>)}</tbody></table></div><footer className="flex h-16 items-center justify-between px-4 text-[14px] text-[#676a72]"><span>{t.total}{tasks.length}{t.records}</span><div className="flex items-center gap-2">{Array.from({ length: totalPages }, (_, index) => { const page = index + 1; const active = page === activePage; return <button key={page} type="button" onClick={() => setCurrentPage(page)} aria-current={active ? "page" : undefined} className={`flex size-8 items-center justify-center rounded-[4px] ${active ? "bg-[#1450f5] text-white" : "border border-[#c8cad0] text-[#141414] hover:bg-[#f5f7fa]"}`}>{page}</button>; })}</div></footer></div>
-  </section>;
+  const columns: IoTTableColumn<Task>[] = [
+    {
+      id: "type",
+      title: t.type,
+      width: language === "en" ? "18%" : "14%",
+      render: (task) => <TaskTypeTag type={task.type} />,
+    },
+    {
+      id: "startedAt",
+      title: t.started,
+      width: language === "en" ? "16%" : "17%",
+      render: (task) => <span className="whitespace-nowrap text-primary-text">{task.startedAt}</span>,
+    },
+    {
+      id: "endedAt",
+      title: t.ended,
+      width: language === "en" ? "16%" : "17%",
+      render: (task) => <span className="whitespace-nowrap text-primary-text">{task.endedAt}</span>,
+    },
+    {
+      id: "name",
+      title: t.name,
+      width: language === "en" ? "calc(29% - 112px)" : "calc(31% - 112px)",
+      render: (task) => <span className="block truncate text-primary-text" title={task.name}>{task.name}</span>,
+    },
+    {
+      id: "quantity",
+      title: t.quantity,
+      width: language === "en" ? "11%" : "10%",
+      render: (task) => <span className="tabular-nums text-primary-text">{task.quantity}</span>,
+    },
+    {
+      id: "status",
+      title: t.status,
+      width: language === "en" ? "10%" : "11%",
+      render: (task) => <TaskStatusCell task={task} language={language} />,
+    },
+    {
+      id: "action",
+      title: t.action,
+      width: 112,
+      fixed: "right",
+      ellipsis: false,
+      render: (task) => (
+        <div className="flex items-center">
+          <TaskProgressButton
+            label={task.quantity > 1 ? t.batchTaskView : t.singleTaskDetails}
+            tooltip={task.quantity > 1 ? t.batchTaskView : t.singleTaskDetails}
+            onClick={task.quantity > 1 ? onOpenTaskProgress : undefined}
+          />
+          {task.quantity > 1 ? (
+            <MoreActionsMenu
+              task={task}
+              language={language}
+              onResume={() => setTaskRunning(task.id)}
+              onRestart={() => setTaskRunning(task.id)}
+              onDelete={() => deleteTask(task.id)}
+            />
+          ) : (
+            <MoreIconButton label={language === "cn" ? "更多操作" : "More actions"} />
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <IoTListPageTemplate<Task>
+      title={t.title}
+      filterMode="normal"
+      filters={[]}
+      columns={columns}
+      rows={visibleTasks}
+      getRowKey={(task) => task.id}
+      minTableWidth={language === "en" ? 1320 : 1080}
+      tableCaption={t.title}
+      pagination={{
+        current: activePage,
+        pageSize,
+        total: tasks.length,
+        totalContent: `${t.total}${tasks.length}${t.records}`,
+        onChange: (current) => setCurrentPage(current),
+      }}
+    />
+  );
 }

@@ -1,3 +1,23 @@
-@import './fonts.css';
+/**
+ * 样式入口。导入顺序有意义，不要随意调整：
+ *
+ * 1. tailwind.css        必须最先，它 @import 'tailwindcss' 引入默认主题
+ * 2. tdesign.css         TDesign 基础样式 + 默认 token + 全部组件样式。
+ *                        放在 Tailwind 之后，避免被 Tailwind preflight 覆盖
+ * 3. fonts.css           排版 token，需在默认主题之后才能覆盖 --font-sans
+ * 4. theme.css           KONE 颜色 token 与 base layer
+ * 5. tdesign-bridge.css  把 KONE token 灌给 TDesign，必须在 tdesign.css 之后
+ * 6. tdesign-patches.css TDesign 的结构性覆盖（overflow 之类 token 表达不了的），
+ *                        同样必须在 tdesign.css 之后
+ *
+ * 说明：CSS 自定义属性的 var() 是延迟解析的，所以 bridge 引用 theme.css 里的
+ * 变量不要求 theme.css 在前；只有「覆盖 --td-* 默认值」这件事要求 bridge 在
+ * tdesign.css 之后。patches 不一样 —— 它直接覆盖属性，靠的是「同特异性后来者胜」，
+ * 所以它的位置是硬要求。
+ */
 @import './tailwind.css';
+@import 'tdesign-react/dist/tdesign.css';
+@import './fonts.css';
 @import './theme.css';
+@import './tdesign-bridge.css';
+@import './tdesign-patches.css';

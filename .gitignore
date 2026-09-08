@@ -20,4 +20,8 @@ coverage/
 
 .idea/
 
-.kiro/
+# 忽略 .kiro 下的内容（而非目录本身）——git 不会进入被排除的目录，
+# 写成 .kiro/ 会导致下面的 steering 例外规则失效
+.kiro/*
+# Steering 是团队共享的设计与工程约定，需要纳入版本管理
+!.kiro/steering/
