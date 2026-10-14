@@ -18,6 +18,8 @@ export interface IoTFilterField {
   value: string;
   placeholder?: string;
   onChange: (value: string) => void;
+  /** 宽屏（4 列栅格）下占用的列数；默认 1。窄屏自动降级。 */
+  span?: 1 | 2 | 3 | 4;
   /** 用于 Select、DatePicker 等非文本控件；未提供时渲染 TDesign Input。 */
   render?: (context: {
     id: string;
@@ -73,7 +75,9 @@ export interface IoTListPageTemplateProps<Row> {
   filterMode?: IoTFilterMode;
   filters?: IoTFilterField[];
   embeddedSearch?: IoTEmbeddedSearch;
-  /** embedded 筛选按钮的可访问名称；默认使用中文。 */
+  /** normal 模式收起时默认可见的字段数；默认 4。字段总数不超过该值时不显示展开按钮。 */
+  normalCollapsedCount?: number;
+  /** 展开/收起筛选的文案与可访问名称（normal 与 embedded 共用）；默认使用中文。 */
   embeddedFilterLabels?: {
     expand: string;
     collapse: string;

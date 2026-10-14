@@ -96,12 +96,20 @@ function PageActions({ actions }: { actions: IoTPageAction[] }) {
   );
 }
 
+// Tailwind 需要静态类名，因此用映射表而不是拼接。
+const FIELD_SPAN_CLASS: Record<NonNullable<IoTFilterField["span"]>, string> = {
+  1: "",
+  2: "min-[768px]:col-span-2",
+  3: "min-[768px]:col-span-2 min-[1180px]:col-span-3",
+  4: "min-[768px]:col-span-2 min-[1180px]:col-span-4",
+};
+
 function FilterField({ field }: { field: IoTFilterField }) {
   const inputId = `iot-filter-${field.id}`;
 
   return (
-    <div className="flex min-w-0 flex-col items-start pb-6">
-      <label htmlFor={inputId} className="pb-2 text-body text-primary-text">
+    <div className={cn("flex min-w-0 flex-col items-start pb-6", FIELD_SPAN_CLASS[field.span ?? 1])}>
+      <label htmlFor={inputId} className="pb-2 text-body font-normal text-primary-text">
         {field.label}
       </label>
       <div className="w-full">
@@ -123,7 +131,7 @@ function FilterField({ field }: { field: IoTFilterField }) {
 
 function FilterGrid({ fields }: { fields: IoTFilterField[] }) {
   return (
-    <div className="grid min-w-0 flex-1 grid-cols-1 gap-x-5 md:grid-cols-2 min-[1180px]:grid-cols-4">
+    <div className="grid min-w-0 flex-1 grid-cols-1 gap-x-5 min-[768px]:grid-cols-2 min-[1180px]:grid-cols-4">
       {fields.map((field) => (
         <FilterField key={field.id} field={field} />
       ))}
@@ -134,10 +142,12 @@ function FilterGrid({ fields }: { fields: IoTFilterField[] }) {
 function ExpansionButton({
   expanded,
   controls,
+  labels,
   onClick,
 }: {
   expanded: boolean;
   controls: string;
+  labels: { expand: string; collapse: string };
   onClick: () => void;
 }) {
   return (
@@ -145,29 +155,36 @@ function ExpansionButton({
       theme="primary"
       variant="text"
       size="medium"
+      // 设计稿中的文字按钮无水平内边距，右缘与表格右缘对齐；
+      // 保留默认内边距会让 80px 容器溢出并被卡片 overflow-hidden 裁切。
+      style={{ paddingInline: 0 }}
       suffix={expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
       aria-expanded={expanded}
       aria-controls={controls}
       onClick={onClick}
     >
-      {expanded ? "收起筛选" : "展开筛选"}
+      {expanded ? labels.collapse : labels.expand}
     </Button>
   );
 }
 
 function NormalFilters({
   fields,
+  collapsedCount,
+  labels,
   expanded,
   panelId,
   onToggle,
 }: {
   fields: IoTFilterField[];
+  collapsedCount: number;
+  labels: { expand: string; collapse: string };
   expanded: boolean;
   panelId: string;
   onToggle: () => void;
 }) {
-  const canExpand = fields.length > 4;
-  const visibleFields = canExpand && !expanded ? fields.slice(0, 4) : fields;
+  const canExpand = fields.length > collapsedCount;
+  const visibleFields = canExpand && !expanded ? fields.slice(0, collapsedCount) : fields;
 
   if (fields.length === 0) return null;
 
@@ -175,8 +192,8 @@ function NormalFilters({
     <div id={panelId} className="flex flex-col gap-2 px-5 lg:flex-row lg:items-start lg:gap-8">
       <FilterGrid fields={visibleFields} />
       {canExpand && (
-        <div className="shrink-0 pb-6 lg:w-20 lg:pt-[30px]">
-          <ExpansionButton expanded={expanded} controls={panelId} onClick={onToggle} />
+        <div className="shrink-0 pb-6 lg:pt-[30px]">
+          <ExpansionButton expanded={expanded} controls={panelId} labels={labels} onClick={onToggle} />
         </div>
       )}
     </div>
@@ -494,6 +511,7 @@ export function IoTListPageTemplate<Row>({
   filterMode = "none",
   filters = [],
   embeddedSearch,
+  normalCollapsedCount = 4,
   embeddedFilterLabels = { expand: "展开筛选", collapse: "收起筛选" },
   embeddedActions,
   embeddedFilterContent,
@@ -542,6 +560,8 @@ export function IoTListPageTemplate<Row>({
         {filterMode === "normal" && (
           <NormalFilters
             fields={filters}
+            collapsedCount={normalCollapsedCount}
+            labels={embeddedFilterLabels}
             expanded={expanded}
             panelId={panelId}
             onToggle={() => setExpanded(!expanded)}

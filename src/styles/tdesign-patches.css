@@ -151,21 +151,6 @@
 }
 
 /**
- * 设备批量操作页的 IESS / AWS 模块切换使用 medium filled RadioGroup。
- * Figma 组件以 component-stroke 作为组底色；同时将 TDesign medium 默认左右各
- * 16px 的内边距收紧为 8px，避免短标签的选中滑块留白过大。
- * 滑块尺寸由 RadioGroup 按按钮宽度自动重算，无需覆盖选中态颜色或尺寸。
- */
-.batch-operations-module-radio.t-radio-group.t-size-m {
-  column-gap: var(--td-comp-margin-xs);
-  background-color: var(--component-stroke);
-}
-
-.batch-operations-module-radio.t-radio-group.t-size-m .t-radio-button {
-  padding-inline: var(--td-comp-paddingLR-s);
-}
-
-/**
  * 设备批量操作页在 IoT 列表模板中保留固定 52px 的选择列。
  * 模板数据列默认 24px 水平内边距不适用于仅承载 16px Checkbox 的窄列。
  */
@@ -231,4 +216,14 @@
   .batch-operations-filter-chain > .t-select__wrap .t-input {
     border-radius: var(--td-radius-default);
   }
+}
+
+/**
+ * 批量配置更新弹窗里字段前的 Checkbox 缩小到 14px。
+ * 设计系统的 Checkbox 只有 16×16 一档（无 size 轴），这是该弹窗为提高字段密度做的局部缩小。
+ * 勾选对勾和描边都是按 16px 绝对定位的，所以用 zoom 整体缩放方框，而不是只改宽高；
+ * 标签文字与间距不受影响。仅限 .iot-config-field-checkbox，不影响其他 Checkbox。
+ */
+.iot-config-field-checkbox .t-checkbox__input {
+  zoom: 0.875;
 }

@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Dropdown, RadioGroup, Select } from "tdesign-react";
+import { Button, Dropdown, Input, Select } from "tdesign-react";
 import type { UpgradeDetail } from "../data/approvalWorkflow";
 import {
   IoTListPageTemplate,
   type IoTFilterField,
   type IoTTableColumn,
 } from "./templates/iot-list-page";
+import { EmbeddedSearchIcon } from "./icons/iot-list-page-icons";
+import BatchConfigUpdateDialog from "./BatchConfigUpdateDialog";
 import batchSvgPaths from "../../imports/IotWebTemplateUntitledEmbedFilterButton3StateCollapsed-1/svg-k7keowhjm7";
 import upgradeSvgPaths from "../../imports/IotWebTemplate批量升级OverlayContentDialogContent/svg-uj64kmlbtu";
 import upgradeSelectedSvgPaths from "../../imports/IotWebTemplate批量升级OverlayContentDialogContent-2/svg-p0m9k99e2p";
@@ -94,6 +96,7 @@ const copy = {
     scheduleHint: "请设定批量系统升级执行时间。",
     schedulePlaceholder: "请设定执行时间",
     selectDeviceFirst: "请先勾选至少一台设备后再执行批量系统升级。",
+    selectDeviceFirstConfig: "请先勾选至少一台设备后再执行批量配置更新。",
     config: "配置更新",
     online: "在线",
     offline: "离线",
@@ -114,6 +117,13 @@ const copy = {
     chooseSoftwareVersion: "选择软件版本",
     onlineStatus: "在线状态",
     chooseContent: "请选择内容",
+    registrationPlatform: "注册平台",
+    platformAll: "全部",
+    platformIess: "IESS注册",
+    platformAws: "AWS注册",
+    keywordSearch: "关键词搜索",
+    expandFilter: "展开筛选",
+    collapseFilter: "收起筛选",
   },
   en: {
     title: "Device Batch Operations",
@@ -159,6 +169,7 @@ const copy = {
     scheduleHint: "Set the execution time for this batch system upgrade.",
     schedulePlaceholder: "Set execution time",
     selectDeviceFirst: "Select at least one device before starting a batch system upgrade.",
+    selectDeviceFirstConfig: "Select at least one device before starting a batch configuration update.",
     config: "Configuration Update",
     online: "Online",
     offline: "Offline",
@@ -179,6 +190,13 @@ const copy = {
     chooseSoftwareVersion: "Select software version",
     onlineStatus: "Online status",
     chooseContent: "Please select",
+    registrationPlatform: "Registration platform",
+    platformAll: "All",
+    platformIess: "Registered in IESS",
+    platformAws: "Registered in AWS",
+    keywordSearch: "Keyword search",
+    expandFilter: "Expand filters",
+    collapseFilter: "Collapse filters",
   },
 };
 
@@ -391,10 +409,11 @@ function BulkSystemUpgradeDialog({ language, selectedDevices, onClose, onComplet
 
 export default function BatchOperationsContent({ language, onSubmitForApproval }: { language: Language; onSubmitForApproval?: (submission: { scheduledAt: string; packages: Record<string, string>; upgradeDetails: UpgradeDetail[]; submissionRemark?: string }) => void }) {
   const t = copy[language];
-  const [activeModule, setActiveModule] = useState<BatchModule>("iess");
+  const [platformFilter, setPlatformFilter] = useState<BatchModule | "all">("all");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [upgradeError, setUpgradeError] = useState("");
   const [statusFilter, setStatusFilter] = useState<Device["status"] | "all">("all");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -426,7 +445,7 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
 
   const hardwareTypeOptions = useMemo(() => {
     const availableHardwareTypes = devices
-      .filter((device) => device.module === activeModule)
+      .filter((device) => platformFilter === "all" || device.module === platformFilter)
       .filter((device) => !company || device.company === company)
       .filter((device) => deviceTypeFilters.length === 0 || deviceTypeFilters.includes(device.typeCode))
       .map((device) => device.km);
@@ -434,11 +453,11 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
     return Array.from(new Set(availableHardwareTypes))
       .sort()
       .map((value) => ({ value, label: value }));
-  }, [activeModule, company, deviceTypeFilters]);
+  }, [platformFilter, company, deviceTypeFilters]);
 
   const softwareVersionOptions = useMemo(() => {
     const availableVersions = devices
-      .filter((device) => device.module === activeModule)
+      .filter((device) => platformFilter === "all" || device.module === platformFilter)
       .filter((device) => !company || device.company === company)
       .filter((device) => deviceTypeFilters.length === 0 || deviceTypeFilters.includes(device.typeCode))
       .filter((device) => hardwareTypeFilters.length === 0 || hardwareTypeFilters.includes(device.km))
@@ -450,7 +469,7 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
     return Array.from(
       new Map(availableVersions.map((option) => [option.value, option])).values(),
     ).sort((left, right) => left.label.localeCompare(right.label));
-  }, [activeModule, company, deviceTypeFilters, hardwareTypeFilters]);
+  }, [platformFilter, company, deviceTypeFilters, hardwareTypeFilters]);
 
   const handleDeviceTypeChange = (value: unknown) => {
     const nextDeviceTypes = (Array.isArray(value) ? value : []).map(String) as Device["typeCode"][];
@@ -476,9 +495,9 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
         && (appliedHardwareTypes.length === 0 || appliedHardwareTypes.includes(device.km))
         && (appliedSoftwareVersions.length === 0 || appliedSoftwareVersions.includes(softwareVersionKey))
       );
-      return device.module === activeModule && matchesQuery && matchesAppliedFilters && (statusFilter === "all" || device.status === statusFilter);
+      return (platformFilter === "all" || device.module === platformFilter) && matchesQuery && matchesAppliedFilters && (statusFilter === "all" || device.status === statusFilter);
     });
-  }, [activeModule, appliedCompany, appliedDeviceTypes, appliedHardwareTypes, appliedSoftwareVersions, hasQueried, query, statusFilter]);
+  }, [platformFilter, appliedCompany, appliedDeviceTypes, appliedHardwareTypes, appliedSoftwareVersions, hasQueried, query, statusFilter]);
 
   const pageSize = 20;
   const totalPages = Math.max(1, Math.ceil(visibleDevices.length / pageSize));
@@ -508,6 +527,12 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
       setIsUpgradeOpen(true);
       return;
     }
+    if (operation === "config") {
+      if (selected.length === 0) { setUpgradeError(t.selectDeviceFirstConfig); return; }
+      setUpgradeError("");
+      setIsConfigOpen(true);
+      return;
+    }
     setLastOperation(operation);
   };
   const reset = () => {
@@ -517,6 +542,7 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
     setSelected([]);
     setSelectAllResults(false);
     setStatusFilter("all");
+    setPlatformFilter("all");
     setCompany("");
     setDeviceTypeFilters([]);
     setHardwareTypeFilters([]);
@@ -530,11 +556,17 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
     setLastOperation(null);
     setUpgradeError("");
   };
-  const handleModuleChange = (module: BatchModule) => {
-    if (module === activeModule) return;
-    reset();
-    setIsFilterOpen(false);
-    setActiveModule(module);
+  const handlePlatformChange = (value: unknown) => {
+    const nextPlatform = (String(value ?? "") || "all") as BatchModule | "all";
+    if (nextPlatform === platformFilter) return;
+    // 平台变化会改变硬件类型/软件版本的可选项，并使已勾选的设备失效。
+    setPlatformFilter(nextPlatform);
+    setHardwareTypeFilters([]);
+    setSoftwareVersionFilters([]);
+    setSelected([]);
+    setSelectAllResults(false);
+    setCurrentPage(1);
+    setUpgradeError("");
   };
   const submitQuery = () => {
     if (isQueryLoading) return;
@@ -551,37 +583,164 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
     }, 700);
   };
   const hasExceededResultLimit = visibleDevices.length > 5000;
+  // 仅在弹窗打开时计算所选设备；用 Set 避免对 2 万台设备做 includes 的 O(n²) 查找。
+  const selectedDevices = useMemo(() => {
+    if (!isUpgradeOpen && !isConfigOpen) return [];
+    const selectedIds = new Set(selected);
+    return devices.filter((device) => selectedIds.has(device.id));
+  }, [isUpgradeOpen, isConfigOpen, selected]);
+  const configKmNumbers = useMemo(() => Array.from(new Set(selectedDevices.map((device) => device.km))).sort(), [selectedDevices]);
+  const configDeviceCountByKm = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const device of selectedDevices) counts[device.km] = (counts[device.km] ?? 0) + 1;
+    return counts;
+  }, [selectedDevices]);
 
   const operationLabel: Record<Operation, string> = { restart: t.restart, upgrade: t.upgrade, config: t.config };
   const statusLabel: Record<Device["status"], string> = { online: t.online, offline: t.offline, disconnected: t.disconnected };
   const statusClass: Record<Device["status"], string> = { online: "text-success", offline: "text-placeholder", disconnected: "text-warning" };
   const dataColumnWidth = "calc(20% - 10.4px)";
 
+  const companyOptions = [
+    { value: "kone", label: language === "cn" ? "通力" : "KONE" },
+    { value: "giant-kone", label: language === "cn" ? "巨人通力" : "Giant KONE" },
+    { value: "kone-hk", label: language === "cn" ? "通力香港" : "KONE Hong Kong" },
+  ];
+
+  // 首排（默认可见）：设备筛选组 + 在线状态 + 注册平台；展开后追加：数据范围、搜索框。
+  // 字段按 4 列栅格排布：设备筛选组占 2 列，其余各占 1 列，首排恰好满 4 列。
   const filterFields: IoTFilterField[] = [
-    { id: "company", label: t.chooseCompany, value: company, onChange: setCompany },
     {
-      id: "device-type",
-      label: t.chooseDeviceType,
-      value: deviceTypeFilters.join(","),
-      onChange: (value) => handleDeviceTypeChange(value ? value.split(",") : []),
-    },
-    {
-      id: "hardware-type",
-      label: t.chooseHardwareType,
-      value: hardwareTypeFilters.join(","),
-      onChange: (value) => handleHardwareTypeChange(value ? value.split(",") : []),
-    },
-    {
-      id: "software-version",
-      label: t.chooseSoftwareVersion,
-      value: softwareVersionFilters.join(","),
-      onChange: (value) => setSoftwareVersionFilters(value ? value.split(",") : []),
+      id: "device-filter",
+      label: t.deviceFilter,
+      span: 2,
+      value: [...deviceTypeFilters, ...hardwareTypeFilters, ...softwareVersionFilters].join(","),
+      onChange: () => undefined,
+      render: ({ id }) => (
+        <div id={id} role="group" aria-label={t.deviceFilter} className="batch-operations-filter-chain">
+          <Select
+            value={deviceTypeFilters}
+            onChange={handleDeviceTypeChange}
+            placeholder={t.chooseDeviceType}
+            clearable
+            multiple
+            minCollapsedNum={1}
+            options={[
+              { value: "connection-310", label: "KONE Connection 310" },
+              { value: "connection-320", label: "KONE Connection 320" },
+              { value: "connection-330", label: "KONE Connection 330" },
+            ]}
+            size="medium"
+          />
+          <Select
+            value={hardwareTypeFilters}
+            onChange={handleHardwareTypeChange}
+            placeholder={t.chooseHardwareType}
+            clearable
+            disabled={deviceTypeFilters.length === 0}
+            multiple
+            minCollapsedNum={1}
+            options={hardwareTypeOptions}
+            size="medium"
+          />
+          <Select
+            value={softwareVersionFilters}
+            onChange={(value) => setSoftwareVersionFilters((Array.isArray(value) ? value : []).map(String))}
+            placeholder={t.chooseSoftwareVersion}
+            clearable
+            disabled={hardwareTypeFilters.length === 0}
+            multiple
+            minCollapsedNum={1}
+            options={softwareVersionOptions}
+            size="medium"
+          />
+        </div>
+      ),
     },
     {
       id: "status",
       label: t.onlineStatus,
       value: statusFilter === "all" ? "" : statusFilter,
       onChange: (value) => setStatusFilter((value || "all") as Device["status"] | "all"),
+      render: ({ id, value, onChange }) => (
+        <Select
+          id={id}
+          value={value || undefined}
+          onChange={(next) => onChange(String(next ?? ""))}
+          placeholder={t.chooseContent}
+          clearable
+          options={[
+            { value: "online", label: t.online },
+            { value: "disconnected", label: t.disconnected },
+            { value: "offline", label: t.offline },
+          ]}
+          size="medium"
+        />
+      ),
+    },
+    {
+      id: "platform",
+      label: t.registrationPlatform,
+      value: platformFilter,
+      onChange: (value) => handlePlatformChange(value),
+      render: ({ id, value, onChange }) => (
+        <Select
+          id={id}
+          value={value}
+          onChange={(next) => onChange(String(next ?? ""))}
+          options={[
+            { value: "all", label: t.platformAll },
+            { value: "iess", label: t.platformIess },
+            { value: "aws", label: t.platformAws },
+          ]}
+          size="medium"
+        />
+      ),
+    },
+    {
+      id: "data-scope",
+      label: t.dataScope,
+      span: 4,
+      value: company,
+      onChange: setCompany,
+      render: ({ id }) => (
+        <div id={id} role="group" aria-label={t.dataScope} className="batch-operations-filter-chain">
+          <Select
+            value={company || undefined}
+            onChange={(value) => {
+              setCompany(String(value ?? ""));
+              setHardwareTypeFilters([]);
+              setSoftwareVersionFilters([]);
+            }}
+            placeholder={t.chooseCompany}
+            clearable
+            options={companyOptions}
+            size="medium"
+          />
+          <Select placeholder={t.chooseRegion} disabled size="medium" />
+          <Select placeholder={t.chooseBranch} disabled size="medium" />
+          <Select placeholder={t.chooseOffice} disabled size="medium" />
+          <Select placeholder={t.choosePg} disabled size="medium" />
+          <Select placeholder={t.chooseWorkgroup} disabled size="medium" />
+        </div>
+      ),
+    },
+    {
+      id: "keyword",
+      label: t.keywordSearch,
+      value: query,
+      onChange: setQuery,
+      render: ({ id, value, onChange }) => (
+        <Input
+          id={id}
+          value={value}
+          onChange={onChange}
+          placeholder={t.placeholder}
+          prefixIcon={<EmbeddedSearchIcon className="t-icon size-4" />}
+          size="medium"
+          clearable
+        />
+      ),
     },
   ];
 
@@ -631,37 +790,13 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
     <>
       <IoTListPageTemplate<Device>
         title={t.title}
-        filterMode="embedded"
+        filterMode="normal"
         filters={filterFields}
+        normalCollapsedCount={3}
         filterExpanded={isFilterOpen}
         onFilterExpandedChange={setIsFilterOpen}
-        embeddedSearch={{
-          value: query,
-          onChange: setQuery,
-          placeholder: t.placeholder,
-        }}
-        embeddedFilterLabels={language === "cn"
-          ? { expand: "展开筛选", collapse: "收起筛选" }
-          : { expand: "Expand filters", collapse: "Collapse filters" }}
+        embeddedFilterLabels={{ expand: t.expandFilter, collapse: t.collapseFilter }}
         headerTrailing={
-          <fieldset className="m-0 min-w-0 border-0 p-0">
-            <legend className="sr-only">{language === "cn" ? "选择模块" : "Select module"}</legend>
-            <RadioGroup<BatchModule>
-              className="batch-operations-module-radio"
-              name="batch-operation-module"
-              value={activeModule}
-              onChange={handleModuleChange}
-              theme="button"
-              variant="default-filled"
-              size="medium"
-              options={[
-                { label: "IESS", value: "iess" },
-                { label: "AWS", value: "aws" },
-              ]}
-            />
-          </fieldset>
-        }
-        embeddedActions={
           <div className="flex items-center gap-2">
             <Dropdown
               trigger="click"
@@ -689,95 +824,6 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
             <Button size="medium" theme="primary" variant="base" loading={isQueryLoading} disabled={isQueryLoading} onClick={submitQuery}>
               {isQueryLoading ? (language === "cn" ? "查询中" : "Searching") : t.query}
             </Button>
-          </div>
-        }
-        embeddedFilterContent={
-          <div className="space-y-6 pb-6">
-            <div>
-              <div className="text-body text-primary-text">{t.dataScope}</div>
-              <div className="batch-operations-filter-chain mt-2">
-                <Select
-                  value={company || undefined}
-                  onChange={(value) => {
-                    setCompany(String(value ?? ""));
-                    setHardwareTypeFilters([]);
-                    setSoftwareVersionFilters([]);
-                  }}
-                  placeholder={t.chooseCompany}
-                  clearable
-                  options={[
-                    { value: "kone", label: language === "cn" ? "通力" : "KONE" },
-                    { value: "giant-kone", label: language === "cn" ? "巨人通力" : "Giant KONE" },
-                    { value: "kone-hk", label: language === "cn" ? "通力香港" : "KONE Hong Kong" },
-                  ]}
-                  size="medium"
-                />
-                <Select placeholder={t.chooseRegion} disabled size="medium" />
-                <Select placeholder={t.chooseBranch} disabled size="medium" />
-                <Select placeholder={t.chooseOffice} disabled size="medium" />
-                <Select placeholder={t.choosePg} disabled size="medium" />
-                <Select placeholder={t.chooseWorkgroup} disabled size="medium" />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_238px]">
-              <div>
-                <div className="text-body text-primary-text">{t.deviceFilter}</div>
-                <div className="batch-operations-filter-chain mt-2">
-                  <Select
-                    value={deviceTypeFilters}
-                    onChange={handleDeviceTypeChange}
-                    placeholder={t.chooseDeviceType}
-                    clearable
-                    multiple
-                    minCollapsedNum={1}
-                    options={[
-                      { value: "connection-310", label: "KONE Connection 310" },
-                      { value: "connection-320", label: "KONE Connection 320" },
-                      { value: "connection-330", label: "KONE Connection 330" },
-                    ]}
-                    size="medium"
-                  />
-                  <Select
-                    value={hardwareTypeFilters}
-                    onChange={handleHardwareTypeChange}
-                    placeholder={t.chooseHardwareType}
-                    clearable
-                    disabled={deviceTypeFilters.length === 0}
-                    multiple
-                    minCollapsedNum={1}
-                    options={hardwareTypeOptions}
-                    size="medium"
-                  />
-                  <Select
-                    value={softwareVersionFilters}
-                    onChange={(value) => setSoftwareVersionFilters((Array.isArray(value) ? value : []).map(String))}
-                    placeholder={t.chooseSoftwareVersion}
-                    clearable
-                    disabled={hardwareTypeFilters.length === 0}
-                    multiple
-                    minCollapsedNum={1}
-                    options={softwareVersionOptions}
-                    size="medium"
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="text-body text-primary-text">{t.onlineStatus}</div>
-                <Select
-                  className="mt-2 w-full"
-                  value={statusFilter === "all" ? undefined : statusFilter}
-                  onChange={(value) => setStatusFilter((String(value ?? "") || "all") as Device["status"] | "all")}
-                  placeholder={t.chooseContent}
-                  clearable
-                  options={[
-                    { value: "online", label: t.online },
-                    { value: "disconnected", label: t.disconnected },
-                    { value: "offline", label: t.offline },
-                  ]}
-                  size="medium"
-                />
-              </div>
-            </div>
           </div>
         }
         beforeTable={(hasQueried || upgradeError || lastOperation) ? (
@@ -815,7 +861,8 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
         } : undefined}
       />
 
-      {isUpgradeOpen && <BulkSystemUpgradeDialog language={language} selectedDevices={devices.filter((device) => device.module === activeModule && selected.includes(device.id))} onClose={() => setIsUpgradeOpen(false)} onComplete={(submission) => { setIsUpgradeOpen(false); setLastOperation("upgrade"); setIsSuccessToastVisible(true); onSubmitForApproval?.(submission); }} />}
+      {isUpgradeOpen && <BulkSystemUpgradeDialog language={language} selectedDevices={selectedDevices} onClose={() => setIsUpgradeOpen(false)} onComplete={(submission) => { setIsUpgradeOpen(false); setLastOperation("upgrade"); setIsSuccessToastVisible(true); onSubmitForApproval?.(submission); }} />}
+      {isConfigOpen && <BatchConfigUpdateDialog language={language} open kmNumbers={configKmNumbers} deviceCountByKm={configDeviceCountByKm} onClose={() => setIsConfigOpen(false)} onComplete={() => { setIsConfigOpen(false); setLastOperation("config"); }} />}
       {isSuccessToastVisible && <div role="status" className="fixed left-1/2 top-[68px] z-[120] flex -translate-x-1/2 items-center gap-6 rounded-md border border-stroke bg-container px-4 py-[13px] text-body text-primary-text shadow-modal"><div className="flex items-center gap-2"><span className="relative size-5 shrink-0 text-success" aria-hidden="true"><svg className="absolute inset-[6.25%] size-[87.5%]" fill="none" preserveAspectRatio="none" viewBox="0 0 17.5 17.5"><path d={toastSvgPaths.p2cd67100} fill="currentColor" /></svg></span><span className="whitespace-nowrap">{t.upgradeSubmitted}</span></div><button type="button" onClick={() => setIsSuccessToastVisible(false)} aria-label={t.cancel} className="relative flex size-4 shrink-0 items-center justify-center rounded-xs text-secondary-text hover:bg-container-hover"><span className="absolute inset-[25.03%]"><svg className="size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 7.99031 7.99033"><path d={toastSvgPaths.p1e5ad00} fill="currentColor" /></svg></span></button></div>}
     </>
   );
