@@ -754,7 +754,7 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
               setSoftwareVersionFilters([]);
             }}
             placeholder={t.chooseCompany}
-            clearable
+            // 公司是必选的数据范围，默认通力且不可清除
             options={companyOptions}
             size="medium"
           />
