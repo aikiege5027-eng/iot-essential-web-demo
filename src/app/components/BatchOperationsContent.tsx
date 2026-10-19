@@ -27,7 +27,24 @@ type Device = {
   serial: string;
   version: string;
   km: string;
+  project: string;
 };
+
+/** 演示用项目名称；相邻设备归属同一项目，更接近真实数据。 */
+const projectNames = [
+  "上海中心大厦",
+  "北京国贸三期",
+  "广州塔",
+  "深圳平安金融中心",
+  "成都环球中心",
+  "杭州来福士广场",
+  "南京德基广场",
+  "武汉绿地中心",
+  "西安迈科中心",
+  "重庆来福士",
+  "苏州国金中心",
+  "天津环球金融中心",
+];
 
 const devices: Device[] = Array.from({ length: 20000 }, (_, index) => {
   const deviceNumber = 30358715 + index;
@@ -48,13 +65,28 @@ const devices: Device[] = Array.from({ length: 20000 }, (_, index) => {
     serial: `KM52152006G02.100ALZ2447${suffix}`,
     version: "15.0d",
     km: `KM52152006G${String((index % 6) + 2).padStart(2, "0")}`,
+    project: projectNames[Math.floor(index / 2) % projectNames.length],
   };
 });
+
+/**
+ * 把搜索框内容拆成多个关键词：用中英文逗号或空格（数量不限，含全角空格）分隔，
+ * 例如「30358715, 30358717，30358719  30358721」。空片段会被丢弃，统一转小写。
+ */
+function parseSearchKeywords(query: string) {
+  return query
+    .split(/[,，\s]+/)
+    .map((keyword) => keyword.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+/** 数据范围默认选中「通力」，页面首次进入和点击「重置」后都按它过滤。 */
+const DEFAULT_COMPANY = "kone";
 
 const copy = {
   cn: {
     title: "设备批量操作",
-    placeholder: "设备编号/项目编号/项目名称/项目地址",
+    placeholder: "设备编号/项目名称",
     filter: "筛选状态",
     batch: "批量操作",
     reset: "重置",
@@ -64,6 +96,7 @@ const copy = {
     serial: "序列号",
     version: "软件版本",
     deviceNo: "设备编号",
+    projectName: "项目名称",
     restart: "重启模块",
     upgrade: "系统升级",
     batchUpgradeTitle: "批量系统升级",
@@ -118,7 +151,6 @@ const copy = {
     onlineStatus: "在线状态",
     chooseContent: "请选择内容",
     registrationPlatform: "注册平台",
-    platformAll: "全部",
     platformIess: "IESS注册",
     platformAws: "AWS注册",
     keywordSearch: "关键词搜索",
@@ -127,7 +159,7 @@ const copy = {
   },
   en: {
     title: "Device Batch Operations",
-    placeholder: "Device / project ID / project name / project address",
+    placeholder: "Device No. / project name",
     filter: "Filter status",
     batch: "Batch operations",
     reset: "Reset",
@@ -137,6 +169,7 @@ const copy = {
     serial: "Serial No.",
     version: "Software Version",
     deviceNo: "Device No.",
+    projectName: "Project Name",
     restart: "Restart Module",
     upgrade: "System Upgrade",
     batchUpgradeTitle: "Batch System Upgrade",
@@ -191,7 +224,6 @@ const copy = {
     onlineStatus: "Online status",
     chooseContent: "Please select",
     registrationPlatform: "Registration platform",
-    platformAll: "All",
     platformIess: "Registered in IESS",
     platformAws: "Registered in AWS",
     keywordSearch: "Keyword search",
@@ -409,7 +441,7 @@ function BulkSystemUpgradeDialog({ language, selectedDevices, onClose, onComplet
 
 export default function BatchOperationsContent({ language, onSubmitForApproval }: { language: Language; onSubmitForApproval?: (submission: { scheduledAt: string; packages: Record<string, string>; upgradeDetails: UpgradeDetail[]; submissionRemark?: string }) => void }) {
   const t = copy[language];
-  const [platformFilter, setPlatformFilter] = useState<BatchModule | "all">("all");
+  const [platformFilter, setPlatformFilter] = useState<BatchModule>("iess");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
@@ -417,15 +449,19 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
   const [upgradeError, setUpgradeError] = useState("");
   const [statusFilter, setStatusFilter] = useState<Device["status"] | "all">("all");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [company, setCompany] = useState("");
+  const [company, setCompany] = useState<string>(DEFAULT_COMPANY);
   const [deviceTypeFilters, setDeviceTypeFilters] = useState<Device["typeCode"][]>([]);
   const [hardwareTypeFilters, setHardwareTypeFilters] = useState<string[]>([]);
   const [softwareVersionFilters, setSoftwareVersionFilters] = useState<string[]>([]);
-  const [hasQueried, setHasQueried] = useState(false);
-  const [appliedCompany, setAppliedCompany] = useState("");
+  const [hasQueried, setHasQueried] = useState(true);
+  const [appliedCompany, setAppliedCompany] = useState<string>(DEFAULT_COMPANY);
   const [appliedDeviceTypes, setAppliedDeviceTypes] = useState<Device["typeCode"][]>([]);
   const [appliedHardwareTypes, setAppliedHardwareTypes] = useState<string[]>([]);
   const [appliedSoftwareVersions, setAppliedSoftwareVersions] = useState<string[]>([]);
+  // 搜索、在线状态、注册平台与其他筛选项一样：只有点击「查询」后才生效，上面的 state 是草稿。
+  const [appliedPlatform, setAppliedPlatform] = useState<BatchModule>("iess");
+  const [appliedStatus, setAppliedStatus] = useState<Device["status"] | "all">("all");
+  const [appliedQuery, setAppliedQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectAllResults, setSelectAllResults] = useState(false);
   const [isQueryLoading, setIsQueryLoading] = useState(false);
@@ -445,7 +481,7 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
 
   const hardwareTypeOptions = useMemo(() => {
     const availableHardwareTypes = devices
-      .filter((device) => platformFilter === "all" || device.module === platformFilter)
+      .filter((device) => device.module === platformFilter)
       .filter((device) => !company || device.company === company)
       .filter((device) => deviceTypeFilters.length === 0 || deviceTypeFilters.includes(device.typeCode))
       .map((device) => device.km);
@@ -457,7 +493,7 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
 
   const softwareVersionOptions = useMemo(() => {
     const availableVersions = devices
-      .filter((device) => platformFilter === "all" || device.module === platformFilter)
+      .filter((device) => device.module === platformFilter)
       .filter((device) => !company || device.company === company)
       .filter((device) => deviceTypeFilters.length === 0 || deviceTypeFilters.includes(device.typeCode))
       .filter((device) => hardwareTypeFilters.length === 0 || hardwareTypeFilters.includes(device.km))
@@ -485,9 +521,10 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
   };
 
   const visibleDevices = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
+    const keywords = parseSearchKeywords(appliedQuery);
     return devices.filter((device) => {
-      const matchesQuery = !normalized || [device.id, device.type, device.serial].some((value) => value.toLowerCase().includes(normalized));
+      // 多个关键词之间是“或”：命中任意一个关键词即保留。
+      const matchesQuery = keywords.length === 0 || keywords.some((keyword) => [device.id, device.type, device.serial, device.project].some((value) => value.toLowerCase().includes(keyword)));
       const softwareVersionKey = `${device.km}::${device.version}`;
       const matchesAppliedFilters = !hasQueried || (
         (!appliedCompany || device.company === appliedCompany)
@@ -495,9 +532,9 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
         && (appliedHardwareTypes.length === 0 || appliedHardwareTypes.includes(device.km))
         && (appliedSoftwareVersions.length === 0 || appliedSoftwareVersions.includes(softwareVersionKey))
       );
-      return (platformFilter === "all" || device.module === platformFilter) && matchesQuery && matchesAppliedFilters && (statusFilter === "all" || device.status === statusFilter);
+      return device.module === appliedPlatform && matchesQuery && matchesAppliedFilters && (appliedStatus === "all" || device.status === appliedStatus);
     });
-  }, [platformFilter, appliedCompany, appliedDeviceTypes, appliedHardwareTypes, appliedSoftwareVersions, hasQueried, query, statusFilter]);
+  }, [appliedPlatform, appliedCompany, appliedDeviceTypes, appliedHardwareTypes, appliedSoftwareVersions, hasQueried, appliedQuery, appliedStatus]);
 
   const pageSize = 20;
   const totalPages = Math.max(1, Math.ceil(visibleDevices.length / pageSize));
@@ -542,37 +579,39 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
     setSelected([]);
     setSelectAllResults(false);
     setStatusFilter("all");
-    setPlatformFilter("all");
-    setCompany("");
+    setPlatformFilter("iess");
+    setCompany(DEFAULT_COMPANY);
     setDeviceTypeFilters([]);
     setHardwareTypeFilters([]);
     setSoftwareVersionFilters([]);
-    setAppliedCompany("");
+    setAppliedCompany(DEFAULT_COMPANY);
+    setAppliedPlatform("iess");
+    setAppliedStatus("all");
+    setAppliedQuery("");
     setAppliedDeviceTypes([]);
     setAppliedHardwareTypes([]);
     setAppliedSoftwareVersions([]);
-    setHasQueried(false);
+    setHasQueried(true);
     setCurrentPage(1);
     setLastOperation(null);
     setUpgradeError("");
   };
   const handlePlatformChange = (value: unknown) => {
-    const nextPlatform = (String(value ?? "") || "all") as BatchModule | "all";
+    const nextPlatform = (String(value ?? "") || platformFilter) as BatchModule;
     if (nextPlatform === platformFilter) return;
-    // 平台变化会改变硬件类型/软件版本的可选项，并使已勾选的设备失效。
+    // 平台只改变硬件类型/软件版本的可选项，列表要点「查询」后才变化，所以这里只清掉依赖它的草稿选项。
     setPlatformFilter(nextPlatform);
     setHardwareTypeFilters([]);
     setSoftwareVersionFilters([]);
-    setSelected([]);
-    setSelectAllResults(false);
-    setCurrentPage(1);
-    setUpgradeError("");
   };
   const submitQuery = () => {
     if (isQueryLoading) return;
     setSelected([]); setSelectAllResults(false); setCurrentPage(1); setUpgradeError(""); setIsQueryLoading(true);
     if (queryTimerRef.current !== null) window.clearTimeout(queryTimerRef.current);
     queryTimerRef.current = window.setTimeout(() => {
+      setAppliedPlatform(platformFilter);
+      setAppliedStatus(statusFilter);
+      setAppliedQuery(query);
       setAppliedCompany(company);
       setAppliedDeviceTypes([...deviceTypeFilters]);
       setAppliedHardwareTypes([...hardwareTypeFilters]);
@@ -599,7 +638,10 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
   const operationLabel: Record<Operation, string> = { restart: t.restart, upgrade: t.upgrade, config: t.config };
   const statusLabel: Record<Device["status"], string> = { online: t.online, offline: t.offline, disconnected: t.disconnected };
   const statusClass: Record<Device["status"], string> = { online: "text-success", offline: "text-placeholder", disconnected: "text-warning" };
-  const dataColumnWidth = "calc(20% - 10.4px)";
+  // 数据列用像素宽度表达“比例”：表格是 table-layout: fixed，容器比列宽之和更宽时，
+  // 多出的空间按各列宽度比例分摊（calc(%) 在 <col> 上不生效，会退化成等分）。
+  // 序列号最长，设备类型和项目名称次之，连接状态/软件版本最短。
+  const columnWidths = { type: 185, connection: 100, serial: 300, version: 100, deviceNo: 130, project: 160 };
 
   const companyOptions = [
     { value: "kone", label: language === "cn" ? "通力" : "KONE" },
@@ -689,7 +731,6 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
           value={value}
           onChange={(next) => onChange(String(next ?? ""))}
           options={[
-            { value: "all", label: t.platformAll },
             { value: "iess", label: t.platformIess },
             { value: "aws", label: t.platformAws },
           ]}
@@ -728,6 +769,8 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
     {
       id: "keyword",
       label: t.keywordSearch,
+      // 与「设备筛选」同宽（占 2 列），右缘对齐
+      span: 2,
       value: query,
       onChange: setQuery,
       render: ({ id, value, onChange }) => (
@@ -735,6 +778,7 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
           id={id}
           value={value}
           onChange={onChange}
+          onEnter={() => submitQuery()}
           placeholder={t.placeholder}
           prefixIcon={<EmbeddedSearchIcon className="t-icon size-4" />}
           size="medium"
@@ -757,32 +801,38 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
     {
       id: "device-type",
       title: t.deviceType,
-      width: dataColumnWidth,
+      width: columnWidths.type,
       render: (device) => <span className="block truncate text-primary-text" title={device.type}>{device.type}</span>,
     },
     {
       id: "connection",
       title: t.connection,
-      width: dataColumnWidth,
+      width: columnWidths.connection,
       render: (device) => <span className={`inline-flex items-center gap-1 ${statusClass[device.status]}`}><span aria-hidden="true" className="size-1.5 rounded-full bg-current" />{statusLabel[device.status]}</span>,
     },
     {
       id: "serial",
       title: t.serial,
-      width: dataColumnWidth,
+      width: columnWidths.serial,
       render: (device) => <span className="block truncate text-primary-text" title={device.serial}>{device.serial}</span>,
     },
     {
       id: "version",
       title: t.version,
-      width: dataColumnWidth,
+      width: columnWidths.version,
       render: (device) => <span className="text-primary-text">{device.version}</span>,
     },
     {
       id: "device-number",
       title: t.deviceNo,
-      width: dataColumnWidth,
+      width: columnWidths.deviceNo,
       render: (device) => <span className="text-primary-text">{device.id}</span>,
+    },
+    {
+      id: "project-name",
+      title: t.projectName,
+      width: columnWidths.project,
+      render: (device) => <span className="block truncate text-primary-text" title={device.project}>{device.project}</span>,
     },
   ];
 
@@ -850,7 +900,7 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
         }
         emptyText={language === "cn" ? "暂无符合条件的设备" : "No matching devices"}
         tableCaption={language === "cn" ? "设备批量操作列表" : "Device batch operations list"}
-        minTableWidth={820}
+        minTableWidth={1050}
         pagination={visibleDevices.length > 0 ? {
           current: currentPage,
           pageSize,
