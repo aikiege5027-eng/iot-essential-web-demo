@@ -8,6 +8,7 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { IoTListPageTemplate, type IoTTableColumn } from "./templates/iot-list-page";
 import type { AppAccount } from "../data/accounts";
 import { getApprovalTaskContext, type UpgradeApproval } from "../data/approvalWorkflow";
+import { QIANFAN_ADMIN_EMAIL } from "../data/accounts";
 
 const { TabPanel } = Tabs;
 
@@ -156,7 +157,7 @@ export default function ApprovalCenterContent({ language, currentUser, approvals
   const [withdrawnIds, setWithdrawnIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
-    setActiveTab(["mingyuan.zhang@kone.com", "liu.yang@kone.com"].includes(currentUser.email) && defaultTab === "initiated" ? "pending" : defaultTab);
+    setActiveTab(["mingyuan.zhang@kone.com", "liu.yang@kone.com", QIANFAN_ADMIN_EMAIL].includes(currentUser.email) && defaultTab === "initiated" ? "pending" : defaultTab);
   }, [currentUser.email, defaultTab]);
   useEffect(() => {
     if (!reviewToast) return;

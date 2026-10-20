@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowRightLeft } from "lucide-react";
 import figmaSidebarPaths from "../../imports/IotWebTemplateUntitledEmbedFilterButton3StateCollapsed/svg-slzfzlnwha";
 import svgPaths from "../../imports/Events-1/svg-sie2nzrjk8";
 import accountMenuSvgPaths from "../../imports/个人信息/svg-8fxy3hc6dq";
@@ -16,7 +15,7 @@ import {
   NavSettingsIcon,
   NavSimCardIcon,
 } from "./icons/nav-icons";
-import { ACCOUNTS, type AppAccount } from "../data/accounts";
+import { ACCOUNTS, getAccountEdition, type AppAccount } from "../data/accounts";
 import type { AppNotification, UpgradeApproval } from "../data/approvalWorkflow";
 import {
   DEFAULT_BATCH_DISPATCH_RULE,
@@ -29,6 +28,13 @@ import BatchOperationsContent from "./BatchOperationsContent";
 import ApprovalCenterContent from "./ApprovalCenterContent";
 import TaskListContent from "./TaskListContent";
 import RuleConfigurationContent from "./RuleConfigurationContent";
+import UserManagementContent from "./UserManagementContent";
+import RoleManagementContent from "./RoleManagementContent";
+import PlatformQuickSwitch from "./PlatformQuickSwitch";
+import ProfileInfoDialog from "./ProfileInfoDialog";
+import ChangePasswordDialog from "./ChangePasswordDialog";
+import { LockOnIcon } from "./icons/lock-on";
+import { Swap1Icon } from "./icons/swap-1";
 import TaskProgressContent from "./TaskProgressContent";
 
 const translations = {
@@ -366,6 +372,8 @@ function NotificationCard({ notification, onOpen, variant = "panel" }: { notific
 function Frame3({ language, onLanguageChange, user, onLogout, onSwitchAccount, taskBadgeCount, notifications, onOpenApprovalCenter, onOpenTaskList, onOpenMessageCenter, onMarkNotificationsRead }: { language: string; onLanguageChange: () => void; user: AppAccount; onLogout?: () => void; onSwitchAccount?: (account: AppAccount) => void; taskBadgeCount: number; notifications: AppNotification[]; onOpenApprovalCenter: () => void; onOpenTaskList: () => void; onOpenMessageCenter: () => void; onMarkNotificationsRead: () => void }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAccountSwitchOpen, setIsAccountSwitchOpen] = useState(false);
+  const [isProfileInfoOpen, setIsProfileInfoOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isNotificationListOpen, setIsNotificationListOpen] = useState(false);
   const [isLoginNoticeVisible, setIsLoginNoticeVisible] = useState(false);
   const hasShownLoginNotice = useRef(false);
@@ -373,6 +381,8 @@ function Frame3({ language, onLanguageChange, user, onLogout, onSwitchAccount, t
   const latestUnreadNotification = unreadNotifications[0];
   const recentNotifications = [...notifications].sort((left, right) => (right.timeLabel ?? "").localeCompare(left.timeLabel ?? "")).slice(0, 5);
   const isChinese = language === "cn";
+  // 仟帆版本不开放「审批中心」「产品反馈」两个账号菜单入口
+  const isQianfan = getAccountEdition(user) === "qianfan";
   const labels = isChinese
     ? { notifications: "任务列表", language: "切换语言", bell: "消息通知", profile: "用户菜单", name: user.name, role: user.role, account: "个人信息", feedback: "产品反馈", logout: "退出登录", switchAccount: "切换账号", approvalShortcut: "进入审批中心" }
     : { notifications: "Task list", language: "Switch language", bell: "Notifications", profile: "User menu", name: user.nameEn, role: user.roleEn, account: "Profile", feedback: "Product feedback", logout: "Log out", switchAccount: "Switch account", approvalShortcut: "Open Approval Center" };
@@ -420,18 +430,22 @@ function Frame3({ language, onLanguageChange, user, onLogout, onSwitchAccount, t
             <span className="truncate text-[14px] font-semibold leading-[22px] text-[#141414]">{labels.name}</span>
           </div>
           <div className="flex flex-col gap-1">
-            <button type="button" className="flex w-full items-center gap-[6px] rounded-[4px] px-[6px] py-[3px] text-left text-[14px] leading-[22px] text-[#141414] hover:bg-[#f5f7fa]"><svg aria-hidden="true" className="size-4 shrink-0" fill="none" viewBox="0 0 16 16"><path clipRule="evenodd" d={accountMenuSvgPaths.p31849e00} fill="currentColor" fillRule="evenodd" transform="translate(2.25 1.55)" /></svg><span>{labels.account}</span></button>
-            <button type="button" onClick={() => { setIsProfileOpen(false); setIsAccountSwitchOpen(false); onOpenApprovalCenter(); }} className="flex w-full items-center gap-[6px] rounded-[4px] px-[6px] py-[3px] text-left text-[14px] leading-[22px] text-[#141414] hover:bg-[#f5f7fa]"><svg aria-hidden="true" className="size-4 shrink-0" fill="none" viewBox="0 0 16 16"><path d={accountMenuSvgPaths.p1a8a1400} fill="currentColor" transform="translate(2 1.16)" /></svg><span>{isChinese ? "审批中心" : "Approval Center"}</span></button>
-            <button type="button" className="flex w-full items-center gap-[6px] rounded-[4px] px-[6px] py-[3px] text-left text-[14px] leading-[22px] text-[#141414] hover:bg-[#f5f7fa]"><svg aria-hidden="true" className="size-4 shrink-0" fill="none" viewBox="0 0 16 16"><path clipRule="evenodd" d={accountMenuSvgPaths.p3f209800} fill="currentColor" fillRule="evenodd" transform="translate(2 2)" /></svg><span>{labels.feedback}</span></button>
+            <button type="button" onClick={() => { setIsProfileOpen(false); setIsAccountSwitchOpen(false); setIsProfileInfoOpen(true); }} className="flex w-full items-center gap-[6px] rounded-[4px] px-[6px] py-[3px] text-left text-[14px] leading-[22px] text-[#141414] hover:bg-[#f5f7fa]"><svg aria-hidden="true" className="size-4 shrink-0" fill="none" viewBox="0 0 16 16"><path clipRule="evenodd" d={accountMenuSvgPaths.p31849e00} fill="currentColor" fillRule="evenodd" transform="translate(2.25 1.55)" /></svg><span>{labels.account}</span></button>
+            {/* 仟帆账号是邮箱 + 密码登录，才有「修改密码」；通力走企业账号 SSO，不提供 */}
+            {isQianfan && (<button type="button" onClick={() => { setIsProfileOpen(false); setIsAccountSwitchOpen(false); setIsChangePasswordOpen(true); }} className="flex w-full items-center gap-[6px] rounded-[4px] px-[6px] py-[3px] text-left text-[14px] leading-[22px] text-[#141414] hover:bg-[#f5f7fa]"><LockOnIcon className="size-4 shrink-0" /><span>{isChinese ? "修改密码" : "Change Password"}</span></button>)}
+            {!isQianfan && (<button type="button" onClick={() => { setIsProfileOpen(false); setIsAccountSwitchOpen(false); onOpenApprovalCenter(); }} className="flex w-full items-center gap-[6px] rounded-[4px] px-[6px] py-[3px] text-left text-[14px] leading-[22px] text-[#141414] hover:bg-[#f5f7fa]"><svg aria-hidden="true" className="size-4 shrink-0" fill="none" viewBox="0 0 16 16"><path d={accountMenuSvgPaths.p1a8a1400} fill="currentColor" transform="translate(2 1.16)" /></svg><span>{isChinese ? "审批中心" : "Approval Center"}</span></button>)}
+            {!isQianfan && (<button type="button" className="flex w-full items-center gap-[6px] rounded-[4px] px-[6px] py-[3px] text-left text-[14px] leading-[22px] text-[#141414] hover:bg-[#f5f7fa]"><svg aria-hidden="true" className="size-4 shrink-0" fill="none" viewBox="0 0 16 16"><path clipRule="evenodd" d={accountMenuSvgPaths.p3f209800} fill="currentColor" fillRule="evenodd" transform="translate(2 2)" /></svg><span>{labels.feedback}</span></button>)}
             <div className="relative">
-              <button type="button" aria-expanded={isAccountSwitchOpen} onClick={() => setIsAccountSwitchOpen((current) => !current)} className="flex w-full items-center justify-between rounded-[4px] px-[6px] py-[3px] text-left text-[14px] leading-[22px] text-[#141414] hover:bg-[#f5f7fa]"><span className="flex items-center gap-[6px]"><ArrowRightLeft aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.7} />{labels.switchAccount}</span><span className={`text-[#8f9195] transition-transform ${isAccountSwitchOpen ? "rotate-180" : ""}`}>›</span></button>
-              {isAccountSwitchOpen && <div className="absolute right-[166px] top-[-8px] z-[60] w-[196px] rounded-[8px] bg-white p-[6px] shadow-[0_4px_12px_rgba(0,0,0,0.12)]">{ACCOUNTS.map((account) => <button key={account.email} type="button" onClick={() => { onSwitchAccount?.(account); setIsAccountSwitchOpen(false); setIsProfileOpen(false); }} className={`flex w-full items-center gap-2 rounded-[4px] px-2 py-2 text-left hover:bg-[#f5f7fa] ${account.email === user.email ? "bg-[#f3f6fe]" : ""}`}><img src={account.avatar} alt="" className="size-7 rounded-full object-cover" /><span className="min-w-0 flex-1"><span className="block text-[14px] leading-[18px] text-[#141414]">{language === "cn" ? account.name : account.nameEn}</span><span className="block truncate text-[12px] leading-[16px] text-[#737380]">{language === "cn" ? account.role : account.roleEn}</span></span>{account.email === user.email && <span className="text-[#1450f5]">✓</span>}</button>)}</div>}
+              <button type="button" aria-expanded={isAccountSwitchOpen} onClick={() => setIsAccountSwitchOpen((current) => !current)} className="flex w-full items-center justify-between rounded-[4px] px-[6px] py-[3px] text-left text-[14px] leading-[22px] text-[#141414] hover:bg-[#f5f7fa]"><span className="flex items-center gap-[6px]"><Swap1Icon className="size-4 shrink-0" />{labels.switchAccount}</span><span className={`text-[#8f9195] transition-transform ${isAccountSwitchOpen ? "rotate-180" : ""}`}>›</span></button>
+              {isAccountSwitchOpen && <div className="absolute right-[166px] top-[-8px] z-[60] w-[196px] rounded-[8px] bg-white p-[6px] shadow-[0_4px_12px_rgba(0,0,0,0.12)]">{ACCOUNTS.filter((account) => getAccountEdition(account) === getAccountEdition(user)).map((account) => <button key={account.email} type="button" onClick={() => { onSwitchAccount?.(account); setIsAccountSwitchOpen(false); setIsProfileOpen(false); }} className={`flex w-full items-center gap-2 rounded-[4px] px-2 py-2 text-left hover:bg-[#f5f7fa] ${account.email === user.email ? "bg-[#f3f6fe]" : ""}`}><img src={account.avatar} alt="" className="size-7 rounded-full object-cover" /><span className="min-w-0 flex-1"><span className="block text-[14px] leading-[18px] text-[#141414]">{language === "cn" ? account.name : account.nameEn}</span><span className="block truncate text-[12px] leading-[16px] text-[#737380]">{language === "cn" ? account.role : account.roleEn}</span></span>{account.email === user.email && <span className="text-[#1450f5]">✓</span>}</button>)}</div>}
             </div>
             <button type="button" onClick={onLogout} className="flex w-full items-center gap-[6px] rounded-[4px] px-[6px] py-[3px] text-left text-[14px] leading-[22px] text-[#141414] hover:bg-[#f5f7fa]"><svg aria-hidden="true" className="size-4 shrink-0" fill="none" viewBox="0 0 16 16"><g fill="currentColor" transform="translate(1 2)"><path d={accountMenuSvgPaths.p36ec5a00} /><path d={accountMenuSvgPaths.p18eb0d00} /></g></svg><span>{labels.logout}</span></button>
           </div>
         </div>
       </div>}
     </div>
+    <ProfileInfoDialog visible={isProfileInfoOpen} language={isChinese ? "cn" : "en"} user={user} onClose={() => setIsProfileInfoOpen(false)} />
+    {isQianfan && <ChangePasswordDialog visible={isChangePasswordOpen} language={isChinese ? "cn" : "en"} currentPassword={user.password} onClose={() => setIsChangePasswordOpen(false)} />}
   </div>;
 }
 
@@ -2692,8 +2706,10 @@ export default function Events({
   const isApprovalCenterPage = activeSidebarItem === 'approval-center';
   const isTaskListPage = activeSidebarItem === 'task-list';
   const isRuleConfigurationPage = activeSidebarItem === 'rule-configuration';
+  const isUserManagementPage = activeSidebarItem === 'user-management';
+  const isRoleManagementPage = activeSidebarItem === 'role-management';
   const isDeviceQueryPage = activeSidebarItem === null || activeSidebarItem === 'search';
-  const isDevelopmentPage = !isTaskProgressPage && !isDeviceQueryPage && activeSidebarItem !== 'batch-operations' && activeSidebarItem !== 'approval-center' && activeSidebarItem !== 'task-list' && activeSidebarItem !== 'rule-configuration';
+  const isDevelopmentPage = !isTaskProgressPage && !isDeviceQueryPage && activeSidebarItem !== 'batch-operations' && activeSidebarItem !== 'approval-center' && activeSidebarItem !== 'task-list' && activeSidebarItem !== 'rule-configuration' && activeSidebarItem !== 'user-management' && activeSidebarItem !== 'role-management';
 
   // Sync when parent changes the active tab
   useEffect(() => {
@@ -2746,6 +2762,8 @@ export default function Events({
           这组控件在顶栏中是可选元素，其余视图不显示。
           右区的消息中心与账号菜单属于业务功能，通过 trailing 插槽传入。 */}
       <TopNav
+        // 顶栏标题暂不区分平台，两个版本都显示 IOT Essential（登录页的平台选择仍带「通力 / 仟帆」）
+        title="IOT Essential"
         className="fixed left-0 right-0 top-0 z-40"
         pageControls={isTaskProgressPage ? {
           onBack: () => setIsTaskProgressPage(false),
@@ -2755,7 +2773,11 @@ export default function Events({
             ? { back: 'Back', forward: 'Forward', refresh: 'Refresh' }
             : { back: '返回', forward: '前进', refresh: '刷新' },
         } : undefined}
-        trailing={<Frame3 language={language} onLanguageChange={toggleLanguage} user={displayUser} onLogout={onLogout} onSwitchAccount={onSwitchAccount} taskBadgeCount={taskBadgeCount ?? 2} notifications={notifications ?? []} onMarkNotificationsRead={() => onMarkNotificationsRead?.()} onOpenApprovalCenter={() => { setIsTaskProgressPage(false); setActiveSidebarItem("approval-center"); setApprovalTab("pending"); }} onOpenTaskList={() => { setIsTaskProgressPage(false); setActiveSidebarItem("task-list"); }} onOpenMessageCenter={() => { setIsTaskProgressPage(false); setActiveSidebarItem("message-center"); }} />}
+        trailing={<>
+          {/* Demo 用：通力 / 仟帆快速切换，直接以各平台的默认账号进入 */}
+          <PlatformQuickSwitch user={displayUser} language={language} onSwitchAccount={onSwitchAccount} />
+          <Frame3 language={language} onLanguageChange={toggleLanguage} user={displayUser} onLogout={onLogout} onSwitchAccount={onSwitchAccount} taskBadgeCount={taskBadgeCount ?? 2} notifications={notifications ?? []} onMarkNotificationsRead={() => onMarkNotificationsRead?.()} onOpenApprovalCenter={() => { setIsTaskProgressPage(false); setActiveSidebarItem("approval-center"); setApprovalTab("pending"); }} onOpenTaskList={() => { setIsTaskProgressPage(false); setActiveSidebarItem("task-list"); }} onOpenMessageCenter={() => { setIsTaskProgressPage(false); setActiveSidebarItem("message-center"); }} />
+        </>}
       >
         <p className="rounded-sm border border-stroke bg-secondarycontainer px-2 py-1 whitespace-nowrap text-foot12 text-disabled">本 Demo 仅演示交互与内容，开发样式请以 Figma 设计交付为准，勿直接基于 Demo 开发。</p>
       </TopNav>
@@ -2790,6 +2812,11 @@ export default function Events({
             <ApprovalCenterContent language={language} currentUser={displayUser} approvals={approvals ?? []} defaultTab={approvalTab} onReview={(id, result, reviewRemark) => onReviewUpgradeApproval?.(id, result, reviewRemark)} onReapply={(id, submissionRemark) => onReapplyUpgradeApproval?.(id, submissionRemark)} />
           ) : isTaskListPage ? (
             <TaskListContent language={language} approvals={approvals ?? []} onOpenTaskProgress={() => { setIsTaskProgressPage(true); scrollContainerRef.current?.scrollTo({ top: 0 }); }} />
+          ) : isUserManagementPage ? (
+            // 按平台版本重挂载：通力 / 仟帆各自一份用户名单
+            <UserManagementContent key={getAccountEdition(displayUser)} language={language} edition={getAccountEdition(displayUser)} />
+          ) : isRoleManagementPage ? (
+            <RoleManagementContent key={getAccountEdition(displayUser)} language={language} edition={getAccountEdition(displayUser)} />
           ) : isRuleConfigurationPage ? (
             <div className="mx-[16px] mt-[20px] md:mx-[24px]">
               <RuleConfigurationContent

@@ -66,6 +66,8 @@ Figma 模板矩阵：[`IOT_Web_template` 8875:39482](https://www.figma.com/desig
 - 收起时不能清空隐藏字段的值。
 - 需要由 URL 或外部状态控制展开态时，传 `filterExpanded` + `onFilterExpandedChange`；否则使用 `defaultFilterExpanded`。
 
+**操作按钮位置 `actionsPlacement`**：默认 `"header"`，`actions` 在标题行右侧。传 `actionsPlacement="filter"` 时，`actions` 与筛选字段同一行、靠右并与输入框底部对齐，对应 Figma 的「Form 表单」模板（`9289:27194`：标题单独一行，下面是两个筛选项 + 一个操作按钮）。用户管理页即此形态：`关键词` + `角色` + 主按钮「查询」。该位置只对 `filterMode="normal"` 生效；字段超过折叠数量时，展开按钮排在操作按钮之后。
+
 ### `filterMode="embedded"`
 
 适用于搜索频繁、希望首屏更紧凑的查询页面。
@@ -111,6 +113,7 @@ Select、DatePicker、Cascader 等字段通过 `render` 注入，但同一表单
 - 表格外观以当前 IoT 页面模板为准，而不是直接套用 TDesign 默认尺寸：表头 46px、数据行 54px、单元格水平内边距 24px、空态和加载态内容区 324px。定制规则集中在 `tdesign-patches.css` 的 `.iot-list-page-table` 下，禁止提升为全局 `.t-table` 覆盖。
 - 列由 `IoTTableColumn<Row>[]` 描述，业务页负责 render，不要把业务字段写进模板；模板统一启用单行省略，避免内容换行破坏 54px 行高。
 - 行高、表头和横向滚动由模板统一处理。
+- 列数很多、1440 视口放不下时，可传 `compactCells` 把单元格水平内边距从 24px 收为 16px（行高、字号不变）。这是例外而非默认，目前只有仟帆用户管理（9 列）使用；能靠省略号或调整列宽解决的页面不要开。
 - 设备 ID、故障码等可在 render 中使用 `font-mono`；数字列使用 `tabular-nums`。
 - 行级操作必须提供可读 `label`，不能只依赖图标。
 - 需要详情入口时使用 `onRowOpen`，不要让整个 `<tr>` 伪装成按钮。
@@ -135,6 +138,8 @@ Select、DatePicker、Cascader 等字段通过 `render` 注入，但同一表单
 ### Toast
 
 使用 `sonner` 的 `toast.custom()` 搭配 `IoTToastContent`。普通成功提示使用默认的礼貌播报，不用 Toast 承载必须由用户处理的重要错误。
+
+> 设计系统现已收录 TDesign `Message`（规格见 `tdesign-components.md`）。已有页面的 Toast 不迁移；新增的轻量全局反馈（如「密码重置成功」）用 `MessagePlugin`，同一页面不要两套混用。
 
 ## 状态与无障碍
 

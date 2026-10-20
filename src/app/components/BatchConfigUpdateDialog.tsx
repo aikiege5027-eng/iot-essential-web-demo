@@ -343,21 +343,24 @@ function ProfileField({
           onChange={(next) => {
             onToggle(def.key, original, next);
             // 勾选后立即聚焦输入框，方便直接输入。
-            if (next) requestAnimationFrame(() => document.getElementById(inputId)?.focus());
+            if (next) requestAnimationFrame(() => document.getElementById(inputId)?.querySelector("input")?.focus());
           }}
         >
           {label}
         </Checkbox>
       </div>
-      <Input
-        id={inputId}
-        className="w-full"
-        size="medium"
-        disabled={!checked}
-        value={checked ? edits[def.key] : original}
-        onChange={(value) => onChange(def.key, String(value))}
-        aria-label={label}
-      />
+      {/* TDesign Input 把 id / aria-* 透传到外层容器而不是 <input>，所以用包裹式 label 给输入框命名 */}
+      <label className="block w-full">
+        <span className="sr-only">{label}</span>
+        <Input
+          id={inputId}
+          className="w-full"
+          size="medium"
+          disabled={!checked}
+          value={checked ? edits[def.key] : original}
+          onChange={(value) => onChange(def.key, String(value))}
+        />
+      </label>
     </div>
   );
 }

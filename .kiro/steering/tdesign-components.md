@@ -1,7 +1,7 @@
 ---
 inclusion: auto
 name: TDesign 组件规格
-description: 23 个 TDesign 底层组件（Button、Divider、Link、Dropdown、Breadcrumb、Pagination、Steps、Tabs、Input、InputNumber、Search、Select、Cascader、DatePicker、Checkbox、Radio、Switch、Slider、Tooltip、Table、Tree、Transfer、Collapse）的变体轴、尺寸档位、各状态配色、TDesign React API 映射与设计稿缺口。在实现或修改使用 tdesign-react 组件的界面、表单、弹层时加载。
+description: 25 个 TDesign 底层组件（Button、Divider、Link、Dropdown、Breadcrumb、Pagination、Steps、Tabs、Input、InputNumber、Search、Select、Cascader、DatePicker、Checkbox、Radio、Switch、Slider、Tooltip、Table、Tree、Transfer、Collapse、Dialog、Message）的变体轴、尺寸档位、各状态配色、TDesign React API 映射与设计稿缺口。在实现或修改使用 tdesign-react 组件的界面、表单、弹层时加载。
 ---
 
 # TDesign 组件规格
@@ -441,6 +441,9 @@ outline 单按钮 `px-16 py-5`、**圆角 0**、1px 描边。filled 单按钮 `p
 - outline 单按钮圆角为 0，**按钮组首尾的圆角没有单独变体**，而 TDesign 会给首尾加圆角。首尾规格缺失。
 - `allowUncheck` / `RadioGroup.readonly` 无变体。
 
+**项目内用法**：顶栏的「通力 / 仟帆」平台快捷切换（`PlatformQuickSwitch.tsx`）用 `variant="default-filled" size="small"` 的按钮组，对应 Figma `radioButton-Group` 43622:307383。选中项是白底 + primary 文字、圆角 2px，容器是 `component-stroke` 灰底。
+**补丁**：TDesign 的白色选中底板（`.t-radio-group__bg-block`）靠 JS 量位置，在会被父级重渲染的位置（如顶栏）会停在旧位置或宽度为 0，选中项就没有白底。`tdesign-patches.css` 里改为直接给选中项上色并隐藏底板，视觉与设计稿一致，只是没有滑动动画。
+
 ### Switch 开关
 
 [Figma 45757-378235](https://www.figma.com/design/b5cc1y3jzLmOQkpa8vz5AX/China-Design-system-for-web?node-id=45757-378235) · `Switch`（组件集 `45757:378284`，30 变体）
@@ -469,6 +472,8 @@ loading 图标 14×14 叠在滑块上。文字标签 `text-foot12` 白字。
 - loading 与 disabled 的轨道底色都是 `brand-color-disabled`，checked 下两态**视觉不可区分**（只差一个转圈图标）。
 - loading / disabled 只在 `label=none` 下出图，带标签时的这两态未定义（6 个组合缺失）。
 - `label=icon` 用哪个图标未标注。`customValue` / `beforeChange` 无变体。
+- ⚠ **带文字标签时，未选中态是 `#c8cad0` 底 + 白字，对比度很低（约 1.7:1）**，文字几乎看不清；选中态（品牌蓝底白字）没有这个问题。文字用来表达状态时，不要只靠它，必要时在旁边放一个独立的可读标签。
+
 
 ### Slider 滑块
 
@@ -675,6 +680,96 @@ Figma 只定义浮层外观，没有 `trigger`、`delay`、`duration`、受控�
 
 ---
 
+## 反馈
+
+### Dialog 对话框
+
+[Figma 41952-300048](https://www.figma.com/design/b5cc1y3jzLmOQkpa8vz5AX/China-Design-system-for-web?node-id=41952-300048) · `Dialog 对话框`（20 个标准变体 + 全屏两种）· 关闭按钮 `item/closeBtn`（`42005:300066`）
+
+> 对话框是一种临时窗口，通常在不想中断整体任务流程，但又需要为用户展示信息或获得用户响应时使用。
+
+**变体轴（4 轴）**
+
+| Figma 轴 | 取值 | TDesign React 1.18.3 |
+| --- | --- | --- |
+| `theme 主题` | `default 默认`（无图标）/ `info 信息` / `warning 警告` / `error 错误` / `success 成功` | `Dialog.theme`：`default` / `info` / `warning` / **`danger`** / `success`。⚠ Figma 叫 `error`，API 是 `danger` |
+| `closeBtn 关闭按钮` | true / false | `closeBtn` |
+| `divider 分割线` | true / false | **无对应 prop**，用 `dialogClassName="km-dialog--divider"`（补丁见 `tdesign-patches.css`） |
+| `fullscreen 全屏` | true / false | `mode="full-screen"`（`modal` 为默认） |
+
+**尺寸与排版（基础，无分割线）**
+
+| 部位 | 规格 |
+| --- | --- |
+| 容器 | 宽 **480**（自定义宽度范围 min 480 / max 960，对应 `width`），白底 `bg-container`，圆角 **8px**（`rounded-lg`），**无描边**，内边距 32 |
+| 头部 | 图标 24×24 + 间距 8 + 标题 `text-h7` 16/24 **Semibold** primary，单行省略；右侧关闭按钮 |
+| 关闭按钮 | 点击区 24×24，图标 16×16，圆角 **3px**；normal 透明 / hover `bg #dfe1e8`（`--component-stroke`）/ active `bg #c8cad0`（`--component-border`） |
+| 内容区 | 上 16 / 下 24，`text-body` 14/22 `text-secondary-text` |
+| 页脚 | 右对齐，按钮间距 8；取消 = 灰底按钮（`bg-component` #f2f4f7，文字 primary），确认 = 品牌蓝主按钮，均为 medium 32 高 |
+
+**带分割线变体**：头 / 内容 / 脚各自 `px-32 py-24`；头部底部、页脚顶部各一条 1px `border-stroke`（#dfe1e8）。关闭按钮与标题同行垂直居中。
+
+**主题图标色**：info `--brand-color`、warning `--warning-color`、error `--error-color`、success `--success-color`，均为基础色，`default` 不带图标。
+
+**全屏模式**（`1200×640` 示例）：头部 56 高、`px-32 py-16`，**标题与图标居中**，关闭按钮 20×20；页脚 80 高，按钮距上沿 16（有分割线时 24）。
+
+**落地方式**
+
+- 项目补丁在 `tdesign-patches.css`（去描边、内容区 16/24、页脚不再叠内边距、关闭按钮 24×24 与 hover/active 底色、分割线变体），`tdesign-bridge.css` 把 `--td-radius-large` 从 9px 改为 8px。调用处不要再覆盖这些值。
+- 取消按钮在 TDesign 里默认是 `outline`，设计稿是灰底，调用时传 `cancelBtn={{ content: "取消", theme: "default", variant: "base" }}`。
+- 居中弹出传 `placement="center"`（TDesign 默认是靠上 20vh，设计稿示例为居中）。含表单的弹窗再加 `closeOnOverlayClick={false}`，避免误点蒙层丢失输入。
+- 验证页：`#/design-system/dialog`。业务示例：`ForgotPasswordDialog.tsx`（带分割线变体 + 表单）。
+
+**缺口**
+
+- ⚠ **`error` ≠ `danger`**：Figma 主题名与 TDesign API 不一致，别照抄轴值。
+- ⚠ **分割线没有 API**：`divider` 是 Figma 独有的轴，靠自定义 class 实现。
+- ⚠ **全屏模式的样式尚未补进补丁**：TDesign 全屏头部默认带 `secondarycontainer` 底色且靠右对齐，与设计稿「白底、居中标题」不一致。要用全屏时先补 CSS 再用。
+- 设计稿没有遮罩的规格（示例底板是 #666666 的纯色块）。运行时沿用 TDesign 默认遮罩 `--td-mask-active`（半透明黑）。
+- 没有 hover / focus 等键盘焦点的视觉规格，沿用 TDesign 默认（`Dialog` 本身不做焦点圈定，含表单的弹窗请自行保证 Tab 顺序合理）。
+- 圆角 3px 是未 token 化的裸值（关闭按钮），用 `rounded-xs` 承接，与全库已知的「3px 越档」是同一问题。
+
+### Message 全局提示
+
+[Figma 46808-353123](https://www.figma.com/design/b5cc1y3jzLmOQkpa8vz5AX/China-Design-system-for-web?node-id=46808-353123) · `Message 全局提示`（12 变体）
+
+> 对用户的操作作出轻量的全局反馈。参照案例：旧版 myKONE web 的「登录成功！」Toast。
+
+**变体轴（2 轴）**
+
+| Figma 轴 | 取值 | TDesign React 1.18.3 |
+| --- | --- | --- |
+| `theme 主题` | `info 默认` / `question 帮助` / `success 成功` / `warning 警告` / `error 错误` / `loading 等待` | `Message.theme` 六值一一对应；快捷调用 `MessagePlugin.info/question/success/warning/error/loading` |
+| `closeBtn 关闭` | true / false | `closeBtn` |
+
+**尺寸与排版**
+
+| 部位 | 规格 |
+| --- | --- |
+| 容器 | 高 **48**，宽自适应内容（不限制大小），白底，圆角 **6px**（`rounded-md`），**0.5px `border-component-border`**，阴影 `0 8px 10px rgba(0,0,0,.1)`（`shadow-modal`） |
+| 内边距 | `px-16`，`py-13`（描边在内侧） |
+| 内容 | 图标 **20×20** + 间距 8 + 文字 `text-body` 14/22 `text-primary-text`，单行不换行 |
+| 关闭按钮 | 与文字间距 24，16×16；hover / active 底色与 Dialog 关闭按钮一致（#dfe1e8 / #c8cad0），圆角 3px |
+
+**图标色**：info / question `--brand-color`；success `--success-color`；warning `--warning-color`；error `--error-color`；loading 为品牌色描边圆环。
+
+**落地方式**
+
+- 补丁在 `tdesign-patches.css`：换成 0.5px 描边 + 单层 `--elevation-modal` 阴影（去掉 TDesign 的三层阴影和四边内描边）、内边距 `12.5px 16px`、关闭按钮 hover / active 底色。
+- 调用用 `MessagePlugin.success("密码重置成功", 3000)`；位置沿用 TDesign 默认（顶部居中，距顶 32）。需要关闭按钮时传对象：`MessagePlugin.success({ content, closeBtn: true, duration: 0 })`。
+- 验证页：`#/design-system/dialog`。业务示例：`ForgotPasswordDialog.tsx`（重置成功后提示）。
+- 与 `IoTToastContent`（sonner）并存：列表页模板里已有的 Toast 不迁移；**新增的轻量全局反馈走 TDesign `Message`**。同一页面不要两套混用。
+
+**缺口**
+
+- ⚠ **阴影变量与节点实测不一致**：绑定的 `Light/Shadow/3` 变量是 `0 8px 20px rgba(0,0,0,.1)`，而节点实际渲染 `0 8px 10px`。以实测为准，用 `shadow-modal`，这是全库已知的阴影定义冲突的又一例。
+- ⚠ **`question` 帮助与 `loading` 等待没有使用场景说明**：TDesign 的 `question` 是帮助图标，`loading` 需要手动关闭（`MessagePlugin.close`），设计稿未定义何时用。
+- Figma 没有定义弹出位置、停留时长、多条堆叠间距与入场动画，沿用 TDesign 默认：顶部居中、3 秒、条间距 8。
+- 文字不换行，超长文案的最大宽度与折行策略未定义。
+- 状态图标 20px 的 success / warning / error 是基础状态色，与全库一致；Message 以文字+图标共同表达，不会只靠颜色传达状态。
+
+---
+
 ## 待设计确认清单
 
 按影响面排序，方便一次性带去评审：
@@ -695,4 +790,6 @@ Figma 只定义浮层外观，没有 `trigger`、`delay`、`duration`、受控�
 14. **DatePicker 缺 quarter / week 模式**，且输入框与面板的 mode 集合不一致。
 15. **Tree 层级深度是 4 个独立组件集**，4 层以上无母版。
 16. **变量命名瑕疵**：`Color/Text/text_sucess` 拼错、`dimension/success/*` 命名空间错位、`rang` / `seleted` / `disable` 拼写不全、`radius_full` 与 `radius-default` 两种命名风格。
-17. **轴名风格三套并存**：`size 尺寸`（空格）/ `布局`（纯中文）/ `State状态`（无空格）。做 Code Connect 或自动化映射需要三套解析规则。
+17. **Dialog 的 `error` 主题与 `divider` 分割线**：主题名与 TDesign 的 `danger` 不一致，分割线没有 API；全屏模式样式也需设计与开发共同确认后再补。
+18. **Message 的阴影变量（0 8px 20px）与节点实测（0 8px 10px）不一致**，以及 `question` / `loading` 主题的使用场景。
+19. **轴名风格三套并存**：`size 尺寸`（空格）/ `布局`（纯中文）/ `State状态`（无空格）。做 Code Connect 或自动化映射需要三套解析规则。

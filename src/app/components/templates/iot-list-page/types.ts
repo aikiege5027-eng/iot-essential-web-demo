@@ -73,6 +73,12 @@ export interface IoTListPageTemplateProps<Row> {
   /** 标题行右侧的页面级上下文控件，例如业务模块切换。 */
   headerTrailing?: ReactNode;
   filterMode?: IoTFilterMode;
+  /**
+   * normal 模式下 `actions` 的位置。
+   * · header（默认）：标题行右侧。
+   * · filter：与筛选字段同一行、位于右侧并与输入框底部对齐（Figma「Form 表单」模板：两个筛选项 + 一个操作按钮）。
+   */
+  actionsPlacement?: "header" | "filter";
   filters?: IoTFilterField[];
   embeddedSearch?: IoTEmbeddedSearch;
   /** normal 模式收起时默认可见的字段数；默认 4。字段总数不超过该值时不显示展开按钮。 */
@@ -105,6 +111,11 @@ export interface IoTListPageTemplateProps<Row> {
   hideTableWhenEmpty?: boolean;
   tableCaption?: string;
   minTableWidth?: number;
+  /**
+   * 紧凑单元格：水平内边距由 24px 收为 16px，其余（行高、字号）不变。
+   * 仅用于列数较多、1440 视口放不下的表（如仟帆用户管理的 9 列）；默认关闭，保持模板的 24px 规范。
+   */
+  compactCells?: boolean;
   /** 筛选区之后、表格之前的通用内容插槽，例如业务 Tabs。 */
   beforeTable?: ReactNode;
   pagination?: IoTPaginationConfig;

@@ -33,7 +33,7 @@ CSS 变量名与 Figma 中的变量名**逐字一致**（`--brand-color`、`--te
 
 ### 详细组件规格另有文件
 
-23 个 TDesign 底层组件的完整规格（每个组件的变体轴、尺寸、各状态色、TDesign API 映射、与设计稿的缺口）在 **`.kiro/steering/tdesign-components.md`**。
+25 个 TDesign 底层组件的完整规格（每个组件的变体轴、尺寸、各状态色、TDesign API 映射、与设计稿的缺口）在 **`.kiro/steering/tdesign-components.md`**。
 
 那份文件是**按需加载**（`inclusion: auto`）而不是始终生效 —— 它近 700 行，若常驻会在每次对话里挤占上下文。要用到具体组件时它会自动进来，也可以用 `#tdesign-components` 手动引入。本文件只保留[组件索引](#tdesign-组件索引)与跨组件通用规则。
 
@@ -291,17 +291,17 @@ Figma 图标页的说明是「icon 与开发一致」，即两者应当对齐。
 
 **判定规则，按顺序套用：**
 
-1. 需求落在下面 23 个组件里 → **用 TDesign**，规格查 `tdesign-components.md`。
-2. 不在这 23 个里，但 shadcn/ui 已有（如 `dialog` `card` `badge` `alert`）→ 继续用 shadcn/ui。
+1. 需求落在下面 25 个组件里 → **用 TDesign**，规格查 `tdesign-components.md`。
+2. 不在这 25 个里，但 shadcn/ui 已有（如 `card` `badge` `alert`）→ 继续用 shadcn/ui。
 3. 两边都没有 → 先回 Figma 找，找不到再问设计，不要自己造。
 
 **不要在同一个页面区块里混用两套的同类组件。** 例如表单里一半 `tdesign-react` 的 `Input`、一半 shadcn 的 `input` —— 二者高度分别是 32px 与 36px（`h-9`），会看出错位。
 
 ### 重叠清单
 
-23 个 TDesign 组件里有 **16 个**在 shadcn/ui 中有同类实现。**新代码走 TDesign，已有调用点不主动迁移**（迁移成本与收益需单独评估）：
+25 个 TDesign 组件里有 **18 个**在 shadcn/ui 中有同类实现。**新代码走 TDesign，已有调用点不主动迁移**（迁移成本与收益需单独评估）：
 
-`Button`→`button`、`Divider`→`separator`、`Dropdown`→`dropdown-menu`、`Breadcrumb`→`breadcrumb`、`Pagination`→`pagination`、`Tabs`→`tabs`、`Checkbox`→`checkbox`、`Radio`→`radio-group`、`Select`→`select`、`Input`→`input`、`Slider`→`slider`、`Switch`→`switch`、`Tooltip`→`tooltip`、`Table`→`table`、`Collapse`→`accordion`/`collapsible`、`DatePicker`→`calendar`（仅面板，无输入框）
+`Button`→`button`、`Divider`→`separator`、`Dropdown`→`dropdown-menu`、`Breadcrumb`→`breadcrumb`、`Pagination`→`pagination`、`Tabs`→`tabs`、`Checkbox`→`checkbox`、`Radio`→`radio-group`、`Select`→`select`、`Input`→`input`、`Slider`→`slider`、`Switch`→`switch`、`Tooltip`→`tooltip`、`Table`→`table`、`Collapse`→`accordion`/`collapsible`、`DatePicker`→`calendar`（仅面板，无输入框）、`Dialog`→`dialog`/`alert-dialog`、`Message`→`sonner`
 
 剩下 **7 个只有 TDesign 有**，需要时没有别的选择：`Link`、`Steps`、`Cascader`、`InputNumber`、`Search`、`Tree`、`Transfer`。
 
@@ -309,11 +309,13 @@ Figma 图标页的说明是「icon 与开发一致」，即两者应当对齐。
 
 `#/design-system/button` 是 Button 的验证页（`src/app/design-system/ButtonShowcase.tsx`），顶部有 token 桥接对照表 —— 左右色块一致即说明 TDesign 组件确实由 KONE token 驱动。新增组件验证页请沿用该文件的结构，挂到 `src/main.tsx` 的 hash 路由上。
 
+`#/design-system/dialog` 是 Dialog 与 Message 的验证页（`src/app/design-system/DialogMessageShowcase.tsx`）：静态陈列用 `DialogCard` / `Message` 本体，按钮触发真实的 `Dialog` 与 `MessagePlugin`。
+
 ---
 
 ## TDesign 组件索引
 
-23 个组件的一览。**「缺口」列标 ⚠ 的表示设计稿与 TDesign API 之间有需要设计确认的差异**，动手前先看 `tdesign-components.md` 对应小节。
+25 个组件的一览。**「缺口」列标 ⚠ 的表示设计稿与 TDesign API 之间有需要设计确认的差异**，动手前先看 `tdesign-components.md` 对应小节。
 
 | 组件 | TDesign 导入名 | 关键档位 | 缺口 |
 | --- | --- | --- | --- |
@@ -340,6 +342,8 @@ Figma 图标页的说明是「icon 与开发一致」，即两者应当对齐。
 | Switch 开关 | `Switch` | 轨道 26/32/39 | ⚠ medium 档滑块在两态下尺寸不同（15 vs 12） |
 | Collapse 折叠面板 | `Collapse` | header 高 46 | ⚠ `borderless` 在设计稿里还改了内容区底色 |
 | Transfer 穿梭框 | `Transfer` | 列表框宽 200，行高 32 | ⚠ 头部无 title，需显式关掉 |
+| Dialog 对话框 | `Dialog`（静态陈列 `DialogCard`） | 宽 480（min 480 / max 960），圆角 8，内边距 32 | ⚠ 分割线变体与 `error` 主题名无 API 对应；全屏模式样式未补 |
+| Message 全局提示 | `Message` / `MessagePlugin` | 高 48，圆角 6，图标 20 | ⚠ 阴影变量与节点实测不一致；`question` / `loading` 主题需确认用法 |
 
 ### 跨组件通用规则
 
@@ -423,7 +427,7 @@ box-shadow: 0 0 0 2px var(--brand-color-focus); /* #d0dcfd */
 
 变体：`default` `secondary` `destructive` `outline`。
 
-Badge **不含 IoT 状态变体**。状态展示请用[无障碍](#无障碍)一节的「圆点 + 文字」写法。仓库中该模式已在 6 个以上文件重复出现（`ApprovalCenterContent` `TaskListContent` `MobileDeviceEventsContent` `EventsApp` `IoTMobileApp` `LiveDataContent`），且出现了同一语义两套颜色的漂移。**新代码统一用本文档的 token；若需第 7 次复制该模式，应先抽成共享组件。**
+Badge **不含 IoT 状态变体**。状态展示请用[无障碍](#无障碍)一节的「圆点 + 文字」写法。仓库中该模式已在 6 个以上文件重复出现（`ApprovalCenterContent` `TaskListContent` `MobileDeviceEventsContent` `EventsApp` `IoTMobileApp` `LiveDataContent`），且出现了同一语义两套颜色的漂移。**新代码统一用本文档的 token，并使用共享组件 `StatusLabel`（`src/app/components/StatusLabel.tsx`，`tone` 取 success / warning / error / brand / neutral）；旧调用点不主动迁移。** 用户管理页的状态列是首个使用方，表格里的状态列都应是这种「圆点 + 文字」，与审批中心一致。
 
 ### Card
 

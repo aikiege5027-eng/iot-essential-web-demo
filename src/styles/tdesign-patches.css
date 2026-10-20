@@ -95,6 +95,13 @@
   border-bottom: 0;
 }
 
+/* 紧凑单元格（compactCells）：水平内边距 24 → 16，仅给列数很多的表使用。 */
+.iot-list-page-table--compact .t-table__header th,
+.iot-list-page-table--compact .t-table__body > tr:not(.t-table__empty-row) > td {
+  padding-right: 16px;
+  padding-left: 16px;
+}
+
 .iot-list-page-table .t-table__header th.iot-list-page-table__actions {
   padding-right: 24px;
   padding-left: 24px;
@@ -226,4 +233,226 @@
  */
 .iot-config-field-checkbox .t-checkbox__input {
   zoom: 0.875;
+}
+
+/**
+ * 登录页（对齐设计系统登录页模板 #/login）。
+ * - 输入框 8px 圆角，聚焦时品牌蓝描边 + 3px 10% 外环（TDesign 默认是 4px 圆角 + 2px 外环）；
+ * - 忘记密码链接 14/600；
+ * - 底部演示用的平台/用户选择框固定宽度。
+ */
+.iot-login-input .t-input {
+  border-radius: 8px;
+}
+
+.iot-login-input .t-input__inner {
+  font-size: 16px;
+}
+
+.iot-login-input .t-input.t-is-focused {
+  border-color: var(--brand-color);
+  box-shadow: 0 0 0 3px rgba(20, 80, 245, 0.1);
+}
+
+.iot-login-link.t-link {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 企业账号登录的隐私政策链接：与模板一致，14px / 常规字重 */
+.iot-login-policy-link.t-link {
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/**
+ * 底部演示用的平台/用户选择：弱化为「文字 + Chevron」，无外框、无底色。
+ * 放在页面左下角：那一带是平整的浅灰地面，深色文字可直接阅读，不需要衬底或文字光晕。
+ * 各状态（hover / 聚焦 / 展开）都不出现边框或底色。
+ */
+.iot-login-select {
+  width: auto;
+}
+
+.iot-login-select .t-input,
+.iot-login-select .t-input:hover,
+.iot-login-select .t-input.t-is-focused,
+.iot-login-select .t-input--focused,
+.iot-login-select .t-input--popup-visible {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-color-primary);
+}
+
+.iot-login-select .t-input__inner,
+.iot-login-select .t-input__prefix {
+  color: var(--text-color-primary);
+}
+
+/* 输入框宽度随文字自适应，让 Chevron 紧跟在文字后面（不支持 field-sizing 的浏览器退回默认宽度） */
+.iot-login-select .t-input__inner {
+  field-sizing: content;
+  min-width: 5em;
+}
+
+.iot-login-select .t-input__inner::placeholder {
+  color: var(--text-color-secondary);
+}
+
+
+/**
+ * Dialog 对话框（Figma 41952:300048）
+ * ----------------------------------------------------------------------------
+ * 与 TDesign 默认值的差异：
+ *   · 容器没有描边（TDesign 有 1px level-1 描边）。
+ *   · 内容区上 16 / 下 24，页脚不再叠加上内边距（TDesign 是内容区 16 + 页脚 16，合计 32）。
+ *   · 关闭按钮是 24×24 的点击区、16×16 图标、3px 圆角；悬浮 #dfe1e8，按下 #c8cad0。
+ *   · 带分割线变体：头 / 内容 / 脚各自 `px-32 py-24`，头下、脚上各一条 1px `border-stroke`。
+ *     TDesign 没有对应 prop，通过 `dialogClassName="km-dialog--divider"` 启用。
+ */
+.t-dialog.t-dialog--default {
+  border: 0;
+}
+
+.t-dialog .t-dialog__body {
+  padding: 16px 0 24px;
+}
+
+.t-dialog .t-dialog__footer {
+  padding: 0;
+}
+
+.t-dialog .t-dialog__close {
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  border-radius: 3px;
+  font-size: 16px;
+  color: var(--text-color-primary);
+}
+
+.t-dialog .t-dialog__close:hover {
+  background: var(--component-stroke);
+}
+
+.t-dialog .t-dialog__close:active {
+  background: var(--component-border);
+}
+
+.t-dialog.km-dialog--divider.t-dialog--default {
+  padding: 0;
+  overflow: hidden;
+}
+
+.t-dialog.km-dialog--divider .t-dialog__header {
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--component-stroke);
+}
+
+.t-dialog.km-dialog--divider .t-dialog__body {
+  padding: 24px 32px;
+}
+
+.t-dialog.km-dialog--divider .t-dialog__footer {
+  padding: 24px 32px;
+  border-top: 1px solid var(--component-stroke);
+}
+
+/*
+ * 紧凑信息展示变体（IOT Delivery 7105:14727「个人信息」）：叠加在 km-dialog--divider 上使用。
+ * 头部 `px-24 py-16`、内容区 `p-24`、无页脚；关闭按钮距右边 16px（头部内边距 24 再回收 8）。
+ */
+.t-dialog.km-dialog--divider.km-dialog--compact .t-dialog__header {
+  padding: 16px 24px;
+}
+
+.t-dialog.km-dialog--divider.km-dialog--compact .t-dialog__body {
+  padding: 24px;
+}
+
+.t-dialog.km-dialog--divider.km-dialog--compact .t-dialog__close {
+  margin-right: -8px;
+}
+
+/**
+ * Message 全局提示（Figma 46808:353123）
+ * ----------------------------------------------------------------------------
+ *   · 0.5px `component-border` 描边 + 0 8px 10px 阴影（`shadow-modal`），替换 TDesign 默认的三层阴影与四边内描边。
+ *   · 内边距 12.5px 16px：加上 0.5px 描边后总高 48，与设计稿一致。
+ *   · 关闭按钮沿用 Dialog 关闭按钮的悬浮 / 按下底色与 3px 圆角。
+ */
+.t-message {
+  padding: 12.5px 16px;
+  border: 0.5px solid var(--component-border);
+  box-shadow: var(--elevation-modal);
+}
+
+.t-message.t-is-closable .t-message__close .t-icon-close {
+  border-radius: 3px;
+}
+
+.t-message.t-is-closable .t-message__close .t-icon-close:hover {
+  background: var(--component-stroke);
+}
+
+.t-message.t-is-closable .t-message__close .t-icon-close:active {
+  background: var(--component-border);
+}
+
+/**
+ * Radio 按钮组 · default-filled（Figma 43606:304883 / 43622:307383）
+ * ----------------------------------------------------------------------------
+ * 灰色容器（component-stroke）里，选中项是白底 + primary 文字，圆角 2px（radius-small）。
+ *
+ * TDesign 用一块绝对定位的滑块底板（.t-radio-group__bg-block）承载白底，位置和宽度靠 JS 量出来；
+ * 在顶栏这类会被父级重渲染的位置，它会停在旧位置甚至宽度为 0，选中项就失去白底。
+ * 这里改为直接给选中项上色，不依赖滑块，并把滑块隐藏——视觉与设计稿一致，只是少了滑动动画。
+ */
+.t-radio-group.t-radio-group--filled .t-radio-group__bg-block {
+  display: none;
+}
+
+.t-radio-group.t-radio-group--filled .t-radio-button {
+  border-radius: 2px;
+}
+
+.t-radio-group.t-radio-group--filled .t-radio-button.t-is-checked {
+  background-color: var(--bg-color-container);
+  color: var(--text-color-primary);
+}
+
+/**
+ * Dialog 出入场动画：从屏幕中心出现
+ * ----------------------------------------------------------------------------
+ * TDesign 会把缩放原点设成「最近一次点击的位置」，所以点右上角的按钮时，弹窗像从右上角飘过来；
+ * 再加上从 scale(0.01) 开始，位移感很强。这里统一以弹窗自身中心为原点，
+ * 并把起始缩放收到 0.94 + 淡入，变成「在原地轻轻浮现」。
+ * 同名 keyframes 放在 tdesign.css 之后，后定义者生效。
+ */
+.t-dialog {
+  transform-origin: 50% 50% !important;
+}
+
+@keyframes tDialogZoomIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tDialogZoomOut {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
 }

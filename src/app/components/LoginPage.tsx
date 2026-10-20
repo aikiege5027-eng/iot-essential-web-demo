@@ -1,87 +1,238 @@
 import { FormEvent, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
-import loginBackground from "../../imports/LoginDesktop/c139536a8499b15e3dcc9f92c8c622e4be36e24d.png";
+import { Button, Checkbox, Input, Link, Select } from "tdesign-react";
+// 背景图与设计系统登录页模板同源（2880×1800，16:10），按 cover + 居中铺满；旧图是 3:2 的另一种裁切，视野范围不同。
+import loginBackground from "../../imports/LoginDesktop/login-bg.jpg";
 import koneLogo from "../../imports/KONE_Logo_Primary_RGB.svg";
+import { ACCOUNTS, EDITION_DEFAULT_EMAILS, EDITION_TITLES, QIANFAN_ADMIN_EMAIL, type AppEdition } from "../data/accounts";
+import ForgotPasswordDialog from "./ForgotPasswordDialog";
+import { EyeClosedIcon, EyeOpenIcon } from "./icons/login-icons";
+import { cn } from "./ui/utils";
+
+/**
+ * 登录页。布局、尺寸与配色对齐设计系统的登录页模板（#/login）：
+ * 440 宽卡片、24 圆角、40 内边距、标题与表单间距 32；输入框 40 高 8 圆角，聚焦时品牌蓝描边加 3px 外环；
+ * 记住我用 TDesign Checkbox（默认不勾选）；Log In 为全圆角 40 高按钮；忘记密码用 TDesign Link。
+ *
+ * 页面底部的「平台选择」「用户选择」是演示用的快捷登录：
+ * 通力 IOT Essential 为企业账号登录（对齐模板 #/amp：一个 Log in with KONE Account 按钮 + 隐私政策勾选），
+ * 选中什么角色就以该角色登录；仟帆仍是邮箱 + 密码登录。
+ * 每个平台有默认账号（IOT Essential → 张明远，仟帆 → 管理员），进入页面和切换平台时自动选中并填入；
+ * 也可以换选其他用户，自动填入对应邮箱和密码（统一为 123）。账号必须属于所选平台，否则登录失败。
+ */
 
 type LoginPageProps = {
-  onLogin: (email: string, password: string) => boolean;
+  onLogin: (email: string, password: string, edition: AppEdition) => boolean;
 };
 
-const LOGIN_HINTS = [
-  { email: "jianguo.li@kone.com", label: "李建国 · 维保员工" },
-  { email: "zhiqiang.wang@kone.com", label: "王志强 · 管理层员工" },
-  { email: "lin.xue@kone.com", label: "林雪 · 研发人员" },
-  { email: "liu.yang@kone.com", label: "刘洋 · L2人员" },
-  { email: "zhao.min@kone.com", label: "赵敏 · Devops人员" },
-  { email: "mingyuan.zhang@kone.com", label: "张明远 · 系统管理员" },
-  { email: "qiang.zhou@kone.com", label: "周强 · 超级管理员" },
-];
+type LoginUser = { email: string; label: string };
+
+const LOGIN_USERS: Record<AppEdition, LoginUser[]> = {
+  iot: [
+    { email: "jianguo.li@kone.com", label: "李建国 · 维保员工" },
+    { email: "zhiqiang.wang@kone.com", label: "王志强 · 管理层员工" },
+    { email: "lin.xue@kone.com", label: "林雪 · 研发人员" },
+    { email: "liu.yang@kone.com", label: "刘洋 · L2人员" },
+    { email: "zhao.min@kone.com", label: "赵敏 · Devops人员" },
+    { email: "mingyuan.zhang@kone.com", label: "张明远 · 系统管理员" },
+    { email: "qiang.zhou@kone.com", label: "周强 · 超级管理员" },
+  ],
+  qianfan: [{ email: QIANFAN_ADMIN_EMAIL, label: "管理员" }],
+};
+
+function getDefaultCredentials(edition: AppEdition) {
+  const account = ACCOUNTS.find((candidate) => candidate.email === EDITION_DEFAULT_EMAILS[edition]);
+  return { email: account?.email ?? "", password: account?.password ?? "" };
+}
+
+const PLATFORM_OPTIONS = (Object.keys(EDITION_TITLES) as AppEdition[]).map((edition) => ({ value: edition, label: EDITION_TITLES[edition] }));
 
 function KoneLogo() {
   return <img src={koneLogo} alt="KONE" className="h-7 w-[72px] object-contain object-left" />;
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(true);
+  const [platform, setPlatform] = useState<AppEdition>("iot");
+  const [email, setEmail] = useState(() => getDefaultCredentials("iot").email);
+  const [password, setPassword] = useState(() => getDefaultCredentials("iot").password);
+  const [remember, setRemember] = useState(false);
+  const [agreedPolicy, setAgreedPolicy] = useState(false);
+  const [isResetOpen, setIsResetOpen] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [error, setError] = useState("");
+
+  // 通力 IOT Essential 使用企业账号登录，仟帆仍是邮箱 + 密码。
+  const isSso = platform === "iot";
+  const users = LOGIN_USERS[platform];
+  const normalizedEmail = email.trim().toLowerCase();
+  // 用户下拉的选中项由邮箱框的内容推导：手动输入了列表里的邮箱，下拉也会同步高亮。
+  const selectedUser = users.find((user) => user.email === normalizedEmail)?.email;
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!onLogin(email.trim().toLowerCase(), password)) {
-      setError("邮箱或密码不正确，请重新输入。");
+    if (!onLogin(normalizedEmail, password, platform)) {
+      setError(isSso ? "登录失败，请重新选择用户后再试。" : "邮箱或密码不正确，请重新输入。");
     }
   };
 
-  const handleEmailChange = (value: string) => {
-    const normalized = value.trim().toLowerCase();
-    setEmail(value);
+  const changePlatform = (value: unknown) => {
+    const next = String(value) as AppEdition;
+    if (next === platform) return;
+    // 账号属于各自的平台，切换平台时改为填入该平台的默认账号。
+    const defaults = getDefaultCredentials(next);
+    setPlatform(next);
+    setEmail(defaults.email);
+    setPassword(defaults.password);
     setError("");
-    if (LOGIN_HINTS.some((account) => account.email === normalized)) setPassword("123");
+  };
+
+  const pickUser = (value: unknown) => {
+    const account = ACCOUNTS.find((candidate) => candidate.email === String(value));
+    if (!account) return;
+    setEmail(account.email);
+    setPassword(account.password);
+    setError("");
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-white font-['PingFang_SC:Regular',sans-serif]">
-      <img src={loginBackground} alt="KONE office lobby" className="absolute inset-0 size-full object-cover object-center" />
-      <section className="relative z-10 flex min-h-screen items-center justify-center px-5 py-8">
-        <form onSubmit={submit} className="w-full max-w-[440px] rounded-[24px] bg-white p-10">
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-col gap-6">
-              <KoneLogo />
-              <h1 className="text-[28px] font-semibold leading-9 text-[#141414]">Welcome to IOT Essential</h1>
-            </div>
+    <main className="relative min-h-screen overflow-hidden bg-container">
+      <img src={loginBackground} alt="" aria-hidden="true" className="fixed inset-0 size-full object-cover object-center" />
 
+      <section className="relative z-10 flex min-h-screen items-center justify-center p-6">
+        <form
+          onSubmit={submit}
+          className={cn(
+            "flex w-full max-w-[440px] flex-col gap-8 rounded-[24px] bg-container p-10 shadow-[0_8px_40px_rgba(0,0,0,0.12)]",
+            // 重置密码弹窗出现时，它代替登录卡片；关闭后登录卡片恢复，已填内容保留
+            isResetOpen && "hidden",
+          )}
+        >
+          <div className="flex flex-col gap-6">
+            <KoneLogo />
+            <h1 className="text-h3 font-semibold text-primary-text">Welcome to IOT Essential</h1>
+          </div>
+
+          {isSso ? (
+            // 通力平台走企业账号（SSO）登录：不再输入账号密码，以底部「用户选择」选中的角色登录
+            <div className="flex w-full flex-col gap-6">
+              <Button type="submit" theme="primary" size="large" shape="round" block>
+                <strong>Log in with KONE Account</strong>
+              </Button>
+              {error && <p role="alert" className="text-foot12 text-error">{error}</p>}
+              <Checkbox checked={agreedPolicy} onChange={(checked) => setAgreedPolicy(Boolean(checked))}>
+                By continuing, you agree to our{" "}
+                <Link className="iot-login-policy-link" theme="primary" hover="underline" href="#" onClick={(event) => event.preventDefault()}>
+                  Privacy Policy
+                </Link>
+              </Checkbox>
+            </div>
+          ) : (
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-6">
-                <label className="block">
-                  <span className="sr-only">Email</span>
-                  <input value={email} onChange={(event) => handleEmailChange(event.target.value)} type="email" list="kone-accounts" autoComplete="username" placeholder="选择或输入 KONE 邮箱" className="h-10 w-full rounded-[8px] border border-[#c8cad0] bg-white px-3 text-[16px] leading-6 text-[#141414] outline-none transition focus:border-[#1450f5] focus:ring-2 focus:ring-[#1450f5]/15" required />
-                  <datalist id="kone-accounts">{LOGIN_HINTS.map((account) => <option key={account.email} value={account.email}>{account.label}</option>)}</datalist>
-                </label>
-                <label className="relative block">
-                  <span className="sr-only">Password</span>
-                  <input value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} type={isPasswordVisible ? "text" : "password"} autoComplete="current-password" placeholder="Password（统一为 123）" className="h-10 w-full rounded-[8px] border border-[#c8cad0] bg-white px-3 pr-11 text-[16px] leading-6 text-[#141414] outline-none transition focus:border-[#1450f5] focus:ring-2 focus:ring-[#1450f5]/15" required />
-                  <button type="button" onClick={() => setIsPasswordVisible((visible) => !visible)} aria-label={isPasswordVisible ? "隐藏密码" : "显示密码"} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8f9195] transition-colors hover:text-[#676a72]">{isPasswordVisible ? <EyeOff className="size-[18px]" strokeWidth={1.8} /> : <Eye className="size-[18px]" strokeWidth={1.8} />}</button>
-                </label>
+                <div className="flex flex-col gap-1">
+                  {/* TDesign Input 把 id / aria-* 透传到外层容器而不是 <input>，所以用包裹式 label 给输入框命名 */}
+                  <label className="block">
+                    <span className="sr-only">Email</span>
+                    <Input
+                      className="iot-login-input"
+                      size="large"
+                      type="text"
+                      autocomplete="username"
+                      placeholder="Enter your username"
+                      status={error ? "error" : "default"}
+                      value={email}
+                      onChange={(value) => { setEmail(String(value)); setError(""); }}
+                    />
+                  </label>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="login-password" className="sr-only">Password</label>
+                  <div
+                    className={cn(
+                      "flex h-10 w-full items-center rounded-[8px] border bg-container px-3 transition-[border-color,box-shadow] duration-200",
+                      error ? "border-error" : isPasswordFocused ? "border-brand-base shadow-[0_0_0_3px_rgba(20,80,245,0.1)]" : "border-component-border hover:border-brand-base",
+                    )}
+                  >
+                    <input
+                      id="login-password"
+                      type={isPasswordVisible ? "text" : "password"}
+                      autoComplete="current-password"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(event) => { setPassword(event.target.value); setError(""); }}
+                      onFocus={() => setIsPasswordFocused(true)}
+                      onBlur={() => setIsPasswordFocused(false)}
+                      className="h-full min-w-0 flex-1 border-0 bg-transparent text-h7 font-normal text-primary-text outline-none placeholder:text-placeholder"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setIsPasswordVisible((visible) => !visible)}
+                      aria-label={isPasswordVisible ? "隐藏密码" : "显示密码"}
+                      aria-pressed={isPasswordVisible}
+                      className="flex size-[18px] items-center justify-center rounded-xs text-placeholder transition-colors hover:text-primary-text focus-visible:outline-2 focus-visible:outline-brand-base"
+                    >
+                      {isPasswordVisible ? <EyeOpenIcon className="size-[18px]" /> : <EyeClosedIcon className="size-[18px]" />}
+                    </button>
+                  </div>
+                  {error && <p role="alert" className="text-foot12 text-error">{error}</p>}
+                </div>
               </div>
 
-              {error && <p role="alert" className="text-[13px] leading-5 text-[#d92d20]">{error}</p>}
-
-              <div className="flex flex-col gap-4">
-                <label className="flex h-[22px] cursor-pointer items-start gap-2 text-[14px] leading-[22px] text-[#141414]">
-                  <input checked={remember} onChange={(event) => setRemember(event.target.checked)} type="checkbox" className="mt-[3px] size-4 rounded-[4px] border-[#c8cad0] accent-[#1450f5]" />
+              <div className="flex flex-col items-start gap-4">
+                <Checkbox checked={remember} onChange={(checked) => setRemember(Boolean(checked))}>
                   Remember me
-                </label>
-                <button type="submit" className="h-10 w-full rounded-full bg-[#1450f5] px-6 text-[16px] font-semibold leading-6 text-white transition hover:bg-[#0e43d0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1450f5]">Log In</button>
+                </Checkbox>
+                <Button type="submit" theme="primary" size="large" shape="round" block>
+                  <strong>Log In</strong>
+                </Button>
+                <div className="flex w-full justify-center">
+                  <Link
+                    className="iot-login-link"
+                    theme="primary"
+                    hover="underline"
+                    href="#"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      setIsResetOpen(true);
+                    }}
+                  >
+                    Forgot password？
+                  </Link>
+                </div>
               </div>
-
-              <button type="button" className="text-center text-[14px] font-semibold leading-[22px] text-[#1450f5] hover:underline">Forgot password?</button>
             </div>
-          </div>
+          )}
         </form>
       </section>
+
+      <ForgotPasswordDialog visible={isResetOpen} onClose={() => setIsResetOpen(false)} />
+
+      {/* 演示用快捷登录：先选平台，再选用户，自动填入邮箱和密码 */}
+      <div className="absolute bottom-5 left-6 z-20 flex flex-wrap items-center gap-6 pr-6">
+        {/* 文字标签已去掉，用 group 的名称给读屏用户说明这两个下拉框的用途 */}
+        <div role="group" aria-label="平台选择">
+          <Select
+            className="iot-login-select"
+            size="medium"
+            value={platform}
+            options={PLATFORM_OPTIONS}
+            onChange={changePlatform}
+            popupProps={{ placement: "top-left" }}
+          />
+        </div>
+        <div role="group" aria-label="用户选择">
+          <Select
+            className="iot-login-select"
+            size="medium"
+            placeholder="请选择用户"
+            value={selectedUser}
+            options={users.map((user) => ({ value: user.email, label: user.label }))}
+            onChange={pickUser}
+            popupProps={{ placement: "top-left" }}
+          />
+        </div>
+      </div>
     </main>
   );
 }

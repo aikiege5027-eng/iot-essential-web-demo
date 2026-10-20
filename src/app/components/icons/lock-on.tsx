@@ -1,0 +1,20 @@
+import type { SVGProps } from "react";
+
+/** 图标库 `lock-on`（Design Token China 612:1022），16×16，颜色由 currentColor 继承。 */
+export function LockOnIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <g fill="currentColor">
+        <path d="M6 9.99998V11H10V9.99998H6Z" />
+        <path d="M4.5 4.99084V5.99998H3C2.72386 5.99998 2.5 6.22384 2.5 6.49998V13.5C2.5 13.7761 2.72386 14 3 14H13C13.2761 14 13.5 13.7761 13.5 13.5V6.49998C13.5 6.22384 13.2761 5.99998 13 5.99998H11.5V4.99084C11.5 3.05785 9.933 1.49084 8 1.49084C6.067 1.49084 4.5 3.05785 4.5 4.99084ZM10.5 5.99998H5.5V4.99084C5.5 3.61013 6.61929 2.49084 8 2.49084C9.38071 2.49084 10.5 3.61013 10.5 4.99084V5.99998ZM3.5 6.99998H12.5V13H3.5V6.99998Z" />
+      </g>
+    </svg>
+  );
+}

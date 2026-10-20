@@ -175,6 +175,7 @@ function NormalFilters({
   expanded,
   panelId,
   onToggle,
+  trailing,
 }: {
   fields: IoTFilterField[];
   collapsedCount: number;
@@ -182,6 +183,8 @@ function NormalFilters({
   expanded: boolean;
   panelId: string;
   onToggle: () => void;
+  /** 与字段同一行、靠右的操作区（actionsPlacement="filter"）。 */
+  trailing?: ReactNode;
 }) {
   const canExpand = fields.length > collapsedCount;
   const visibleFields = canExpand && !expanded ? fields.slice(0, collapsedCount) : fields;
@@ -191,9 +194,11 @@ function NormalFilters({
   return (
     <div id={panelId} className="flex flex-col gap-2 px-5 lg:flex-row lg:items-start lg:gap-8">
       <FilterGrid fields={visibleFields} />
-      {canExpand && (
-        <div className="shrink-0 pb-6 lg:pt-[30px]">
-          <ExpansionButton expanded={expanded} controls={panelId} labels={labels} onClick={onToggle} />
+      {(trailing || canExpand) && (
+        // 顶部留出标签行（22 + 8）高度，让按钮与输入框同一水平线
+        <div className="flex shrink-0 items-center gap-4 pb-6 lg:pt-[30px]">
+          {trailing}
+          {canExpand && <ExpansionButton expanded={expanded} controls={panelId} labels={labels} onClick={onToggle} />}
         </div>
       )}
     </div>
@@ -319,6 +324,7 @@ function DataTable<Row>({
   hideTableWhenEmpty = false,
   tableCaption,
   minTableWidth = 880,
+  compactCells = false,
 }: Pick<
   IoTListPageTemplateProps<Row>,
   | "columns"
@@ -335,6 +341,7 @@ function DataTable<Row>({
   | "hideTableWhenEmpty"
   | "tableCaption"
   | "minTableWidth"
+  | "compactCells"
 >) {
   const tableRef = useRef<PrimaryTableRef>(null);
   const captionId = `iot-table-caption-${useId().replaceAll(":", "")}`;
@@ -453,7 +460,7 @@ function DataTable<Row>({
       )}
       <Table<InternalTableRow<Row>>
         ref={tableRef}
-        className="iot-list-page-table"
+        className={cn("iot-list-page-table", compactCells && "iot-list-page-table--compact")}
         style={{ minWidth: `${minTableWidth}px` }}
         columns={tableColumns}
         data={loading && loadingMode === "replace" ? [] : tableRows}
@@ -509,6 +516,7 @@ export function IoTListPageTemplate<Row>({
   actions = [],
   headerTrailing,
   filterMode = "none",
+  actionsPlacement = "header",
   filters = [],
   embeddedSearch,
   normalCollapsedCount = 4,
@@ -532,6 +540,7 @@ export function IoTListPageTemplate<Row>({
   hideTableWhenEmpty = false,
   tableCaption,
   minTableWidth,
+  compactCells,
   beforeTable,
   pagination,
   footer,
@@ -554,7 +563,10 @@ export function IoTListPageTemplate<Row>({
           <h1 id={`${panelId}-title`} className="text-h5 font-semibold text-primary-text">
             {title}
           </h1>
-          {headerTrailing ?? (filterMode !== "embedded" ? <PageActions actions={actions} /> : null)}
+          {headerTrailing ??
+            (filterMode !== "embedded" && !(filterMode === "normal" && actionsPlacement === "filter") ? (
+              <PageActions actions={actions} />
+            ) : null)}
         </header>
 
         {filterMode === "normal" && (
@@ -565,6 +577,7 @@ export function IoTListPageTemplate<Row>({
             expanded={expanded}
             panelId={panelId}
             onToggle={() => setExpanded(!expanded)}
+            trailing={actionsPlacement === "filter" ? <PageActions actions={actions} /> : undefined}
           />
         )}
 
@@ -599,6 +612,7 @@ export function IoTListPageTemplate<Row>({
           hideTableWhenEmpty={hideTableWhenEmpty}
           tableCaption={tableCaption}
           minTableWidth={minTableWidth}
+          compactCells={compactCells}
         />
         <PagePagination pagination={pagination} />
       </section>

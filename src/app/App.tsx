@@ -1,6 +1,6 @@
 import { useState } from "react";
 import LoginPage from "./components/LoginPage";
-import { ACCOUNTS, AppAccount } from "./data/accounts";
+import { ACCOUNTS, getAccountEdition, getEditionByEmail, QIANFAN_ADMIN_EMAIL, type AppAccount, type AppEdition } from "./data/accounts";
 import { getApprovalDeviceCount, getApprovalTaskContext, type AppNotification, type UpgradeApproval, type UpgradeDetail } from "./data/approvalWorkflow";
 import Events from "./components/EventsApp";
 import IoTMobileApp from "./components/IoTMobileApp";
@@ -35,12 +35,17 @@ function fromMobileTab(tab: "liveData" | "archive" | "events"): CoreTab {
 export default function App() {
   const [coreTab, setCoreTab] = useState<CoreTab>("liveData");
   const [language, setLanguage] = useState<Lang>("cn");
-  const [currentUser, setCurrentUser] = useState<AppAccount | null>(() => ACCOUNTS.find((account) => account.email === "mingyuan.zhang@kone.com") ?? null);
+  // 默认落地页是登录页：启动时没有登录用户，需要在登录页选择平台和用户后进入。
+  const [currentUser, setCurrentUser] = useState<AppAccount | null>(null);
   const [approvals, setApprovals] = useState<UpgradeApproval[]>(DEMO_APPROVALS);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [taskBadgeCount, setTaskBadgeCount] = useState(2);
-  const handleLogin = (email: string, password: string) => {
-    const account = ACCOUNTS.find((candidate) => candidate.email === email && candidate.password === password);
+  const edition: AppEdition = getAccountEdition(currentUser ?? undefined);
+  // 审批与通知按平台版本隔离：仟帆版本看不到 IOT Essential 的审批单，反之亦然。
+  const editionApprovals = approvals.filter((approval) => getEditionByEmail(approval.initiatorEmail) === edition);
+  const handleLogin = (email: string, password: string, loginEdition: AppEdition) => {
+    // 账号必须属于登录页上选择的平台，否则按账号或密码错误处理。
+    const account = ACCOUNTS.find((candidate) => candidate.email === email && candidate.password === password && getAccountEdition(candidate) === loginEdition);
     if (!account) return false;
     setCurrentUser(account);
     return true;
@@ -52,7 +57,8 @@ export default function App() {
     return `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
   };
   const submitUpgradeForApproval = ({ initiator, scheduledAt, packages, upgradeDetails, submissionRemark }: { initiator: AppAccount; scheduledAt: string; packages: Record<string, string>; upgradeDetails?: UpgradeDetail[]; submissionRemark?: string }) => {
-    const approver = ACCOUNTS.find((account) => account.email === "mingyuan.zhang@kone.com")!;
+    // 仟帆版本目前只有一位管理员，审批人就是该管理员；IOT Essential 仍由系统管理员审批。
+    const approver = ACCOUNTS.find((account) => account.email === (getAccountEdition(initiator) === "qianfan" ? QIANFAN_ADMIN_EMAIL : "mingyuan.zhang@kone.com"))!;
     const totalDevices = Object.keys(packages).length;
     const deviceCount = upgradeDetails?.reduce((total, detail) => total + Number(detail.quantity), 0) ?? totalDevices;
     const approval: UpgradeApproval = { id: `upgrade-${Date.now()}`, content: `批量系统升级：${totalDevices} 个硬件类型`, initiatorEmail: initiator.email, initiatorName: initiator.name, initiatedAt: formatNow(), scheduledAt, currentNode: "系统管理员审批", approverEmail: approver.email, approverName: approver.name, approverRole: "系统管理员", status: "pending", packages, upgradeDetails, submissionRemark };
@@ -107,7 +113,7 @@ export default function App() {
           currentUser={currentUser}
           onLogout={() => setCurrentUser(null)}
           onSwitchAccount={(account) => setCurrentUser(account)}
-          approvals={approvals}
+          approvals={editionApprovals}
           taskBadgeCount={taskBadgeCount}
           notifications={notifications.filter((notification) => notification.recipientEmail === currentUser.email)}
           onSubmitUpgradeApproval={submitUpgradeForApproval}
