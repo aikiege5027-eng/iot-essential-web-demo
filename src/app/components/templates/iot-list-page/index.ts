@@ -1,4 +1,5 @@
 export { IoTListPageTemplate } from "./IoTListPageTemplate";
+export { NO_SCALE_CLASS } from "./useEdgeFitColumns";
 export {
   IoTContentDialog,
   IoTConfirmDialog,

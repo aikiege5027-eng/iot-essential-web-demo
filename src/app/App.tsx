@@ -129,6 +129,8 @@ export default function App() {
             onCoreTabChange={(tab) => setCoreTab(fromMobileTab(tab))}
             languageOverride={language}
             onLanguageChange={(lang) => setLanguage(lang)}
+            edition={edition}
+            email={currentUser.email}
           />
       </div>
     </>

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Dropdown, Input, Select } from "tdesign-react";
+import { Button, Checkbox, Dropdown, Input, Select } from "tdesign-react";
 import type { UpgradeDetail } from "../data/approvalWorkflow";
 import {
   IoTListPageTemplate,
+  NO_SCALE_CLASS,
   type IoTFilterField,
   type IoTTableColumn,
 } from "./templates/iot-list-page";
@@ -70,10 +71,12 @@ const devices: Device[] = Array.from({ length: 20000 }, (_, index) => {
 });
 
 /**
- * 把搜索框内容拆成多个关键词：用中英文逗号或空格（数量不限，含全角空格）分隔，
+ * 「多设备查询」勾选时把搜索框内容拆成多个关键词：用中英文逗号或空格（数量不限，含全角空格）分隔，
  * 例如「30358715, 30358717，30358719  30358721」。空片段会被丢弃，统一转小写。
  */
-function parseSearchKeywords(query: string) {
+function parseSearchKeywords(query: string, multi: boolean) {
+  // 未勾选「多设备查询」时整串作为一个关键词（与设备查询页一致）
+  if (!multi) return query.trim() ? [query.trim().toLowerCase()] : [];
   return query
     .split(/[,，\s]+/)
     .map((keyword) => keyword.trim().toLowerCase())
@@ -87,6 +90,8 @@ const copy = {
   cn: {
     title: "设备批量操作",
     placeholder: "设备编号/项目名称",
+    multiDevice: "多设备查询",
+    multiPlaceholder: "输入多个设备编号，用逗号或空格分隔",
     filter: "筛选状态",
     batch: "批量操作",
     reset: "重置",
@@ -160,6 +165,8 @@ const copy = {
   en: {
     title: "Device Batch Operations",
     placeholder: "Device No. / project name",
+    multiDevice: "Multi-device search",
+    multiPlaceholder: "Enter several device numbers, separated by commas or spaces",
     filter: "Filter status",
     batch: "Batch operations",
     reset: "Reset",
@@ -425,9 +432,10 @@ function BulkSystemUpgradeDialog({ language, selectedDevices, onClose, onComplet
             <p className="text-[14px] leading-[22px] text-[#676a72]">{language === "cn" ? "请核对升级内容，确认无误后提交。" : "Review the upgrade content before submitting."}</p>
             <p className="mt-4 text-[14px] font-medium leading-[22px] text-[#141414]">{t.executionTime}：{formatExecutionTime(scheduledAt)}</p>
             <div className="mt-4 overflow-hidden rounded-[6px] border border-[#dfe1e8]">
+              {/* 首列左 / 末列右边距 = 表格统一边距；末列 w-px + nowrap 收到内容宽度 */}
               <table className="w-full border-collapse text-left text-[12px] leading-5">
-                <thead className="bg-[#f5f7fa] text-[#8f9195]"><tr><th className="w-[132px] border-b border-[#dfe1e8] px-2 py-2 font-normal">{t.deviceType}</th><th className="w-[132px] border-b border-[#dfe1e8] px-2 py-2 font-normal">{t.hardwareType}</th><th className="border-b border-[#dfe1e8] px-2 py-2 font-normal">{t.upgradePackage}</th><th className="w-[100px] border-b border-[#dfe1e8] px-2 py-2 font-normal">{t.upgradeQuantity}</th><th className="w-[96px] border-b border-[#dfe1e8] px-2 py-2 font-normal">{language === "cn" ? "操作" : "Action"}</th></tr></thead>
-                <tbody>{upgradeRows.map((row) => <tr key={row.hardwareType} className="bg-white last:[&>td]:border-b-0"><td className="border-b border-[#e7e7e7] px-2 py-2 text-[#141414]">{row.deviceType}</td><td className="border-b border-[#e7e7e7] px-2 py-2 text-[#141414]">{row.hardwareType}</td><td className="border-b border-[#e7e7e7] px-2 py-2 text-[#141414]">{row.packageName}</td><td className="border-b border-[#e7e7e7] px-2 py-2 text-[#141414]">{row.quantity}</td><td className="border-b border-[#e7e7e7] px-2 py-2"><button type="button" onClick={() => removeSelectedPackage(row.hardwareType)} className="text-[12px] leading-5 text-[#1450f5] hover:underline">{t.removeUpgrade}</button></td></tr>)}</tbody>
+                <thead className="bg-[#f5f7fa] text-[#8f9195]"><tr><th className="w-[calc(116px+var(--iot-table-edge-start))] border-b border-stroke py-2 pl-[var(--iot-table-edge-start)] pr-2 font-normal">{t.deviceType}</th><th className="w-[132px] border-b border-[#dfe1e8] px-2 py-2 font-normal">{t.hardwareType}</th><th className="border-b border-[#dfe1e8] px-2 py-2 font-normal">{t.upgradePackage}</th><th className="w-[100px] border-b border-[#dfe1e8] px-2 py-2 font-normal">{t.upgradeQuantity}</th><th className="w-px whitespace-nowrap border-b border-stroke py-2 pl-2 pr-[var(--iot-table-edge-end)] font-normal">{language === "cn" ? "操作" : "Action"}</th></tr></thead>
+                <tbody>{upgradeRows.map((row) => <tr key={row.hardwareType} className="bg-white last:[&>td]:border-b-0"><td className="border-b border-[#e7e7e7] py-2 pl-[var(--iot-table-edge-start)] pr-2 text-[#141414]">{row.deviceType}</td><td className="border-b border-[#e7e7e7] px-2 py-2 text-[#141414]">{row.hardwareType}</td><td className="border-b border-[#e7e7e7] px-2 py-2 text-[#141414]">{row.packageName}</td><td className="border-b border-[#e7e7e7] px-2 py-2 text-[#141414]">{row.quantity}</td><td className="whitespace-nowrap border-b border-[#e7e7e7] py-2 pl-2 pr-[var(--iot-table-edge-end)]"><button type="button" onClick={() => removeSelectedPackage(row.hardwareType)} className="text-[12px] leading-5 text-[#1450f5] hover:underline">{t.removeUpgrade}</button></td></tr>)}</tbody>
               </table>
             </div>
             <label className="mt-4 block text-[14px] font-medium leading-[22px] text-[#141414]">{t.remarkOptional}<textarea value={submissionRemark} onChange={(event) => setSubmissionRemark(event.target.value)} placeholder={t.remarkPlaceholder} className="mt-2 block h-[72px] w-full resize-none rounded-[4px] border border-[#c8cad0] px-3 py-2 text-[14px] font-normal leading-[22px] text-[#141414] outline-none placeholder:text-[#8f9195] focus:border-[#1450f5]" /></label>
@@ -443,6 +451,7 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
   const t = copy[language];
   const [platformFilter, setPlatformFilter] = useState<BatchModule>("iess");
   const [query, setQuery] = useState("");
+  const [multi, setMulti] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -462,6 +471,7 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
   const [appliedPlatform, setAppliedPlatform] = useState<BatchModule>("iess");
   const [appliedStatus, setAppliedStatus] = useState<Device["status"] | "all">("all");
   const [appliedQuery, setAppliedQuery] = useState("");
+  const [appliedMulti, setAppliedMulti] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectAllResults, setSelectAllResults] = useState(false);
   const [isQueryLoading, setIsQueryLoading] = useState(false);
@@ -521,7 +531,7 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
   };
 
   const visibleDevices = useMemo(() => {
-    const keywords = parseSearchKeywords(appliedQuery);
+    const keywords = parseSearchKeywords(appliedQuery, appliedMulti);
     return devices.filter((device) => {
       // 多个关键词之间是“或”：命中任意一个关键词即保留。
       const matchesQuery = keywords.length === 0 || keywords.some((keyword) => [device.id, device.type, device.serial, device.project].some((value) => value.toLowerCase().includes(keyword)));
@@ -534,7 +544,7 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
       );
       return device.module === appliedPlatform && matchesQuery && matchesAppliedFilters && (appliedStatus === "all" || device.status === appliedStatus);
     });
-  }, [appliedPlatform, appliedCompany, appliedDeviceTypes, appliedHardwareTypes, appliedSoftwareVersions, hasQueried, appliedQuery, appliedStatus]);
+  }, [appliedPlatform, appliedCompany, appliedDeviceTypes, appliedHardwareTypes, appliedSoftwareVersions, hasQueried, appliedQuery, appliedMulti, appliedStatus]);
 
   const pageSize = 20;
   const totalPages = Math.max(1, Math.ceil(visibleDevices.length / pageSize));
@@ -576,6 +586,7 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
     if (queryTimerRef.current !== null) window.clearTimeout(queryTimerRef.current);
     setIsQueryLoading(false);
     setQuery("");
+    setMulti(false);
     setSelected([]);
     setSelectAllResults(false);
     setStatusFilter("all");
@@ -588,6 +599,7 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
     setAppliedPlatform("iess");
     setAppliedStatus("all");
     setAppliedQuery("");
+    setAppliedMulti(false);
     setAppliedDeviceTypes([]);
     setAppliedHardwareTypes([]);
     setAppliedSoftwareVersions([]);
@@ -612,6 +624,7 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
       setAppliedPlatform(platformFilter);
       setAppliedStatus(statusFilter);
       setAppliedQuery(query);
+      setAppliedMulti(multi);
       setAppliedCompany(company);
       setAppliedDeviceTypes([...deviceTypeFilters]);
       setAppliedHardwareTypes([...hardwareTypeFilters]);
@@ -769,21 +782,30 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
     {
       id: "keyword",
       label: t.keywordSearch,
-      // 与「设备筛选」同宽（占 2 列），右缘对齐
-      span: 2,
+      // 占 3 列：搜索框仍与「设备筛选」同宽（2 列，右缘对齐），第 3 列放「多设备查询」复选框
+      span: 3,
       value: query,
       onChange: setQuery,
+      // 搜索框右侧是「多设备查询」复选框（与设备查询页一致）
       render: ({ id, value, onChange }) => (
-        <Input
-          id={id}
-          value={value}
-          onChange={onChange}
-          onEnter={() => submitQuery()}
-          placeholder={t.placeholder}
-          prefixIcon={<EmbeddedSearchIcon className="t-icon size-4" />}
-          size="medium"
-          clearable
-        />
+        <div className="flex items-center gap-4">
+          {/* 4 列网格、列间距 20px：3 列宽内取 2 列 + 1 个间距 = (100% + 20px) × 2/3 − 20px */}
+          <div className="min-w-0 flex-1 min-[1180px]:w-[calc((100%+20px)*2/3-20px)] min-[1180px]:flex-none">
+            <Input
+              id={id}
+              value={value}
+              onChange={onChange}
+              onEnter={() => submitQuery()}
+              placeholder={multi ? t.multiPlaceholder : t.placeholder}
+              prefixIcon={<EmbeddedSearchIcon className="t-icon size-4" />}
+              size="medium"
+              clearable
+            />
+          </div>
+          <Checkbox className="shrink-0" checked={multi} onChange={(checked) => setMulti(Boolean(checked))}>
+            {t.multiDevice}
+          </Checkbox>
+        </div>
       ),
     },
   ];
@@ -792,10 +814,12 @@ export default function BatchOperationsContent({ language, onSubmitForApproval }
     {
       id: "selection",
       title: <TableCheckbox checked={selectAllResults || selectedAll} onChange={toggleAll} disabled={selectAllResults || (manualSelectionAtLimit && !selectedAll)} label={language === "cn" ? "选择当前页设备" : "Select current page devices"} />,
-      width: 52,
+      // 48 = 16px 复选框 + 两侧各 16px，复选框距表格左边缘与其他表格首列边距一致
+      width: 48,
       align: "center",
       ellipsis: false,
-      className: "batch-operations-selection-column",
+      // 不参与宽屏按比例拉伸，复选框始终距左边缘 16px
+      className: `batch-operations-selection-column ${NO_SCALE_CLASS}`,
       render: (device) => <TableCheckbox checked={selectAllResults || selected.includes(device.id)} onChange={() => toggleDevice(device.id)} disabled={selectAllResults || (manualSelectionAtLimit && !selected.includes(device.id))} label={`${language === "cn" ? "选择设备" : "Select device"} ${device.id}`} />,
     },
     {

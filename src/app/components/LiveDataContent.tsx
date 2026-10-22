@@ -1,4 +1,43 @@
-import { useState } from "react";
+import type { ComponentType, ReactNode, SVGProps } from "react";
+import { Button, Link, MessagePlugin } from "tdesign-react";
+import { CheckRectangleIcon, UserMaintenanceIcon } from "./icons/device-detail-icons";
+import { NodeIcon } from "./icons/device-icons";
+import {
+  ArrowUpIcon,
+  Chart1Icon,
+  ClockIcon,
+  CurrentIcon,
+  DashboardIcon,
+  ElevatorDoorClosedIcon,
+  ElevatorDoorIcon,
+  ElevatorDoorOpenIcon,
+  LayersIcon,
+  LevelingIcon,
+  More1Icon,
+  Refresh1Icon,
+  ThermometerIcon,
+  VibrationLateralIcon,
+  VibrationLongitudinalIcon,
+  VibrationVerticalIcon,
+  WarningTriangleIcon,
+  WaterDropletsIcon,
+} from "./icons/live-data-icons";
+import { DetailSection } from "./device-detail/DetailSection";
+import { StatusLabel } from "./StatusLabel";
+
+/**
+ * 设备详情 · 实时数据页签（Figma IOT Delivery 8460:8453「轿门传感器数据字段增加」）。
+ *
+ * 四个分区自上而下：
+ *   · 实时数据   6 格一行，图标底 color/blue/70 + 品牌色图标
+ *   · 传感器数据 轿门A / 轿门B（各 8 项，4 格一行）与机房（5 项一行）三组平铺，组间以虚线 + 组名分隔；
+ *                图标底 color/purple/50 + 紫色图标；厅门回路异常值用错误色
+ *   · 运行数据   4 格一行，图标底 color/grey/250 + 次要文字色图标
+ *   · 模块信息   主模块行（灰底）+ 子模块行（浅灰底，左缩进 30px，虚线树形连接线），行尾「重启模块 / 系统升级 / 更多」
+ */
+
+type Language = "en" | "cn";
+type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
 const T = {
   en: {
@@ -12,26 +51,40 @@ const T = {
     doorAStat: "Car Door A",
     doorBStat: "Car Door B",
     doorZoneStat: "Door Zone",
+    doorASensor: "Car Door A Sensor",
+    doorBSensor: "Car Door B Sensor",
+    machineRoomSensor: "Machine Room Sensor",
     temperature: "Temperature",
     humidity: "Humidity",
-    velocity: "Velocity",
-    levelingUp: "Leveling Up",
-    levelingDown: "Leveling Down",
+    velocity: "Speed",
+    leveling: "Leveling",
+    lateralVibration: "Lateral Vibration",
+    longitudinalVibration: "Longitudinal Vibration",
+    verticalVibration: "Vertical Vibration",
+    noise: "Noise",
+    inspectionCircuit: "Inspection Circuit",
+    landingDoorACircuit: "Landing Door A Circuit",
+    landingDoorBCircuit: "Landing Door B Circuit",
     runDuration: "Run Duration",
     startFloor: "Start Floor",
     stopFloor: "Stop Floor",
-    moduleNameCol: "Module Name",
-    connStatus: "Connection",
-    serialNo: "Serial No.",
-    typeCol: "Type",
-    regStatus: "Reg. Status",
-    swVersion: "SW Version",
-    actions: "Actions",
-    doorASensor: "Car Door A Sensor",
-    doorBSensor: "Car Door B Sensor",
-    machineRoomSensor: "Machine Room",
+    upward: "Moving up",
+    values: { normal: "Normal", closed: "Closed", opened: "Open", inZone: "In Zone", level: "Level" },
+    columns: {
+      name: "Module Name",
+      status: "Connection",
+      serial: "Serial No.",
+      type: "Type",
+      registration: "Reg. Status",
+      version: "SW Version",
+      actions: "Actions",
+    },
     online: "Online",
     registered: "Registered",
+    restart: "Restart Module",
+    upgrade: "System Upgrade",
+    more: (name: string) => `More actions for ${name}`,
+    demoOnly: "Demo only. No command was sent to the device.",
   },
   cn: {
     realtimeData: "实时数据",
@@ -44,573 +97,338 @@ const T = {
     doorAStat: "轿门A状态",
     doorBStat: "轿门B状态",
     doorZoneStat: "门区状态",
-    temperature: "温度",
-    humidity: "湿度",
-    velocity: "速度",
-    levelingUp: "平层感应上",
-    levelingDown: "平层感应下",
-    runDuration: "运行持续时间",
-    startFloor: "启动楼层",
-    stopFloor: "停止楼层",
-    moduleNameCol: "模块名称",
-    connStatus: "连接状态",
-    serialNo: "序列号",
-    typeCol: "类型",
-    regStatus: "注册状态",
-    swVersion: "软件版本",
-    actions: "操作",
     doorASensor: "轿门A传感器",
     doorBSensor: "轿门B传感器",
     machineRoomSensor: "机房传感器",
+    temperature: "温度",
+    humidity: "湿度",
+    velocity: "速度",
+    leveling: "平层感应",
+    lateralVibration: "横向振动",
+    longitudinalVibration: "纵向振动",
+    verticalVibration: "垂直振动",
+    noise: "噪音",
+    inspectionCircuit: "检修回路",
+    landingDoorACircuit: "厅门A回路",
+    landingDoorBCircuit: "厅门B回路",
+    runDuration: "运行持续时间",
+    startFloor: "启动楼层",
+    stopFloor: "停止楼层",
+    upward: "上行",
+    values: { normal: "正常", closed: "已关门", opened: "已开门", inZone: "在门区", level: "水平" },
+    columns: {
+      name: "模块名称",
+      status: "连接状态",
+      serial: "序列号",
+      type: "类型",
+      registration: "注册状态",
+      version: "软件版本",
+      actions: "操作",
+    },
     online: "在线",
     registered: "已注册",
+    restart: "重启模块",
+    upgrade: "系统升级",
+    more: (name: string) => `${name} 更多操作`,
+    demoOnly: "演示环境，未向设备下发指令",
   },
 };
 
+type Copy = (typeof T)["en"];
+
 const TIMESTAMP = "2026-04-04 16:49:39";
 
-function SectionCard({ children, absoluteContent }: { children: React.ReactNode; absoluteContent?: React.ReactNode }) {
+// ─── 分区与数据格 ──────────────────────────────────────────────────────────────
+
+/** 分区卡片：通用卡片标题（DetailSection，Figma 7363:30962）+ 12px 内边距的内容区。 */
+function LiveSection({ id, title, timestamp, children }: { id: string; title: string; timestamp?: string; children: ReactNode }) {
   return (
-    <div className="relative rounded-[8px] w-full" style={{ border: "1px solid #dfe1e8" }}>
-      <div className="flex flex-col items-start overflow-clip rounded-[8px] w-full">
-        {children}
-      </div>
-      {absoluteContent}
-    </div>
+    <DetailSection title={title} titleId={id} timestamp={timestamp}>
+      <div className="p-3">{children}</div>
+    </DetailSection>
   );
 }
 
-function SectionHeader({ title, timestamp }: { title: string; timestamp?: string }) {
-  return (
-    <div className="bg-[#fafbfc] w-full" style={{ borderBottom: "1px solid #dfe1e8" }}>
-      <div className="flex items-center gap-[12px] pb-[9px] pt-[8px] px-[12px]">
-        <div className="flex gap-[8px] items-center shrink-0">
-          <div className="bg-[#4373f7] h-[14px] rounded-[1px] w-[4px]" />
-          <p className="font-['PingFang_SC:Medium',sans-serif] leading-[22px] text-[#141414] text-[14px] whitespace-nowrap">{title}</p>
-        </div>
-        {timestamp && (
-          <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[#676a72] text-[12px] whitespace-nowrap">{timestamp}</p>
-        )}
-      </div>
-    </div>
-  );
-}
+type Tone = "brand" | "sensor" | "neutral";
 
-function ValueText({ value }: { value: string }) {
-  return <p className="font-['PingFang_SC:Semibold',sans-serif] leading-[22px] text-[#141414] text-[14px]">{value}</p>;
-}
-
-// ─── Icons ────────────────────────────────────────────────────────────────────
-
-function LayersIcon({ fill = "#1450F5" }: { fill?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M10 2.5L17.5 6.5L10 10.5L2.5 6.5Z" fill={fill}/>
-      <path d="M2.5 10L10 14L17.5 10" stroke={fill} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M2.5 13.5L10 17.5L17.5 13.5" stroke={fill} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-function DashboardIcon({ fill = "#1450F5" }: { fill?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M2.5 14.5A7.5 7.5 0 0 1 17.5 14.5" stroke={fill} strokeWidth="1.4" strokeLinecap="round"/>
-      <path d="M10 14.5L13.5 8.5" stroke={fill} strokeWidth="1.5" strokeLinecap="round"/>
-      <circle cx="10" cy="14.5" r="1.5" fill={fill}/>
-    </svg>
-  );
-}
-
-function CheckRectIcon({ fill = "#1450F5" }: { fill?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <rect x="2" y="2" width="16" height="16" rx="2" stroke={fill} strokeWidth="1.4"/>
-      <path d="M5.5 10L8.5 13L14.5 7" stroke={fill} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-function DoorClosedIcon({ fill = "#1450F5" }: { fill?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <rect x="4" y="2" width="12" height="16" rx="1" stroke={fill} strokeWidth="1.4"/>
-      <circle cx="14" cy="10" r="1.2" fill={fill}/>
-    </svg>
-  );
-}
-
-function DoorOpenIcon({ fill = "#1450F5" }: { fill?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M4 18V2L13 4V18H4Z" stroke={fill} strokeWidth="1.4" strokeLinejoin="round"/>
-      <path d="M13 18H16" stroke={fill} strokeWidth="1.4" strokeLinecap="round"/>
-      <circle cx="11.5" cy="11" r="1.2" fill={fill}/>
-    </svg>
-  );
-}
-
-function WarningTriangleIcon({ fill = "#1450F5" }: { fill?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M10 2L18.5 17.5H1.5Z" stroke={fill} strokeWidth="1.4" strokeLinejoin="round"/>
-      <path d="M10 8V12" stroke={fill} strokeWidth="1.5" strokeLinecap="round"/>
-      <circle cx="10" cy="15" r="1" fill={fill}/>
-    </svg>
-  );
-}
-
-function ArrowUpIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M7 1L13 8H9.5V13H4.5V8H1L7 1Z" fill="#141414"/>
-    </svg>
-  );
-}
-
-function ThermometerIcon({ fill = "#3C3BC6" }: { fill?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M12 11.3V5C12 3.9 11.1 3 10 3C8.9 3 8 3.9 8 5V11.3C7 11.9 6.5 12.9 6.5 14C6.5 15.9 8.1 17.5 10 17.5C11.9 17.5 13.5 15.9 13.5 14C13.5 12.9 13 11.9 12 11.3Z" stroke={fill} strokeWidth="1.3"/>
-      <circle cx="10" cy="14" r="2.2" fill={fill}/>
-      <path d="M10 5V11" stroke={fill} strokeWidth="1.2" strokeLinecap="round"/>
-      <path d="M12 7H13.5" stroke={fill} strokeWidth="1" strokeLinecap="round"/>
-    </svg>
-  );
-}
-
-function HumidityIcon({ fill = "#3C3BC6" }: { fill?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M10 3C10 3 5 9.5 5 13.5C5 16 7.24 18 10 18C12.76 18 15 16 15 13.5C15 9.5 10 3 10 3Z" stroke={fill} strokeWidth="1.4" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-function ArrowUpKoneIcon({ fill = "#3C3BC6" }: { fill?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M10 4L16 11H12.5V17H7.5V11H4L10 4Z" fill={fill}/>
-    </svg>
-  );
-}
-
-function ArrowDownKoneIcon({ fill = "#3C3BC6" }: { fill?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M10 16L4 9H7.5V3H12.5V9H16L10 16Z" fill={fill}/>
-    </svg>
-  );
-}
-
-function ClockIcon({ fill = "#676A72" }: { fill?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <circle cx="10" cy="10" r="7.5" stroke={fill} strokeWidth="1.4"/>
-      <path d="M10 5.5V10L13 12.5" stroke={fill} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-function NodeIcon() {
-  return (
-    <div className="bg-[#eaecf1] flex items-center justify-center p-[4px] rounded-[6px] shrink-0 size-[24px]">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <circle cx="7" cy="7" r="2" fill="#43464F"/>
-        <circle cx="2" cy="2" r="1.5" stroke="#43464F" strokeWidth="0.8"/>
-        <circle cx="12" cy="2" r="1.5" stroke="#43464F" strokeWidth="0.8"/>
-        <circle cx="2" cy="12" r="1.5" stroke="#43464F" strokeWidth="0.8"/>
-        <circle cx="12" cy="12" r="1.5" stroke="#43464F" strokeWidth="0.8"/>
-        <path d="M3.4 3.4L5.6 5.6M8.4 8.4L10.6 10.6M8.4 5.6L10.6 3.4M5.6 8.4L3.4 10.6" stroke="#43464F" strokeWidth="0.8"/>
-      </svg>
-    </div>
-  );
-}
-
-function RefreshIcon() {
-  return (
-    <div className="relative shrink-0 size-[16px]">
-      <svg className="absolute block inset-0 size-full" fill="none" viewBox="0 0 16 16">
-        <path d="M14 8C14 11.31 11.31 14 8 14C4.69 14 2 11.31 2 8C2 4.69 4.69 2 8 2C10.17 2 12.07 3.1 13.2 4.8" stroke="#141414" strokeWidth="1.3" strokeLinecap="round"/>
-        <path d="M13 1.5V5H9.5" stroke="#141414" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    </div>
-  );
-}
-
-function ChartIcon() {
-  return (
-    <div className="relative shrink-0 size-[16px]">
-      <svg className="absolute block inset-0 size-full" fill="none" viewBox="0 0 16 16">
-        <rect x="1.5" y="9.5" width="3" height="5.5" rx="0.5" fill="#141414"/>
-        <rect x="6.5" y="5.5" width="3" height="9.5" rx="0.5" fill="#141414"/>
-        <rect x="11.5" y="2" width="3" height="13" rx="0.5" fill="#141414"/>
-      </svg>
-    </div>
-  );
-}
-
-function MoreIcon() {
-  return (
-    <div className="overflow-clip relative shrink-0 size-[16px]">
-      <svg className="absolute block inset-0 size-full" fill="none" viewBox="0 0 16 16">
-        <circle cx="8" cy="4" r="1.2" fill="#141414"/>
-        <circle cx="8" cy="8" r="1.2" fill="#141414"/>
-        <circle cx="8" cy="12" r="1.2" fill="#141414"/>
-      </svg>
-    </div>
-  );
-}
-
-function RowActions() {
-  return (
-    <div className="flex gap-[10px] items-center shrink-0">
-      <RefreshIcon />
-      <ChartIcon />
-      <MoreIcon />
-    </div>
-  );
-}
-
-function OnlineDot() {
-  return (
-    <div className="flex gap-[4px] items-center shrink-0">
-      <svg className="shrink-0 size-[6px]" fill="none" viewBox="0 0 6 6">
-        <circle cx="3" cy="3" fill="#1ED273" r="3" />
-      </svg>
-      <p className="font-['PingFang_SC:Regular',sans-serif] leading-[22px] text-[#1ed273] text-[14px] whitespace-nowrap">在线</p>
-    </div>
-  );
-}
-
-// ─── Section: 实时数据 ────────────────────────────────────────────────────────
-
-function RealtimeDataSection({ t }: { t: typeof T.en }) {
-  return (
-    <SectionCard>
-      <SectionHeader title={t.realtimeData} timestamp={TIMESTAMP} />
-      <div className="bg-white w-full">
-        <div className="grid grid-cols-6 gap-[12px] p-[12px]">
-          {/* 当前楼层 */}
-          <div className="bg-[#f5f7fa] flex items-center justify-between px-[16px] py-[10px] rounded-[6px]">
-            <div className="flex flex-col gap-[2px] items-start">
-              <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[#676a72] text-[12px] whitespace-nowrap">{t.currentFloor}</p>
-              <div className="flex gap-[2px] items-end">
-                <p className="font-['PingFang_SC:Semibold',sans-serif] leading-[22px] text-[#141414] text-[14px]">1F [5]</p>
-                <ArrowUpIcon />
-              </div>
-            </div>
-            <div className="bg-[#e7edfe] flex items-center justify-center p-[8px] rounded-[12px] shrink-0 size-[36px]">
-              <LayersIcon fill="#1450F5" />
-            </div>
-          </div>
-          {/* 运行速度 */}
-          <div className="bg-[#f5f7fa] flex items-center justify-between px-[16px] py-[10px] rounded-[6px]">
-            <div className="flex flex-col gap-[2px] items-start">
-              <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[#676a72] text-[12px] whitespace-nowrap">{t.runSpeed}</p>
-              <ValueText value="2m/s" />
-            </div>
-            <div className="bg-[#e7edfe] flex items-center justify-center p-[8px] rounded-[12px] shrink-0 size-[36px]">
-              <DashboardIcon fill="#1450F5" />
-            </div>
-          </div>
-          {/* 服务模式 */}
-          <div className="bg-[#f5f7fa] flex items-center justify-between px-[16px] py-[10px] rounded-[6px]">
-            <div className="flex flex-col gap-[2px] items-start">
-              <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[#676a72] text-[12px] whitespace-nowrap">{t.serviceMode}</p>
-              <ValueText value="正常" />
-            </div>
-            <div className="bg-[#e7edfe] flex items-center justify-center p-[8px] rounded-[12px] shrink-0 size-[36px]">
-              <CheckRectIcon fill="#1450F5" />
-            </div>
-          </div>
-          {/* 轿门A状态 */}
-          <div className="bg-[#f5f7fa] flex items-center justify-between px-[16px] py-[10px] rounded-[6px]">
-            <div className="flex flex-col gap-[2px] items-start">
-              <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[#676a72] text-[12px] whitespace-nowrap">{t.doorAStat}</p>
-              <ValueText value="已关门" />
-            </div>
-            <div className="bg-[#e7edfe] flex items-center justify-center p-[8px] rounded-[12px] shrink-0 size-[36px]">
-              <DoorClosedIcon fill="#1450F5" />
-            </div>
-          </div>
-          {/* 轿门B状态 */}
-          <div className="bg-[#f5f7fa] flex items-center justify-between px-[16px] py-[10px] rounded-[6px]">
-            <div className="flex flex-col gap-[2px] items-start">
-              <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[#676a72] text-[12px] whitespace-nowrap">{t.doorBStat}</p>
-              <ValueText value="已开门" />
-            </div>
-            <div className="bg-[#e7edfe] flex items-center justify-center p-[8px] rounded-[12px] shrink-0 size-[36px]">
-              <DoorOpenIcon fill="#1450F5" />
-            </div>
-          </div>
-          {/* 门区状态 */}
-          <div className="bg-[#f5f7fa] flex items-center justify-between px-[16px] py-[10px] rounded-[6px]">
-            <div className="flex flex-col gap-[2px] items-start">
-              <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[#676a72] text-[12px] whitespace-nowrap">{t.doorZoneStat}</p>
-              <ValueText value="在门区" />
-            </div>
-            <div className="bg-[#e7edfe] flex items-center justify-center p-[8px] rounded-[12px] shrink-0 size-[36px]">
-              <WarningTriangleIcon fill="#1450F5" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </SectionCard>
-  );
-}
-
-// ─── Section: 传感器数据 ──────────────────────────────────────────────────────
-
-type SensorKey = 'doorA' | 'doorB' | 'machineRoom';
-
-function SensorDataSection({ t }: { t: typeof T.en }) {
-  const [activeSensor, setActiveSensor] = useState<SensorKey>('doorA');
-
-  const sensors: { key: SensorKey; label: string }[] = [
-    { key: 'doorA', label: t.doorASensor },
-    { key: 'doorB', label: t.doorBSensor },
-    { key: 'machineRoom', label: t.machineRoomSensor },
-  ];
-
-  const filterTags = (
-    <div className="absolute flex gap-[7px] items-center right-[15px] top-[8px]">
-      {sensors.map(({ key, label }) => {
-        const isActive = activeSensor === key;
-        return (
-          <button
-            key={key}
-            onClick={() => setActiveSensor(key)}
-            className="flex items-center px-[8px] py-[2px] rounded-[3px] cursor-pointer"
-            style={{
-              backgroundColor: isActive ? "#f3f6fe" : "transparent",
-              border: `1px solid ${isActive ? "#1450f5" : "#c8cad0"}`,
-            }}
-          >
-            <p
-              className={`font-['PingFang_SC:${isActive ? "Medium" : "Regular"}',sans-serif] leading-[20px] text-[12px] whitespace-nowrap`}
-              style={{ color: isActive ? "#1450f5" : "#141414" }}
-            >
-              {label}
-            </p>
-          </button>
-        );
-      })}
-    </div>
-  );
-
-  return (
-    <SectionCard absoluteContent={filterTags}>
-      <SectionHeader title={t.sensorData} timestamp={TIMESTAMP} />
-      <div className="bg-white w-full">
-        <div className="grid grid-cols-5 gap-[12px] p-[12px]">
-          <div className="bg-[#f5f7fa] flex items-center justify-between px-[16px] py-[10px] rounded-[6px]">
-            <div className="flex flex-col gap-[2px] items-start">
-              <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[#676a72] text-[12px] whitespace-nowrap">{t.temperature}</p>
-              <ValueText value="23.5℃" />
-            </div>
-            <div className="bg-[#e3e3ff] flex items-center justify-center p-[8px] rounded-[12px] shrink-0 size-[36px]">
-              <ThermometerIcon fill="#3C3BC6" />
-            </div>
-          </div>
-          <div className="bg-[#f5f7fa] flex items-center justify-between px-[16px] py-[10px] rounded-[6px]">
-            <div className="flex flex-col gap-[2px] items-start">
-              <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[#676a72] text-[12px] whitespace-nowrap">{t.humidity}</p>
-              <ValueText value="58.1%" />
-            </div>
-            <div className="bg-[#e3e3ff] flex items-center justify-center p-[8px] rounded-[12px] shrink-0 size-[36px]">
-              <HumidityIcon fill="#3C3BC6" />
-            </div>
-          </div>
-          <div className="bg-[#f5f7fa] flex items-center justify-between px-[16px] py-[10px] rounded-[6px]">
-            <div className="flex flex-col gap-[2px] items-start">
-              <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[#676a72] text-[12px] whitespace-nowrap">{t.velocity}</p>
-              <ValueText value="2m/s" />
-            </div>
-            <div className="bg-[#e3e3ff] flex items-center justify-center p-[8px] rounded-[12px] shrink-0 size-[36px]">
-              <DashboardIcon fill="#3C3BC6" />
-            </div>
-          </div>
-          <div className="bg-[#f5f7fa] flex items-center justify-between px-[16px] py-[10px] rounded-[6px]">
-            <div className="flex flex-col gap-[2px] items-start">
-              <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[#676a72] text-[12px] whitespace-nowrap">{t.levelingUp}</p>
-              <ValueText value="0" />
-            </div>
-            <div className="bg-[#e3e3ff] flex items-center justify-center p-[8px] rounded-[12px] shrink-0 size-[36px]">
-              <ArrowUpKoneIcon fill="#3C3BC6" />
-            </div>
-          </div>
-          <div className="bg-[#f5f7fa] flex items-center justify-between px-[16px] py-[10px] rounded-[6px]">
-            <div className="flex flex-col gap-[2px] items-start">
-              <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[#676a72] text-[12px] whitespace-nowrap">{t.levelingDown}</p>
-              <ValueText value="1" />
-            </div>
-            <div className="bg-[#e3e3ff] flex items-center justify-center p-[8px] rounded-[12px] shrink-0 size-[36px]">
-              <ArrowDownKoneIcon fill="#3C3BC6" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </SectionCard>
-  );
-}
-
-// ─── Section: 运行数据 ────────────────────────────────────────────────────────
-
-function OperationDataSection({ t }: { t: typeof T.en }) {
-  return (
-    <SectionCard>
-      <SectionHeader title={t.operationData} timestamp={TIMESTAMP} />
-      <div className="bg-white w-full">
-        <div className="flex flex-wrap gap-[12px] items-start p-[12px]">
-          {[
-            { label: t.runDuration, value: "30s", icon: <div className="bg-[#eaecf1] flex items-center justify-center p-[8px] rounded-[12px] shrink-0 size-[36px]"><ClockIcon /></div> },
-            { label: t.startFloor, value: "1F [2]", icon: <div className="bg-[#eaecf1] flex items-center justify-center p-[8px] rounded-[12px] shrink-0 size-[36px]"><LayersIcon fill="#676A72" /></div> },
-            { label: t.stopFloor, value: "11F [12]", icon: <div className="bg-[#eaecf1] flex items-center justify-center p-[8px] rounded-[12px] shrink-0 size-[36px]"><LayersIcon fill="#676A72" /></div> },
-            { label: t.serviceMode, value: "正常", icon: <div className="bg-[#eaecf1] flex items-center justify-center p-[8px] rounded-[12px] shrink-0 size-[36px]"><CheckRectIcon fill="#676A72" /></div> },
-          ].map(({ label, value, icon }) => (
-            <div key={label} className="bg-[#f5f7fa] flex flex-1 items-center justify-between min-w-[160px] px-[16px] py-[10px] rounded-[6px]">
-              <div className="flex flex-col gap-[2px] items-start">
-                <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[#676a72] text-[12px] whitespace-nowrap">{label}</p>
-                <ValueText value={value} />
-              </div>
-              {icon}
-            </div>
-          ))}
-        </div>
-      </div>
-    </SectionCard>
-  );
-}
-
-// ─── Section: 模块信息 ────────────────────────────────────────────────────────
-
-const COL_WIDTHS = {
-  name: "w-[198px]",
-  status: "w-[94px]",
-  serial: "w-[255px]",
-  type: "w-[162px]",
-  regStatus: "w-[98px]",
-  swVersion: "w-[80px]",
+const TILE_CLASS: Record<Tone, string> = {
+  brand: "bg-metric-tile-brand text-brand",
+  sensor: "bg-metric-tile-sensor text-metric-icon-sensor",
+  neutral: "bg-metric-tile-neutral text-secondary-text",
 };
 
-function ModuleInfoSection({ t }: { t: typeof T.en }) {
-  const childRows = [
-    { serial: "KM52152006G02.100ALZ244700005", type: "KONE Connection 310", sw: "SN1.00.07" },
-    { serial: "KM52152006G02.100ALZ244700005", type: "KONE Connection 310", sw: "SN1.00.07" },
-  ];
+type Metric = {
+  label: string;
+  value: string;
+  icon: Icon;
+  /** 数值后的附加图标，例如当前楼层的运行方向 */
+  trailing?: ReactNode;
+  /** 异常值（如厅门回路）用错误色 */
+  alert?: boolean;
+};
 
+/** 数据格：灰底 6px 圆角，左侧标签 + 数值，右侧 36px 圆角 12 的图标底。 */
+function MetricCell({ metric, tone }: { metric: Metric; tone: Tone }) {
+  const { label, value, icon: MetricIcon, trailing, alert } = metric;
   return (
-    <SectionCard>
-      <SectionHeader title={t.moduleInfo} />
-      <div className="bg-white w-full">
-        <div className="flex flex-col items-start gap-[8px] p-[12px]">
-          {/* Table header */}
-          <div className="flex items-center pl-[12px] pr-[27px] w-full">
-            {[
-              { label: t.moduleNameCol, cls: COL_WIDTHS.name },
-              { label: t.connStatus, cls: COL_WIDTHS.status },
-              { label: t.serialNo, cls: COL_WIDTHS.serial },
-              { label: t.typeCol, cls: COL_WIDTHS.type },
-              { label: t.regStatus, cls: COL_WIDTHS.regStatus },
-              { label: t.swVersion, cls: COL_WIDTHS.swVersion },
-              { label: t.actions, cls: "flex-1" },
-            ].map(({ label, cls }) => (
-              <div key={label} className={`flex items-center shrink-0 ${cls}`}>
-                <p className="font-['PingFang_SC:Medium',sans-serif] leading-[22px] text-[#8f9195] text-[14px] whitespace-nowrap">{label}</p>
+    <div className="flex min-w-0 items-center justify-between gap-2 rounded-md bg-secondarycontainer px-4 py-2.5">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <dt className="truncate text-foot12 text-secondary-text">{label}</dt>
+        <dd className={`m-0 flex items-end gap-0.5 text-body font-semibold ${alert ? "text-error" : "text-primary-text"}`}>
+          <span className="whitespace-nowrap">{value}</span>
+          {trailing}
+        </dd>
+      </div>
+      <span aria-hidden="true" className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${TILE_CLASS[tone]}`}>
+        <MetricIcon className="size-5" />
+      </span>
+    </div>
+  );
+}
+
+function MetricGrid({ metrics, tone, columns }: { metrics: Metric[]; tone: Tone; columns: string }) {
+  return (
+    <dl className={`m-0 grid gap-3 ${columns}`}>
+      {metrics.map((metric) => (
+        <MetricCell key={metric.label} metric={metric} tone={tone} />
+      ))}
+    </dl>
+  );
+}
+
+/** 传感器分组标题：40px 虚线 + 组名 + 撑满的虚线。 */
+function GroupDivider({ id, label }: { id: string; label: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span aria-hidden="true" className="w-10 border-t border-dashed border-stroke" />
+      <h3 id={id} className="m-0 shrink-0 text-foot12 font-normal text-primary-text">
+        {label}
+      </h3>
+      <span aria-hidden="true" className="flex-1 border-t border-dashed border-stroke" />
+    </div>
+  );
+}
+
+// ─── 各分区 ────────────────────────────────────────────────────────────────────
+
+function RealtimeDataSection({ t }: { t: Copy }) {
+  const metrics: Metric[] = [
+    {
+      label: t.currentFloor,
+      value: "1F [5]",
+      icon: LayersIcon,
+      trailing: (
+        <span role="img" aria-label={t.upward} className="inline-flex">
+          <ArrowUpIcon className="size-[22px]" />
+        </span>
+      ),
+    },
+    { label: t.runSpeed, value: "2m/s", icon: DashboardIcon },
+    { label: t.serviceMode, value: t.values.normal, icon: CheckRectangleIcon },
+    { label: t.doorAStat, value: t.values.closed, icon: ElevatorDoorClosedIcon },
+    { label: t.doorBStat, value: t.values.opened, icon: ElevatorDoorOpenIcon },
+    { label: t.doorZoneStat, value: t.values.inZone, icon: WarningTriangleIcon },
+  ];
+  return (
+    <LiveSection id="live-realtime-title" title={t.realtimeData} timestamp={TIMESTAMP}>
+      <MetricGrid metrics={metrics} tone="brand" columns="grid-cols-2 md:grid-cols-3 xl:grid-cols-6" />
+    </LiveSection>
+  );
+}
+
+function SensorDataSection({ t }: { t: Copy }) {
+  const doorSensor: Metric[] = [
+    { label: t.temperature, value: "23.5℃", icon: ThermometerIcon },
+    { label: t.humidity, value: "58.1%", icon: WaterDropletsIcon },
+    { label: t.velocity, value: "2m/s", icon: DashboardIcon },
+    { label: t.leveling, value: t.values.level, icon: LevelingIcon },
+    { label: t.lateralVibration, value: "12mg", icon: VibrationLateralIcon },
+    { label: t.longitudinalVibration, value: "8mg", icon: VibrationLongitudinalIcon },
+    { label: t.verticalVibration, value: "4mg", icon: VibrationVerticalIcon },
+    { label: t.noise, value: "50dB", icon: CurrentIcon },
+  ];
+  const machineRoom: Metric[] = [
+    { label: t.temperature, value: "23.5℃", icon: ThermometerIcon },
+    { label: t.humidity, value: "58.1%", icon: WaterDropletsIcon },
+    { label: t.inspectionCircuit, value: "402", icon: UserMaintenanceIcon },
+    { label: t.landingDoorACircuit, value: "302", icon: ElevatorDoorIcon, alert: true },
+    { label: t.landingDoorBCircuit, value: "302", icon: ElevatorDoorIcon, alert: true },
+  ];
+  const groups = [
+    { id: "live-sensor-door-a", label: t.doorASensor, metrics: doorSensor, columns: "grid-cols-2 xl:grid-cols-4" },
+    { id: "live-sensor-door-b", label: t.doorBSensor, metrics: doorSensor, columns: "grid-cols-2 xl:grid-cols-4" },
+    { id: "live-sensor-machine-room", label: t.machineRoomSensor, metrics: machineRoom, columns: "grid-cols-2 md:grid-cols-3 xl:grid-cols-5" },
+  ];
+  return (
+    <LiveSection id="live-sensor-title" title={t.sensorData} timestamp={TIMESTAMP}>
+      <div className="flex flex-col gap-3">
+        {groups.map((group) => (
+          <section key={group.id} aria-labelledby={group.id} className="flex flex-col gap-1">
+            <GroupDivider id={group.id} label={group.label} />
+            <MetricGrid metrics={group.metrics} tone="sensor" columns={group.columns} />
+          </section>
+        ))}
+      </div>
+    </LiveSection>
+  );
+}
+
+function OperationDataSection({ t }: { t: Copy }) {
+  const metrics: Metric[] = [
+    { label: t.runDuration, value: "30s", icon: ClockIcon },
+    { label: t.startFloor, value: "1F [2]", icon: LayersIcon },
+    { label: t.stopFloor, value: "11F [12]", icon: LayersIcon },
+    { label: t.serviceMode, value: t.values.normal, icon: CheckRectangleIcon },
+  ];
+  return (
+    <LiveSection id="live-operation-title" title={t.operationData} timestamp={TIMESTAMP}>
+      <MetricGrid metrics={metrics} tone="neutral" columns="grid-cols-2 xl:grid-cols-4" />
+    </LiveSection>
+  );
+}
+
+// ─── 模块信息 ──────────────────────────────────────────────────────────────────
+
+type ModuleRow = { id: string; name: string; serial: string; type: string; version: string };
+
+const MAIN_MODULE: ModuleRow = {
+  id: "main",
+  name: "310",
+  serial: "KM52152006G02.100ALZ244700005",
+  type: "KONE Connection 310",
+  version: "2.0.1d",
+};
+
+const SUB_MODULES: ModuleRow[] = [
+  { id: "nexus-1", name: "Nexus-D", serial: "KM52152006G02.100ALZ244700005", type: "KONE Connection 310", version: "SN1.00.07" },
+  { id: "nexus-2", name: "Nexus-D", serial: "KM52152006G02.100ALZ244700005", type: "KONE Connection 310", version: "SN1.00.07" },
+];
+
+/**
+ * 列宽按设计稿表头（146 / 86 / 287 / 194 / 110 / 108）的比例分配剩余宽度（fr），操作列按内容收紧，
+ * 宽屏时前六列均匀拉开；行首、行尾内边距 = 表格首尾边距（--iot-table-edge-start / -end）（与其他表格首尾列边距一致）；每列设下限，窄屏时横向滚动。所有行共用同一套列模板，子模块行的缩进只体现在
+ * 背景与首列内边距上，因此各列与表头始终对齐。
+ */
+const COLUMNS = [
+  "minmax(176px,146fr)",
+  "minmax(86px,86fr)",
+  "minmax(270px,287fr)",
+  "minmax(170px,194fr)",
+  "minmax(90px,110fr)",
+  "minmax(90px,108fr)",
+  // 操作列按内容收紧，多余宽度分给前面各列；行尾保留统一边距
+  "max-content",
+].join(" ");
+/** 子模块行相对主模块行的缩进（设计稿 30px），树形连接线落在缩进区内 */
+const SUB_INDENT = 30;
+
+function ModuleActions({ t, row }: { t: Copy; row: ModuleRow }) {
+  const notify = (event: React.MouseEvent) => {
+    event.preventDefault();
+    MessagePlugin.info(t.demoOnly, 3000);
+  };
+  return (
+    <div className="flex items-center gap-1">
+      <div className="flex items-center gap-3">
+        <Link theme="primary" hover="color" href="#" prefixIcon={<Refresh1Icon className="size-4" />} onClick={notify}>
+          {t.restart}
+        </Link>
+        <Link theme="primary" hover="color" href="#" prefixIcon={<Chart1Icon className="size-4" />} onClick={notify}>
+          {t.upgrade}
+        </Link>
+      </div>
+      <Button
+        variant="text"
+        shape="square"
+        size="small"
+        aria-label={t.more(row.name)}
+        icon={<More1Icon className="size-4 text-icon-primary" />}
+        onClick={notify}
+      />
+    </div>
+  );
+}
+
+function ModuleCells({ t, row, isMain }: { t: Copy; row: ModuleRow; isMain: boolean }) {
+  const valueClass = `truncate pr-3 ${isMain ? "font-medium" : ""}`;
+  return (
+    <>
+      <div role="cell" className="flex min-w-0 items-center gap-[18px] pr-3" style={isMain ? undefined : { paddingLeft: SUB_INDENT }}>
+        {!isMain && (
+          <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center rounded-md bg-metric-tile-neutral text-secondary-text">
+            <NodeIcon className="size-3.5" />
+          </span>
+        )}
+        <span className={valueClass}>{row.name}</span>
+      </div>
+      <div role="cell" className="flex items-center">
+        <StatusLabel tone="success">{t.online}</StatusLabel>
+      </div>
+      <div role="cell" className={valueClass}>{row.serial}</div>
+      <div role="cell" className={valueClass}>{row.type}</div>
+      <div role="cell" className={valueClass}>{t.registered}</div>
+      <div role="cell" className={valueClass}>{row.version}</div>
+      <div role="cell" className="flex items-center">
+        <ModuleActions t={t} row={row} />
+      </div>
+    </>
+  );
+}
+
+function ModuleInfoSection({ t }: { t: Copy }) {
+  const headers = [t.columns.name, t.columns.status, t.columns.serial, t.columns.type, t.columns.registration, t.columns.version, t.columns.actions];
+  return (
+    <LiveSection id="live-module-title" title={t.moduleInfo}>
+      <div className="overflow-x-auto">
+        {/* 列模板定义在表格上，各行用 subgrid 继承：操作列按所有行里最宽的内容收紧，表头与各行始终同宽对齐 */}
+        <div role="table" aria-labelledby="live-module-title" className="grid min-w-[1100px] gap-y-2 text-body text-primary-text" style={{ gridTemplateColumns: COLUMNS }}>
+          <div role="row" className="col-span-full grid grid-cols-subgrid pl-[var(--iot-table-edge-start)] pr-[var(--iot-table-edge-end)]">
+            {headers.map((header) => (
+              <div key={header} role="columnheader" className="font-medium text-placeholder">
+                {header}
               </div>
             ))}
           </div>
 
-          {/* Parent row */}
-          <div className="relative w-full">
-            <div className="bg-[#f5f7fa] flex items-center justify-between pl-[8px] pr-[12px] py-[8px] rounded-[6px] w-full">
-              <div className="flex flex-1 gap-[40px] items-center min-w-0">
-                <div className={`flex items-center ${COL_WIDTHS.name}`}>
-                  <p className="font-['PingFang_SC:Medium',sans-serif] leading-[22px] text-[#141414] text-[14px]">310</p>
-                </div>
-                <OnlineDot />
-                <div className={`flex items-center ${COL_WIDTHS.serial}`}>
-                  <p className="font-['PingFang_SC:Medium',sans-serif] leading-[22px] text-[#141414] text-[14px]">KM52152006G02.100ALZ244700005</p>
-                </div>
-                <div className={`flex items-center ${COL_WIDTHS.type}`}>
-                  <p className="font-['PingFang_SC:Medium',sans-serif] leading-[22px] text-[#141414] text-[14px]">KONE Connection 310</p>
-                </div>
-                <div className={`flex items-center ${COL_WIDTHS.regStatus}`}>
-                  <p className="font-['PingFang_SC:Medium',sans-serif] leading-[22px] text-[#141414] text-[14px]">{t.registered}</p>
-                </div>
-                <div className={`flex items-center ${COL_WIDTHS.swVersion}`}>
-                  <p className="font-['PingFang_SC:Medium',sans-serif] leading-[22px] text-[#141414] text-[14px]">2.0.1d</p>
-                </div>
-              </div>
-              <RowActions />
+          <div role="rowgroup" className="col-span-full grid grid-cols-subgrid gap-y-2">
+            <div role="row" className="col-span-full grid grid-cols-subgrid items-center rounded-md bg-secondarycontainer py-2 pl-[var(--iot-table-edge-start)] pr-[var(--iot-table-edge-end)]">
+              <ModuleCells t={t} row={MAIN_MODULE} isMain />
             </div>
 
-            {/* Child rows with tree connector */}
-            <div className="flex flex-col gap-[8px] mt-[8px] pl-[0px]">
-              {childRows.map((row, i) => (
-                <div key={i} className="relative flex items-center pl-[20px]">
-                  {/* Dashed tree line */}
-                  <div className="absolute left-[4px] top-0 bottom-0 flex flex-col items-center" style={{ width: 14 }}>
-                    <div
-                      className="absolute"
-                      style={{
-                        left: 0,
-                        top: i === 0 ? 0 : -8,
-                        bottom: i === childRows.length - 1 ? "50%" : -8,
-                        width: 1,
-                        borderLeft: "1px dashed #C8CAD0",
-                      }}
-                    />
-                    <div
-                      className="absolute"
-                      style={{
-                        top: "50%",
-                        left: 0,
-                        width: 12,
-                        height: 1,
-                        borderTop: "1px dashed #C8CAD0",
-                      }}
-                    />
-                  </div>
-                  <div className="bg-[#fafbfc] flex items-center justify-between pl-[8px] pr-[12px] py-[4px] rounded-[6px] w-full">
-                    <div className="flex flex-1 gap-[54px] items-center min-w-0">
-                      <div className="flex gap-[18px] items-center shrink-0 w-[120px]">
-                        <NodeIcon />
-                        <p className="font-['PingFang_SC:Regular',sans-serif] leading-[22px] text-[#141414] text-[14px]">Nexus-D</p>
-                      </div>
-                      <OnlineDot />
-                      <div className="flex items-center w-[242px]">
-                        <p className="font-['PingFang_SC:Regular',sans-serif] leading-[22px] text-[#141414] text-[14px]">{row.serial}</p>
-                      </div>
-                      <div className="flex items-center w-[148px]">
-                        <p className="font-['PingFang_SC:Regular',sans-serif] leading-[22px] text-[#141414] text-[14px]">{row.type}</p>
-                      </div>
-                      <div className="flex items-center w-[84px]">
-                        <p className="font-['PingFang_SC:Regular',sans-serif] leading-[22px] text-[#141414] text-[14px]">{t.registered}</p>
-                      </div>
-                      <div className="flex items-center w-[77px]">
-                        <p className="font-['PingFang_SC:Regular',sans-serif] leading-[22px] text-[#141414] text-[14px]">{row.sw}</p>
-                      </div>
-                    </div>
-                    <RowActions />
+            {SUB_MODULES.map((row, index) => {
+              const isLast = index === SUB_MODULES.length - 1;
+              return (
+                <div key={row.id} className="relative col-span-full grid grid-cols-subgrid">
+                  {/* 子模块行背景（color/grey/50）从缩进处开始 */}
+                  <span aria-hidden="true" className="absolute inset-y-0 right-0 rounded-md bg-section-header" style={{ left: SUB_INDENT }} />
+                  {/* 树形连接线（设计稿 Vector 13，#c8cad0 虚线）：从上一行底部竖下，在本行中线处横向接入；末行转角带圆角 */}
+                  <span
+                    aria-hidden="true"
+                    className={`absolute -top-2 h-[calc(50%+8px)] w-4 border-b border-l border-dashed border-component-border ${isLast ? "rounded-bl-md" : ""}`}
+                    style={{ left: SUB_INDENT - 16 }}
+                  />
+                  {!isLast && (
+                    <span aria-hidden="true" className="absolute bottom-0 top-1/2 border-l border-dashed border-component-border" style={{ left: SUB_INDENT - 16 }} />
+                  )}
+                  <div role="row" className="relative col-span-full grid grid-cols-subgrid items-center py-1 pl-[var(--iot-table-edge-start)] pr-[var(--iot-table-edge-end)]">
+                    <ModuleCells t={t} row={row} isMain={false} />
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
       </div>
-    </SectionCard>
+    </LiveSection>
   );
 }
 
-// ─── Main export ──────────────────────────────────────────────────────────────
+// ─── 导出 ──────────────────────────────────────────────────────────────────────
 
-export function LiveDataContent({ language }: { language: 'en' | 'cn' }) {
+export function LiveDataContent({ language }: { language: Language }) {
   const t = T[language];
   return (
-    <div className="flex flex-col gap-[16px] w-full">
+    <div className="flex w-full flex-col gap-4">
       <RealtimeDataSection t={t} />
       <SensorDataSection t={t} />
       <OperationDataSection t={t} />

@@ -114,6 +114,29 @@
   padding: 8px 16px;
 }
 
+/**
+ * 首尾列统一边距：首列左内边距 = --iot-table-edge-start，末列右内边距 = --iot-table-edge-end，所有表格同一套值。
+ * 改这两个值时同步改 useEdgeFitColumns.ts 的 TABLE_EDGE_START / TABLE_EDGE_END（首尾列按差值自动加宽）。
+ * 原生 <table> / grid 表格也通过 pl-[var(--iot-table-edge-start)] / pr-[var(--iot-table-edge-end)] 引用这两个变量。
+ * 末列为左对齐时，useEdgeFitColumns 会把末列收窄到内容宽度，内容右侧留白即为右边距。
+ * 只改外侧的那一边内边距，单元格内对齐方式不变。
+ * 写在选择列 / 详情列 / 展开列等专用规则之前：那些列自带内边距与内容的组合，同优先级时以它们为准。
+ */
+:root {
+  --iot-table-edge-start: 24px;
+  --iot-table-edge-end: 40px;
+}
+
+.iot-list-page-table .t-table__header th.iot-list-page-table__edge-start,
+.iot-list-page-table .t-table__body > tr:not(.t-table__empty-row) > td.iot-list-page-table__edge-start {
+  padding-left: var(--iot-table-edge-start);
+}
+
+.iot-list-page-table .t-table__header th.iot-list-page-table__edge-end,
+.iot-list-page-table .t-table__body > tr:not(.t-table__empty-row) > td.iot-list-page-table__edge-end {
+  padding-right: var(--iot-table-edge-end);
+}
+
 .iot-list-page-table .t-table__header th.iot-list-page-table__details {
   padding-right: 0;
   padding-left: 0;
@@ -123,7 +146,8 @@
   .t-table__body
   > tr:not(.t-table__empty-row)
   > td.iot-list-page-table__details {
-  padding: 8px;
+  /* 箭头列视为最右列：与其他末列同一规则，32px 箭头按钮右缘距表格右边缘 = 右边距 */
+  padding: 8px var(--iot-table-edge-end) 8px 8px;
 }
 
 .iot-list-page-table .t-table__empty-row,
@@ -158,7 +182,7 @@
 }
 
 /**
- * 设备批量操作页在 IoT 列表模板中保留固定 52px 的选择列。
+ * 设备批量操作页在 IoT 列表模板中保留固定 48px 的选择列（复选框距左边缘 16px）。
  * 模板数据列默认 24px 水平内边距不适用于仅承载 16px Checkbox 的窄列。
  */
 .iot-list-page-table .t-table__header th.batch-operations-selection-column,
@@ -166,8 +190,9 @@
   .t-table__body
   > tr:not(.t-table__empty-row)
   > td.batch-operations-selection-column {
-  padding-right: 12px;
-  padding-left: 12px;
+  /* 复选框 16px，距表格左边缘 = 边距；列宽由 useEdgeFitColumns 按边距加宽 */
+  padding-right: 16px;
+  padding-left: var(--iot-table-edge-start);
   text-align: center;
 }
 
@@ -455,4 +480,487 @@
     opacity: 0;
     transform: scale(0.94);
   }
+}
+
+/**
+ * 设备总览 · 数据范围（Figma IOT Delivery 7105:17083）
+ * 六个 Select 首尾相接：相邻描边重叠 1px，只有首尾两端保留 4px 圆角；
+ * hover / focus 的那一个提到上层，保证品牌色描边和焦点环完整可见。
+ */
+.device-scope-group > div + div {
+  margin-left: -1px;
+}
+
+.device-scope-group > div {
+  position: relative;
+}
+
+.device-scope-group > div:hover,
+.device-scope-group > div:focus-within {
+  z-index: 1;
+}
+
+.device-scope-group .t-input {
+  border-radius: 0;
+}
+
+/* 框宽随容器自适应；单选的已选值本身由 TDesign Input 单行省略。 */
+.device-scope-group .t-select__wrap,
+.device-scope-group .t-select-input,
+.device-scope-group .t-input__wrap {
+  width: 100%;
+  min-width: 0;
+}
+
+/* 工作组多选：标签固定单行，不撑开框；第一个标签可收缩并省略，「+N」保持完整。
+ * TDesign 默认 break-line 模式把标签区设为 inline，会按内容撑宽，这里改成限宽的 inline-flex，
+ * 右侧给下拉箭头留出 20px。选择器需比 TDesign 的 break-line 规则更具体。 */
+.device-scope-group .t-tag-input--break-line:not(.t-is-empty) .t-input.t-input--prefix {
+  padding-right: 28px;
+}
+
+.device-scope-group .t-tag-input--break-line:not(.t-is-empty) .t-input.t-input--prefix > .t-input__prefix {
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow: hidden;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.device-scope-group .t-tag-input .t-input__prefix > .t-tag {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.device-scope-group .t-tag-input .t-input__prefix > .t-tag + .t-tag {
+  flex-shrink: 0;
+}
+
+.device-scope-group .t-tag-input .t-input__prefix > .t-tag .t-tag--text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-scope-group > div:first-child .t-input {
+  border-top-left-radius: var(--td-radius-default);
+  border-bottom-left-radius: var(--td-radius-default);
+}
+
+.device-scope-group > div:last-child .t-input {
+  border-top-right-radius: var(--td-radius-default);
+  border-bottom-right-radius: var(--td-radius-default);
+}
+
+/**
+ * 设备总览 · 项目列表（Figma 7105:17280，展开态 4497:14405）
+ * 复用 .iot-list-page-table 的 46/54 行高；展开行改为无内边距的灰底容器，内部设备清单自带 36px 小号行。
+ */
+.device-overview-project-table .t-table__header th.device-overview-project-table__expand,
+.device-overview-project-table
+  .t-table__body
+  > tr:not(.t-table__empty-row)
+  > td.device-overview-project-table__expand {
+  /* 24px 按钮内图标两侧各留 4px，所以左内边距 = 边距 - 4，图标距表格左边缘正好是边距 */
+  padding-right: 0;
+  padding-left: calc(var(--iot-table-edge-start) - 4px);
+}
+
+.device-overview-project-table .t-table__body > tr.t-table__expanded-row {
+  height: auto;
+}
+
+.device-overview-project-table .t-table__body > tr.t-table__expanded-row > td,
+.device-overview-project-table .t-table__body > tr.t-table__expanded-row:hover > td {
+  padding: 0;
+  background-color: var(--bg-color-secondarycontainer);
+}
+
+.device-overview-project-table .t-table__expanded-row-inner,
+.device-overview-project-table .t-table__expanded-row .t-table__row-full-element {
+  padding: 0;
+}
+
+/**
+ * 设备详情 · 页签（Figma IOT Delivery 5813:34058，基于 normalTabs 的定制样式）
+ * 交互（切换、hover、键盘、指示线滑动）沿用 TDesign Tabs，这里只按定制稿收口样式：
+ *   · 白底整条、底部 1px 分隔线（TDesign 自带），顶部 8px 圆角由外层容器负责
+ *   · 页签项 48 高：外层 8px + 内容区 px 8 / py 5，图标 16、图文间距 8
+ *   · 内容区圆角 3px（定制稿裸值，承接为 rounded-xs）
+ *   · 选中：品牌色 + Medium 字重；指示线 3px 平直、铺满整个页签项
+ */
+.device-detail-tabs.t-tabs {
+  background-color: var(--bg-color-container);
+}
+
+.device-detail-tabs .t-tabs__nav-item {
+  height: 48px;
+  color: var(--text-color-secondary);
+}
+
+.device-detail-tabs .t-tabs__nav-item-wrapper {
+  border-radius: var(--radius-xs, 3px);
+}
+
+.device-detail-tabs .t-tabs__nav-item.t-is-active {
+  color: var(--text-color-brand);
+  font-weight: 500;
+  /* TDesign 用 text-shadow 模拟加粗，与 Medium 字重叠加后会比设计稿更粗 */
+  text-shadow: none;
+}
+
+.device-detail-tabs .t-tabs__bar {
+  height: 3px;
+  border-radius: 0;
+  background-color: var(--brand-color);
+}
+
+/**
+ * 设备事件 · 时间线色块三态（Figma 7217:8993：Default / Hover / Hit）
+ * Hover 加浅阴影；Hit（选中）加深 8% 并加阴影。静止块两侧的细竖线表示开关门。
+ */
+.event-block {
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.event-block:hover {
+  box-shadow: var(--elevation-popover);
+}
+
+.event-block.is-hit {
+  filter: brightness(0.92) saturate(1.15);
+  box-shadow: var(--elevation-popover);
+}
+
+.event-block:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 1px;
+}
+
+/* 静止块（Figma GanttBar「静止2」）：浅灰底，左右各两条 1px #c8cad0 细竖线表示开关门（左 0 / 7px，右 2 / 7px） */
+.event-block--static {
+  background-color: var(--timeline-static);
+  background-image:
+    linear-gradient(var(--component-border), var(--component-border)),
+    linear-gradient(var(--component-border), var(--component-border)),
+    linear-gradient(var(--component-border), var(--component-border)),
+    linear-gradient(var(--component-border), var(--component-border));
+  background-size: 1px 100%;
+  background-repeat: no-repeat;
+  background-position:
+    left 0 top 0,
+    left 7px top 0,
+    right 2px top 0,
+    right 7px top 0;
+}
+
+.event-block--running {
+  background-color: var(--timeline-running);
+}
+
+.event-block--call {
+  background-color: var(--timeline-call);
+  color: var(--timeline-call-text);
+}
+
+/* 时间线横向滚动条（Figma 9375:185727）：#fafbfc 底、上描边，#c8cad0 8px 高圆角滑块 */
+/* Chrome 121+ 一旦设置 scrollbar-color 就会忽略 ::-webkit-scrollbar，所以只给不支持后者的浏览器（Firefox）设置 */
+@supports not selector(::-webkit-scrollbar) {
+  .timeline-scroll {
+    scrollbar-color: var(--component-border) var(--section-header-bg);
+  }
+}
+
+.timeline-scroll::-webkit-scrollbar {
+  height: 20px;
+}
+
+.timeline-scroll::-webkit-scrollbar-track {
+  border-top: 1px solid var(--component-stroke);
+  background-color: var(--section-header-bg);
+}
+
+.timeline-scroll::-webkit-scrollbar-thumb {
+  border: 6px solid transparent;
+  border-right-width: 8px;
+  border-left-width: 8px;
+  border-radius: 10px;
+  background-color: var(--component-border);
+  background-clip: padding-box;
+}
+
+/* 上个小时 / 下个小时：24px 高按钮内用 Body 14（设计稿），图标与文字间距 2 */
+.timeline-shift-button.t-button {
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+}
+
+/* 「事件类型」筛选面板（Figma 9375:186115）：160 宽，选项 28 高、4px 圆角，选中项品牌浅底 + 品牌色文字 */
+.timeline-row-filter-popup {
+  padding: 0;
+}
+
+.timeline-row-filter .timeline-row-filter__item.t-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm, 4px);
+}
+
+.timeline-row-filter .timeline-row-filter__item .t-checkbox__label {
+  margin-left: 0;
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+}
+
+.timeline-row-filter .timeline-row-filter__item.is-selected {
+  background-color: var(--brand-color-light);
+}
+
+.timeline-row-filter .timeline-row-filter__item.is-selected .t-checkbox__label {
+  color: var(--text-color-brand);
+}
+
+/* 开始 / 结束时间 + 时间选择两个控件首尾相接（Figma 7173:17431） */
+.timeline-time-picker > div + div {
+  margin-left: -1px;
+}
+
+.timeline-time-picker > div:first-child .t-input {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.timeline-time-picker > div:last-child .t-input {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/*
+ * 设备事件表（Figma 7447:30251，表格 medium 规格）：表头 38px（py 8 / px 16）、数据行 46px（12 / 24 / 12 / 16），
+ * 覆盖 .iot-list-page-table 的列表页 46 / 54 规格。首尾图标列 48 宽，32px 圆形按钮上下 7px。
+ * 时间戳列表中所选事件行用品牌浅底高亮（7447:28827）。
+ */
+.device-events-table .t-table__header tr,
+.device-events-table .t-table__header th {
+  height: 38px;
+}
+
+.device-events-table .t-table__header th {
+  padding: 8px 16px;
+}
+
+.device-events-table .t-table__body > tr:not(.t-table__empty-row) {
+  height: 46px;
+}
+
+/* 行高 46 含 1px 底边线，所以下内边距各减 1 */
+.device-events-table .t-table__body > tr:not(.t-table__empty-row) > td {
+  padding: 12px 24px 11px 16px;
+}
+
+.device-events-table .t-table__header th.device-events-table__icon {
+  padding: 8px;
+}
+
+.device-events-table .t-table__body > tr:not(.t-table__empty-row) > td.device-events-table__icon {
+  padding: 7px 8px 6px;
+}
+
+/* 首列图标：32px 按钮内图标两侧各留 8px，左内边距 = 左边距 - 8，图标距左边缘 = 左边距。
+ * 末列箭头视为最右列，与其他末列同一规则：箭头按钮右缘距右边缘 = 右边距。 */
+.device-events-table .t-table__body > tr:not(.t-table__empty-row) > td.device-events-table__icon-start {
+  padding-left: calc(var(--iot-table-edge-start) - 8px);
+}
+
+.device-events-table .t-table__body > tr:not(.t-table__empty-row) > td.device-events-table__icon-end {
+  padding-right: var(--iot-table-edge-end);
+}
+
+.device-events-table .t-table__body > tr.device-events-table__anchor > td,
+.device-events-table .t-table__body > tr.device-events-table__anchor:hover > td {
+  background-color: var(--brand-color-light);
+  font-weight: 500;
+}
+
+/**
+ * Drawer 抽屉（Figma China Design system 45841:327431）
+ * 蒙层 #141414 60%；头部 / 底部各 56 高、左右内边距 16，分隔线 component-border；
+ * 标题 H7 16/24 Semibold；关闭按钮 16px 图标、距右 16；底部按钮左对齐，间距 8。
+ */
+.km-drawer .t-drawer__mask {
+  background-color: color-mix(in srgb, var(--text-color-primary) 60%, transparent);
+}
+
+.km-drawer .t-drawer__header {
+  min-height: 56px;
+  padding: 0 48px 0 16px;
+  border-bottom: 1px solid var(--component-border);
+  border-radius: 0;
+}
+
+.km-drawer .t-drawer__close-btn {
+  top: 16px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-xs, 3px);
+  color: var(--text-color-secondary);
+}
+
+.km-drawer .t-drawer__close-btn:hover {
+  background-color: var(--bg-color-container-hover);
+}
+
+.km-drawer .t-drawer__close-btn .t-icon {
+  font-size: 16px;
+}
+
+.km-drawer .t-drawer__body {
+  padding: 24px 16px 0;
+}
+
+.km-drawer .t-drawer__footer {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  padding: 0 16px;
+  border-top: 1px solid var(--component-border);
+}
+
+/*
+ * 不带蒙层的抽屉（规范 overlay=false）：TDesign 默认投影主要向下，右侧抽屉左缘几乎看不出层级，
+ * 抽屉头部又与 56px 顶栏同高、分隔线连成一线，看起来像嵌在顶栏里。
+ * 按 popover 档阴影的尺寸（4px / 5px）向左投射，透明度从 10% 降到 6%，只用来表明抽屉浮在页面之上。
+ */
+.km-drawer--floating .t-drawer__content-wrapper {
+  box-shadow: -4px 0 5px rgba(0, 0, 0, 0.06);
+}
+
+/* 抽屉从 56px 顶部导航栏下方开始（不覆盖顶栏）：整个抽屉容器下移并减去顶栏高度 */
+.km-drawer--below-nav.t-drawer {
+  top: 56px;
+  height: calc(100% - 56px);
+}
+
+/**
+ * 移动端框架（Figma IOT Delivery 7103:36620）
+ *
+ * 底部操作区按钮（8895:31707 / 8910:9168）：40 高、圆角 6、H7 16/24 Semibold。
+ * 次要按钮（「次要按钮」/「重置」）为品牌浅底 + 品牌色文字；TDesign 没有 Secondary 主题，
+ * 用 theme="default" 加 .km-mobile-button--secondary 落地，只在移动端操作区使用。
+ */
+.km-mobile-actions .t-button {
+  border-radius: var(--radius-md, 6px);
+  font-size: var(--text-h7);
+  line-height: var(--text-h7--line-height);
+  font-weight: 600;
+}
+.km-mobile-actions .t-button.km-mobile-button--secondary {
+  border-color: var(--brand-color-light);
+  background-color: var(--brand-color-light);
+  color: var(--text-color-brand);
+}
+.km-mobile-actions .t-button.km-mobile-button--secondary:hover {
+  border-color: var(--brand-color-light-hover);
+  background-color: var(--brand-color-light-hover);
+}
+.km-mobile-actions .t-button.km-mobile-button--secondary:active {
+  border-color: var(--brand-color-light-active);
+  background-color: var(--brand-color-light-active);
+}
+
+/* 移动端胶囊搜索框（7105:15182 Search）：40 高、全圆角、component 底色、无描边；聚焦态沿用 TDesign 焦点样式 */
+.km-mobile-search .t-input {
+  height: 40px;
+  padding: 0 12px;
+  gap: 4px;
+  border-color: transparent;
+  border-radius: 999px;
+  background-color: var(--bg-color-component);
+  font-size: var(--text-body);
+}
+.km-mobile-search .t-input:hover:not(.t-input--focused) {
+  border-color: transparent;
+}
+.km-mobile-search .t-input.t-input--focused {
+  border-color: var(--brand-color);
+  background-color: var(--bg-color-container);
+}
+.km-mobile-search .t-input .t-input__inner {
+  font-size: var(--text-body);
+}
+.km-mobile-search .t-input__prefix {
+  display: inline-flex;
+  margin-right: 0;
+}
+
+/**
+ * 移动端底部面板（7105:16178「设备筛选」）：TDesign Drawer placement="bottom"。
+ * 蒙层黑 60%；面板顶部圆角 12；头部标题居中、关闭按钮 24 贴右，与表单间距 10；
+ * 表单区左右 16 并可滚动；底部操作区由 MobileBottomBar 自带 16 内边距。
+ */
+.km-mobile-sheet .t-drawer__mask {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+.km-mobile-sheet .t-drawer__content-wrapper {
+  overflow: hidden;
+  border-radius: var(--radius-xl, 12px) var(--radius-xl, 12px) 0 0;
+}
+.km-mobile-sheet .t-drawer__header {
+  justify-content: center;
+  min-height: 0;
+  padding: 16px 56px 10px;
+  border-bottom: 0;
+  border-radius: 0;
+}
+.km-mobile-sheet .t-drawer__close-btn {
+  top: 17px;
+  right: 16px;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-xs, 3px);
+  color: var(--icon-primary);
+}
+.km-mobile-sheet .t-drawer__close-btn:hover {
+  background-color: var(--bg-color-container-hover);
+}
+.km-mobile-sheet .t-drawer__body {
+  padding: 0 16px;
+}
+.km-mobile-sheet .t-drawer__footer {
+  padding: 0;
+  border-top: 0;
+}
+/* 多选标签固定单行、第一个标签可省略，与 .device-scope-group 同一处理 */
+.km-mobile-sheet .t-tag-input--break-line:not(.t-is-empty) .t-input.t-input--prefix {
+  padding-right: 28px;
+}
+.km-mobile-sheet .t-tag-input--break-line:not(.t-is-empty) .t-input.t-input--prefix > .t-input__prefix {
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow: hidden;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.km-mobile-sheet .t-tag-input .t-input__prefix > .t-tag {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.km-mobile-sheet .t-tag-input .t-input__prefix > .t-tag + .t-tag {
+  flex-shrink: 0;
+}
+.km-mobile-sheet .t-tag-input .t-input__prefix > .t-tag .t-tag--text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

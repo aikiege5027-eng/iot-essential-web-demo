@@ -558,19 +558,20 @@ export default function BatchConfigUpdateDialog({
               <p className="mt-4 text-body font-medium text-primary-text">
                 {t.executionTime}：{scheduledAt}
               </p>
+              {/* 首列左 / 末列右边距 = 表格统一边距；末列 w-px + nowrap 收到内容宽度，右侧不留多余空白 */}
               <table className="mt-4 w-full border-collapse overflow-hidden rounded-md border border-stroke text-left text-foot12">
                 <thead className="bg-secondarycontainer text-secondary-text">
                   <tr>
-                    <th scope="col" className="w-[160px] border-b border-stroke px-2 py-2 font-normal">{t.hardwareType}</th>
+                    <th scope="col" className="w-[calc(144px+var(--iot-table-edge-start))] border-b border-stroke py-2 pl-[var(--iot-table-edge-start)] pr-2 font-normal">{t.hardwareType}</th>
                     <th scope="col" className="w-[220px] border-b border-stroke px-2 py-2 font-normal">{t.profile}</th>
                     <th scope="col" className="border-b border-stroke px-2 py-2 font-normal">{t.changes}</th>
-                    <th scope="col" className="w-[120px] border-b border-stroke px-2 py-2 font-normal">{t.deviceCount}</th>
+                    <th scope="col" className="w-px whitespace-nowrap border-b border-stroke py-2 pl-2 pr-[var(--iot-table-edge-end)] font-normal">{t.deviceCount}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {selectedProfiles.map((row) => (
                     <tr key={editKey(row.km, row.profile)} className="align-top">
-                      <td className="border-b border-stroke px-2 py-2 text-primary-text">{row.km}</td>
+                      <td className="border-b border-stroke py-2 pl-[var(--iot-table-edge-start)] pr-2 text-primary-text">{row.km}</td>
                       <td className="border-b border-stroke px-2 py-2 text-primary-text">{row.profile}</td>
                       <td className="border-b border-stroke px-2 py-2 text-primary-text">
                         <ul className="m-0 list-none p-0">
@@ -579,7 +580,7 @@ export default function BatchConfigUpdateDialog({
                           ))}
                         </ul>
                       </td>
-                      <td className="border-b border-stroke px-2 py-2 tabular-nums text-primary-text">
+                      <td className="whitespace-nowrap border-b border-stroke py-2 pl-2 pr-[var(--iot-table-edge-end)] tabular-nums text-primary-text">
                         {deviceCountByKm[row.km] ?? 0}
                         {t.deviceUnit}
                       </td>

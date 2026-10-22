@@ -77,6 +77,12 @@ Figma 模板矩阵：[`IOT_Web_template` 8875:39482](https://www.figma.com/desig
 - 任一字段有值时按钮保留选中语气，即使筛选面板已收起。
 - 搜索框固定使用 TDesign medium 32px 档，不与 small 控件并排。
 - 页面操作位于搜索工具栏右侧，而不是标题行。
+- 筛选面板下方的补充选项用 `embeddedFooter` 传入，不要用 `beforeTable` 加负边距去贴近搜索区；紧跟搜索框右侧的选项（如设备查询的「只搜索云管家设备」「多设备查询」）用 `embeddedSearch.trailing`。
+- `embeddedFilterToggle` 控制筛选按钮：`placement: "actions"` 把带文字的筛选按钮放进右侧按钮组最左边；`container: "drawer"` 改为从右侧拉出 TDesign Drawer（`drawerSize` 取 small 300 / medium 500 / large 760，默认 500，也可直接传像素宽度，设备查询用 380；`drawerOverlay` 控制蒙层，`drawerBelowNav` 让抽屉从 56px 顶栏下方开始，设备查询不带蒙层、覆盖顶栏（默认）；底部左对齐「查询 / 重置」，通过 `onSubmit` / `onReset` 接业务逻辑）。设备查询即此形态。
+
+### 卡片列表主体 `customBody`
+
+结果不是表格而是卡片时（如设备查询的设备卡片，Figma `8626:40208`），用 `customBody` 替换表格主体：模板不再渲染 Table，`columns` / `rows` 传空即可，`pagination` 仍在原位置渲染。标题、筛选、操作与分页继续由模板负责，不要为卡片列表另起一套页面骨架。设备卡片统一使用 `components/device-query/DeviceInfoCard`（列表灰底可点击 / 详情页白底描边两种变体）。
 
 ## 页面操作
 
@@ -113,6 +119,7 @@ Select、DatePicker、Cascader 等字段通过 `render` 注入，但同一表单
 - 表格外观以当前 IoT 页面模板为准，而不是直接套用 TDesign 默认尺寸：表头 46px、数据行 54px、单元格水平内边距 24px、空态和加载态内容区 324px。定制规则集中在 `tdesign-patches.css` 的 `.iot-list-page-table` 下，禁止提升为全局 `.t-table` 覆盖。
 - 列由 `IoTTableColumn<Row>[]` 描述，业务页负责 render，不要把业务字段写进模板；模板统一启用单行省略，避免内容换行破坏 54px 行高。
 - 行高、表头和横向滚动由模板统一处理。
+- **首尾列边距统一**（`:root` 的 `--iot-table-edge-start` 左边距、当前 24px，`--iot-table-edge-end` 右边距、当前 40px；需与 `useEdgeFitColumns.ts` 的 `TABLE_EDGE_START / TABLE_EDGE_END` 同步；带边距类的首尾列按与 16px 的差值自动加宽）：首列左内边距与末列内容右侧留白分别取这两个值，所有表格（含原生 `<table>`、弹窗内小表格、grid 表格）一致。模板自动给首/末列加 `iot-list-page-table__edge-start / __edge-end`，并由 `useEdgeFitColumns` 把左对齐的末列收窄到内容宽度、多余宽度按比例分给其他列；只改宽度，不改对齐。直接使用 TDesign `Table` 的页面（如设备总览项目列表）要自己给末列加 `EDGE_END_CLASS` 并调用该 hook。只放复选框等固定内容、不该随宽屏拉伸的列加 `NO_SCALE_CLASS`。原生自动布局表格的末列用 `w-px whitespace-nowrap` 收到内容宽度。每行末尾有详情箭头（`onRowOpen`）时，箭头列视为最右列：32px 箭头按钮的右缘距表格右边缘 = 右边距，与文字类末列同一规则。
 - 列数很多、1440 视口放不下时，可传 `compactCells` 把单元格水平内边距从 24px 收为 16px（行高、字号不变）。这是例外而非默认，目前只有仟帆用户管理（9 列）使用；能靠省略号或调整列宽解决的页面不要开。
 - 设备 ID、故障码等可在 render 中使用 `font-mono`；数字列使用 `tabular-nums`。
 - 行级操作必须提供可读 `label`，不能只依赖图标。

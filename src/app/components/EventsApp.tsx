@@ -29,6 +29,14 @@ import ApprovalCenterContent from "./ApprovalCenterContent";
 import TaskListContent from "./TaskListContent";
 import RuleConfigurationContent from "./RuleConfigurationContent";
 import UserManagementContent from "./UserManagementContent";
+import DeviceOverviewContent, { type DeviceOverviewView } from "./DeviceOverviewContent";
+import DeviceQueryContent from "./DeviceQueryContent";
+import { DeviceInfoCard } from "./device-query/DeviceInfoCard";
+import type { QueryDevice } from "../data/deviceQuery";
+import { DeviceDetailTabs } from "./device-detail/DeviceDetailTabs";
+import { DetailCardHeader } from "./device-detail/DetailSection";
+import { DeviceEventsTab } from "./device-detail/DeviceEventsTab";
+import { DeviceStatisticsTab } from "./device-detail/DeviceStatisticsTab";
 import RoleManagementContent from "./RoleManagementContent";
 import PlatformQuickSwitch from "./PlatformQuickSwitch";
 import ProfileInfoDialog from "./ProfileInfoDialog";
@@ -533,182 +541,6 @@ export function buildSideNavItems(t: typeof translations.en, visibleItems: strin
   return items;
 }
 
-
-function Frame5() {
-  return (
-    <div className="bg-[#fafbfc] content-stretch flex items-center justify-center px-[6px] py-[2px] relative rounded-[6px] shrink-0">
-      <div aria-hidden="true" className="absolute border border-[#dfe1e8] border-solid inset-0 pointer-events-none rounded-[6px]" />
-      <p className="font-['PingFang_SC:Medium',sans-serif] leading-[22px] not-italic relative shrink-0 text-[#141414] text-[14px] whitespace-nowrap">#45509091</p>
-    </div>
-  );
-}
-
-function Frame6() {
-  return (
-    <div className="content-stretch flex gap-[12px] items-center relative shrink-0">
-      <div className="relative shrink-0 size-[28px]" data-name="elevator">
-        <div className="absolute inset-[12.5%]" data-name="Union">
-          <svg className="absolute block inset-0 size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 21 21">
-            <path clipRule="evenodd" d={svgPaths.p11425840} fill="var(--fill-0, #141414)" fillRule="evenodd" id="Union" />
-          </svg>
-        </div>
-      </div>
-      <p className="font-['PingFang_SC:Medium',sans-serif] leading-[26px] not-italic relative shrink-0 text-[#141414] text-[18px] whitespace-nowrap">DT1</p>
-      <Frame5 />
-    </div>
-  );
-}
-
-function Component1() {
-  return (
-    <div className="relative shrink-0 size-[16px]" data-name="中国移动">
-      <svg className="absolute block inset-0 size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
-        <g id="ä¸­å½ç§»å¨">
-          <circle cx="8" cy="8" fill="var(--fill-0, white)" id="Ellipse 2738" r="8" />
-          <path d={svgPaths.p167e6800} fill="var(--fill-0, #0085D0)" id="Vector" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-function Component({ t }: { t: typeof translations.en }) {
-  return (
-    <div className="content-stretch flex gap-[8px] items-center relative shrink-0" data-name="信号强度">
-      <div className="bg-[#f3f6fe] content-stretch flex gap-[4px] items-center px-[8px] py-[2px] relative rounded-[3px] shrink-0" data-name="Tag 标签">
-        <div aria-hidden="true" className="absolute border border-[#1450f5] border-solid inset-0 pointer-events-none rounded-[3px]" />
-        <div className="relative shrink-0 size-[14px]" data-name="prefixIcon">
-          <div className="absolute inset-[8.11%_15.63%]" data-name="Union">
-            <svg className="absolute block inset-0 size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 9.625 11.7299">
-              <path d={svgPaths.p234d300} fill="var(--fill-0, #1450F5)" id="Union" />
-            </svg>
-          </div>
-        </div>
-        <p className="font-['PingFang_SC:Medium',sans-serif] leading-[20px] not-italic relative shrink-0 text-[#1450f5] text-[12px] whitespace-nowrap">24/7</p>
-      </div>
-      <div className="bg-[#f7fffa] content-stretch flex gap-[4px] items-center justify-center px-[8px] py-[2px] relative rounded-[4px] shrink-0" data-name="Component 1">
-        <div aria-hidden="true" className="absolute border border-[#1ed273] border-solid inset-0 pointer-events-none rounded-[4px]" />
-        <div className="relative shrink-0 size-[14px]" data-name="cloud">
-          <div className="absolute inset-[18.74%_6.25%_18.76%_6.25%]" data-name="Union">
-            <svg className="absolute block inset-0 size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 12.25 8.75">
-              <path d={svgPaths.p1f537200} fill="var(--fill-0, #1ED273)" id="Union" />
-            </svg>
-          </div>
-        </div>
-        <p className="font-['PingFang_SC:Medium',sans-serif] leading-[20px] not-italic relative shrink-0 text-[#1ed273] text-[12px] text-center whitespace-nowrap">{t.online247}</p>
-      </div>
-      <div className="bg-[#f5f7fa] content-stretch flex gap-[8px] items-center justify-center px-[8px] py-[2px] relative rounded-[4px] shrink-0" data-name="Component 2">
-        <div aria-hidden="true" className="absolute border border-[#dfe1e8] border-solid inset-0 pointer-events-none rounded-[4px]" />
-        <Component1 />
-        <p className="font-['PingFang_SC:Medium',sans-serif] leading-[0] not-italic relative shrink-0 text-[#141414] text-[0px] whitespace-nowrap">
-          <span className="leading-[20px] text-[12px]">-65dBm</span>
-          <span className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[12px]">{t.moderate}</span>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function Frame8({ t }: { t: typeof translations.en }) {
-  return (
-    <div className="relative shrink-0 w-full">
-      <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-between relative size-full">
-        <Frame6 />
-        <Component t={t} />
-      </div>
-    </div>
-  );
-}
-
-function Frame10({ t }: { t: typeof translations.en }) {
-  return (
-    <div className="content-stretch flex gap-[2px] items-center relative shrink-0 w-full">
-      <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] not-italic relative shrink-0 text-[#676a72] text-[12px] whitespace-nowrap">{t.customer}</p>
-    </div>
-  );
-}
-
-function Frame11({ t }: { t: typeof translations.en }) {
-  return (
-    <div className="content-stretch flex gap-[2px] items-center relative shrink-0 w-full">
-      <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] not-italic relative shrink-0 text-[#676a72] text-[12px] whitespace-nowrap">{t.streetAddress}</p>
-    </div>
-  );
-}
-
-function Frame12({ t }: { t: typeof translations.en }) {
-  return (
-    <div className="content-stretch flex gap-[2px] items-center relative shrink-0 w-full">
-      <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] not-italic relative shrink-0 text-[#676a72] text-[12px] whitespace-nowrap">{t.maintenanceContract}</p>
-    </div>
-  );
-}
-
-function Frame13({ t }: { t: typeof translations.en }) {
-  return (
-    <div className="content-stretch flex gap-[2px] items-center relative shrink-0 w-full">
-      <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] not-italic relative shrink-0 text-[#676a72] text-[12px] whitespace-nowrap">{t.contract247}</p>
-    </div>
-  );
-}
-
-function Frame9({ t }: { t: typeof translations.en }) {
-  return (
-    <div className="relative shrink-0 w-full">
-      <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-between relative size-full">
-        <div className="content-stretch flex flex-col items-start relative shrink-0 w-[180px]">
-          <Frame10 t={t} />
-          <p className="font-['PingFang_SC:Medium',sans-serif] leading-[22px] not-italic relative shrink-0 text-[#141414] text-[14px] w-full">中国国家博物馆</p>
-        </div>
-        <div className="flex h-[20px] items-center justify-center relative shrink-0 w-0" style={{ "--transform-inner-width": "1185", "--transform-inner-height": "19" } as React.CSSProperties}>
-          <div className="flex-none rotate-90">
-            <div className="h-0 relative w-[20px]">
-              <div className="absolute inset-[-1px_0_0_0]">
-                <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 20 1">
-                  <line id="Line 231" stroke="var(--stroke-0, #DFE1E8)" x2="20" y1="0.5" y2="0.5" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="content-stretch flex flex-col items-start relative shrink-0 w-[180px]">
-          <Frame11 t={t} />
-          <p className="font-['PingFang_SC:Medium',sans-serif] leading-[22px] not-italic relative shrink-0 text-[#141414] text-[14px] w-full">北京市东城区东长安街16号</p>
-        </div>
-        <div className="flex h-[20px] items-center justify-center relative shrink-0 w-0" style={{ "--transform-inner-width": "1185", "--transform-inner-height": "19" } as React.CSSProperties}>
-          <div className="flex-none rotate-90">
-            <div className="h-0 relative w-[20px]">
-              <div className="absolute inset-[-1px_0_0_0]">
-                <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 20 1">
-                  <line id="Line 231" stroke="var(--stroke-0, #DFE1E8)" x2="20" y1="0.5" y2="0.5" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="content-stretch flex flex-col items-start relative shrink-0 w-[180px]">
-          <Frame12 t={t} />
-          <p className="font-['PingFang_SC:Medium',sans-serif] leading-[22px] not-italic relative shrink-0 text-[#141414] text-[14px] w-full">{t.valid} (KONE Care Plus)</p>
-        </div>
-        <div className="flex h-[20px] items-center justify-center relative shrink-0 w-0" style={{ "--transform-inner-width": "1185", "--transform-inner-height": "19" } as React.CSSProperties}>
-          <div className="flex-none rotate-90">
-            <div className="h-0 relative w-[20px]">
-              <div className="absolute inset-[-1px_0_0_0]">
-                <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 20 1">
-                  <line id="Line 231" stroke="var(--stroke-0, #DFE1E8)" x2="20" y1="0.5" y2="0.5" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="content-stretch flex flex-col items-start relative shrink-0 w-[180px]">
-          <Frame13 t={t} />
-          <p className="font-['PingFang_SC:Medium',sans-serif] leading-[22px] not-italic relative shrink-0 text-[#141414] text-[14px] w-full">{t.valid}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function Content2({ t, isActive, onClick }: { t: typeof translations.en; isActive: boolean; onClick: () => void }) {
   return (
@@ -2134,21 +1966,12 @@ function OperationRecordsContent({ t }: { t: typeof translations.en }) {
   };
 
   return (
-    <div className="rounded-[8px] relative" data-name="操作记录">
+    // 描边改为真实 border（与 DetailSection 一致），标题栏起点与其他页签的卡片对齐
+    <section aria-labelledby="device-op-records-title" className="relative overflow-hidden rounded-lg border border-stroke bg-container" data-name="操作记录">
       <div className="content-stretch flex flex-col items-start overflow-clip relative rounded-[inherit] size-full">
-        {/* Card Header */}
-        <div className="bg-[#fafbfc] relative shrink-0 w-full">
-          <div aria-hidden="true" className="absolute border-[#dfe1e8] border-b border-solid inset-0 pointer-events-none" />
-          <div className="flex flex-row items-center size-full">
-            <div className="content-stretch flex gap-[12px] items-center pb-[9px] pt-[8px] px-[12px] relative size-full">
-              <div className="relative shrink-0">
-                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex gap-[8px] items-center relative size-full">
-                  <div className="bg-[#4373f7] h-[14px] rounded-[1px] shrink-0 w-[4px]" />
-                  <p className="font-['PingFang_SC:Medium',sans-serif] leading-[22px] not-italic relative shrink-0 text-[#141414] text-[14px] whitespace-nowrap">{t.opRecordsTitle}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* 卡片标题：设备详情通用卡片标题（Figma 7363:30962） */}
+        <div className="w-full">
+          <DetailCardHeader title={t.opRecordsTitle} titleId="device-op-records-title" />
         </div>
 
         {/* Filter Form */}
@@ -2242,13 +2065,13 @@ function OperationRecordsContent({ t }: { t: typeof translations.en }) {
           <div className="relative rounded-[6px] w-full" data-name="Table 表格(column 列模式)">
             <div className="content-stretch flex flex-col items-start overflow-clip relative rounded-[inherit] size-full">
               <div className="content-stretch flex items-start relative w-full">
-                {/* Operation Type Column: w-[92px] */}
-                <div className="content-stretch flex flex-col items-start relative shrink-0 w-[92px]">
+                {/* Operation Type Column: 首列宽 92 按 16px 边距设计，随统一边距加宽 */}
+                <div className="content-stretch flex flex-col items-start relative shrink-0 w-[calc(76px+var(--iot-table-edge-start))]">
                   <div aria-hidden="true" className="absolute border border-[#dfe1e8] border-solid inset-0 pointer-events-none" />
                   <div className="bg-[#f5f7fa] relative shrink-0 w-full">
                     <div aria-hidden="true" className="absolute border-[#dfe1e8] border-b border-solid inset-0 pointer-events-none" />
                     <div className="flex flex-row items-center size-full">
-                      <div className="content-stretch flex items-center px-[16px] py-[8px] relative size-full">
+                      <div className="content-stretch flex items-center pl-[var(--iot-table-edge-start)] pr-[16px] py-[8px] relative size-full">
                         <p className="flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#8f9195] text-[14px] text-ellipsis whitespace-nowrap">{t.opType}</p>
                       </div>
                     </div>
@@ -2257,7 +2080,7 @@ function OperationRecordsContent({ t }: { t: typeof translations.en }) {
                     <div key={idx} className="bg-white relative shrink-0 w-full">
                       <div aria-hidden="true" className="absolute border-[#dfe1e8] border-b border-solid inset-0 pointer-events-none" />
                       <div className="flex flex-row items-center size-full">
-                        <div className="content-stretch flex items-center px-[16px] py-[11px] relative size-full">
+                        <div className="content-stretch flex items-center pl-[var(--iot-table-edge-start)] pr-[16px] py-[11px] relative size-full">
                           <div className="bg-[#f5f7fa] content-stretch flex gap-[2px] items-center px-[6px] py-[2px] relative rounded-[3px] shrink-0">
                             <div aria-hidden="true" className="absolute border border-[#333740] border-solid inset-0 pointer-events-none rounded-[3px]" />
                             <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] not-italic relative shrink-0 text-[#333740] text-[12px] whitespace-nowrap">{row.opType}</p>
@@ -2396,12 +2219,12 @@ function OperationRecordsContent({ t }: { t: typeof translations.en }) {
                   })}
                 </div>
 
-                {/* Arrow Column: w-[48px] */}
-                <div className="content-stretch flex flex-col items-start relative shrink-0 w-[48px]">
+                {/* Arrow Column：箭头列视为最右列，8 + 32px 按钮 + 右边距，按钮右缘距表格右边缘 = 右边距 */}
+                <div className="content-stretch flex flex-col items-start relative shrink-0 w-[calc(40px+var(--iot-table-edge-end))]">
                   <div className="bg-[#f5f7fa] relative shrink-0 w-full">
                     <div aria-hidden="true" className="absolute border-[#dfe1e8] border-b border-solid inset-0 pointer-events-none" />
                     <div className="flex flex-row items-center size-full">
-                      <div className="content-stretch flex items-center px-[16px] py-[8px] relative size-full">
+                      <div className="content-stretch flex items-center pl-2 pr-[var(--iot-table-edge-end)] py-[8px] relative size-full">
                         <p className="flex-[1_0_0] font-['PingFang_SC:Regular',sans-serif] h-[22px] leading-[22px] min-w-px not-italic overflow-hidden relative text-[#8f9195] text-[14px] text-ellipsis whitespace-nowrap">​</p>
                       </div>
                     </div>
@@ -2410,7 +2233,7 @@ function OperationRecordsContent({ t }: { t: typeof translations.en }) {
                     <div key={idx} className="bg-white relative shrink-0 w-full">
                       <div aria-hidden="true" className="absolute border-[#dfe1e8] border-b border-solid inset-0 pointer-events-none" />
                       <div className="flex flex-row items-center justify-center size-full">
-                        <div className="content-stretch flex items-center justify-center px-[16px] py-[7px] relative size-full">
+                        <div className="content-stretch flex items-center justify-center pl-2 pr-[var(--iot-table-edge-end)] py-[7px] relative size-full">
                           <div className="overflow-clip relative rounded-[128px] shrink-0 size-[32px]">
                             <div className="-translate-x-1/2 -translate-y-1/2 absolute left-1/2 overflow-clip size-[16px] top-1/2">
                               <div className="absolute flex inset-[19.27%_33.98%_18.23%_31.25%] items-center justify-center" style={{ containerType: "size" }}>
@@ -2495,8 +2318,7 @@ function OperationRecordsContent({ t }: { t: typeof translations.en }) {
           </div>
         </div>
       </div>
-      <div aria-hidden="true" className="absolute border border-[#dfe1e8] border-solid inset-0 pointer-events-none rounded-[8px]" />
-    </div>
+    </section>
   );
 }
 
@@ -2676,13 +2498,21 @@ export default function Events({
   );
   const [isTabSticky, setIsTabSticky] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeSidebarItem, setActiveSidebarItem] = useState<string | null>(null);
+  // 登录后的落地页：通力 / 仟帆统一进入「设备总览」；账号没有该菜单权限时（如维保员工）退回设备查询（null）
+  const getLandingItem = (account?: AppAccount | null) => (account?.sidebarPermissions.includes('overview') ? 'overview' : null);
+  const [activeSidebarItem, setActiveSidebarItem] = useState<string | null>(() => getLandingItem(currentUser));
   const [isTaskProgressPage, setIsTaskProgressPage] = useState(false);
   const [progressRefreshKey, setProgressRefreshKey] = useState(0);
   const [batchDispatchRule, setBatchDispatchRule] = useState(DEFAULT_BATCH_DISPATCH_RULE);
   const [unbindApprovalRule, setUnbindApprovalRule] = useState(DEFAULT_UNBIND_APPROVAL_RULE);
   const [nkeFloorLearningRule, setNkeFloorLearningRule] = useState(DEFAULT_NKE_FLOOR_LEARNING_RULE);
   const [approvalTab, setApprovalTab] = useState<"initiated" | "pending">("initiated");
+  // 设备总览的子视图：设备筛选下顶栏开启返回 / 前进 / 刷新
+  const [deviceOverviewView, setDeviceOverviewView] = useState<DeviceOverviewView>("overview");
+  const [deviceOverviewRefreshKey, setDeviceOverviewRefreshKey] = useState(0);
+  // 设备查询：选中的设备即进入设备详情；顶栏开启返回 / 前进 / 刷新
+  const [selectedQueryDevice, setSelectedQueryDevice] = useState<QueryDevice | null>(null);
+  const [detailRefreshKey, setDetailRefreshKey] = useState(0);
   const tabRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const t = translations[language];
@@ -2698,6 +2528,8 @@ export default function Events({
 
   const handleSidebarItemChange = (item: string) => {
     setIsTaskProgressPage(false);
+    setDeviceOverviewView("overview");
+    setSelectedQueryDevice(null);
     setActiveSidebarItem(item);
     if (item === "operation-history") setActiveTab("operationRecords");
   };
@@ -2708,8 +2540,31 @@ export default function Events({
   const isRuleConfigurationPage = activeSidebarItem === 'rule-configuration';
   const isUserManagementPage = activeSidebarItem === 'user-management';
   const isRoleManagementPage = activeSidebarItem === 'role-management';
+  const isDeviceOverviewPage = activeSidebarItem === 'overview';
+  const isDeviceFilterPage = isDeviceOverviewPage && deviceOverviewView === 'filter';
+  const currentEdition = getAccountEdition(displayUser);
+  // 切换平台时 DeviceOverviewContent 按 edition 重挂载，子视图同步回到总览
+  useEffect(() => {
+    setDeviceOverviewView("overview");
+  }, [currentEdition]);
+
+  // 切换账号（含顶栏的通力 / 仟帆快捷切换）等同重新登录：回到该账号的落地页
+  const currentEmail = currentUser?.email;
+  const isFirstAccount = useRef(true);
+  useEffect(() => {
+    if (isFirstAccount.current) {
+      isFirstAccount.current = false;
+      return;
+    }
+    setIsTaskProgressPage(false);
+    setSelectedQueryDevice(null);
+    setActiveSidebarItem(getLandingItem(currentUser));
+    // 只在账号变化时触发
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentEmail]);
   const isDeviceQueryPage = activeSidebarItem === null || activeSidebarItem === 'search';
-  const isDevelopmentPage = !isTaskProgressPage && !isDeviceQueryPage && activeSidebarItem !== 'batch-operations' && activeSidebarItem !== 'approval-center' && activeSidebarItem !== 'task-list' && activeSidebarItem !== 'rule-configuration' && activeSidebarItem !== 'user-management' && activeSidebarItem !== 'role-management';
+  const isDeviceDetailPage = !isTaskProgressPage && isDeviceQueryPage && selectedQueryDevice !== null;
+  const isDevelopmentPage = !isTaskProgressPage && !isDeviceQueryPage && activeSidebarItem !== 'overview' && activeSidebarItem !== 'batch-operations' && activeSidebarItem !== 'approval-center' && activeSidebarItem !== 'task-list' && activeSidebarItem !== 'rule-configuration' && activeSidebarItem !== 'user-management' && activeSidebarItem !== 'role-management';
 
   // Sync when parent changes the active tab
   useEffect(() => {
@@ -2756,9 +2611,11 @@ export default function Events({
   }, []);
 
   return (
-    <div className="bg-[#f5f7fa] relative size-full flex" data-name="Events">
+    <div className="relative flex h-dvh w-full bg-page" data-name="Events">
+      {/* 高度锁定为视口（h-dvh），让下方主内容区成为唯一滚动容器：
+          外层不限高时整页由窗口滚动，主内容区的 overflow-y-auto 反而让其内部的 sticky（设备查询工具栏、设备详情页签）失效 */}
       {/* 顶部导航 —— 设计系统组件，固定定位由外部 className 提供。
-          任务进度视图下开启 pageControls（返回/前进/刷新），
+          任务进度视图与设备总览的「设备筛选」视图下开启 pageControls（返回/前进/刷新），
           这组控件在顶栏中是可选元素，其余视图不显示。
           右区的消息中心与账号菜单属于业务功能，通过 trailing 插槽传入。 */}
       <TopNav
@@ -2772,6 +2629,20 @@ export default function Events({
           labels: language === 'en'
             ? { back: 'Back', forward: 'Forward', refresh: 'Refresh' }
             : { back: '返回', forward: '前进', refresh: '刷新' },
+        } : isDeviceFilterPage ? {
+          // 设备筛选：返回设备总览；没有下一页，省略 onForward 即为禁用态
+          onBack: () => setDeviceOverviewView("overview"),
+          onRefresh: () => setDeviceOverviewRefreshKey((current) => current + 1),
+          labels: language === 'en'
+            ? { back: 'Back to Equipment Overview', forward: 'Forward', refresh: 'Refresh' }
+            : { back: '返回设备总览', forward: '前进', refresh: '刷新' },
+        } : isDeviceDetailPage ? {
+          // 设备详情：返回设备查询（保留搜索现场）；没有下一页，前进为禁用态
+          onBack: () => setSelectedQueryDevice(null),
+          onRefresh: () => setDetailRefreshKey((current) => current + 1),
+          labels: language === 'en'
+            ? { back: 'Back to Equipment Search', forward: 'Forward', refresh: 'Refresh' }
+            : { back: '返回设备查询', forward: '前进', refresh: '刷新' },
         } : undefined}
         trailing={<>
           {/* Demo 用：通力 / 仟帆快速切换，直接以各平台的默认账号进入 */}
@@ -2779,7 +2650,7 @@ export default function Events({
           <Frame3 language={language} onLanguageChange={toggleLanguage} user={displayUser} onLogout={onLogout} onSwitchAccount={onSwitchAccount} taskBadgeCount={taskBadgeCount ?? 2} notifications={notifications ?? []} onMarkNotificationsRead={() => onMarkNotificationsRead?.()} onOpenApprovalCenter={() => { setIsTaskProgressPage(false); setActiveSidebarItem("approval-center"); setApprovalTab("pending"); }} onOpenTaskList={() => { setIsTaskProgressPage(false); setActiveSidebarItem("task-list"); }} onOpenMessageCenter={() => { setIsTaskProgressPage(false); setActiveSidebarItem("message-center"); }} />
         </>}
       >
-        <p className="rounded-sm border border-stroke bg-secondarycontainer px-2 py-1 whitespace-nowrap text-foot12 text-disabled">本 Demo 仅演示交互与内容，开发样式请以 Figma 设计交付为准，勿直接基于 Demo 开发。</p>
+        <p className="rounded-sm border border-stroke bg-secondarycontainer px-2 py-1 whitespace-nowrap text-foot12 text-disabled">Demo</p>
       </TopNav>
 
       {/* 侧边导航 —— 设计系统组件。宽度（展开 232 / 折叠 64）由组件内部控制，
@@ -2812,6 +2683,16 @@ export default function Events({
             <ApprovalCenterContent language={language} currentUser={displayUser} approvals={approvals ?? []} defaultTab={approvalTab} onReview={(id, result, reviewRemark) => onReviewUpgradeApproval?.(id, result, reviewRemark)} onReapply={(id, submissionRemark) => onReapplyUpgradeApproval?.(id, submissionRemark)} />
           ) : isTaskListPage ? (
             <TaskListContent language={language} approvals={approvals ?? []} onOpenTaskProgress={() => { setIsTaskProgressPage(true); scrollContainerRef.current?.scrollTo({ top: 0 }); }} />
+          ) : isDeviceOverviewPage ? (
+            // 按平台版本重挂载：通力 / 仟帆各自一份组织架构、项目与设备
+            <DeviceOverviewContent
+              key={currentEdition}
+              language={language}
+              edition={currentEdition}
+              view={deviceOverviewView}
+              onViewChange={setDeviceOverviewView}
+              refreshKey={deviceOverviewRefreshKey}
+            />
           ) : isUserManagementPage ? (
             // 按平台版本重挂载：通力 / 仟帆各自一份用户名单
             <UserManagementContent key={getAccountEdition(displayUser)} language={language} edition={getAccountEdition(displayUser)} />
@@ -2835,60 +2716,44 @@ export default function Events({
             </div>
           ) : (
             <>
-          {/* Device Info Card */}
-          <div className="bg-white flex flex-col gap-[24px] items-start mx-[24px] mt-[20px] px-[29px] py-[17px] rounded-[8px] relative" data-name="Container">
-            <div aria-hidden="true" className="absolute border border-[#dfe1e8] border-solid inset-0 pointer-events-none rounded-[8px]" />
-            <Frame8 t={t} />
-            <Frame9 t={t} />
+          {/* 设备查询列表：打开详情时隐藏但保持挂载，返回后搜索条件与结果仍在；
+              按平台 + 账号重挂载，各自一份最近查看记录 */}
+          {/* flex-1 + flex-col：让查询页白卡片撑满剩余高度，版权信息始终贴在页面底部 */}
+          <div hidden={selectedQueryDevice !== null} className={selectedQueryDevice === null ? "flex flex-1 flex-col" : undefined}>
+            <DeviceQueryContent
+              key={`${currentEdition}:${displayUser.email}`}
+              language={language}
+              edition={currentEdition}
+              email={displayUser.email}
+              onOpenDevice={(device) => {
+                setSelectedQueryDevice(device);
+                setActiveTab('liveData');
+                scrollContainerRef.current?.scrollTo({ top: 0 });
+              }}
+            />
+          </div>
+          {selectedQueryDevice && (
+            <>
+          {/* 设备详情顶部信息卡：与查询结果同一个组件（白底描边变体） */}
+          <div className="mx-6 mt-5">
+            <DeviceInfoCard device={selectedQueryDevice} language={language} variant="detail" />
           </div>
 
-          {/* Sticky Tabs */}
-          <div
-            ref={tabRef}
-            className={`sticky top-0 z-10 ${
-              isTabSticky
-                ? 'bg-white'
-                : 'bg-[#f5f7fa] mx-[24px] mt-[20px]'
-            }`}
-          >
-            <div className={`bg-white ${isTabSticky ? '' : 'rounded-tl-[8px] rounded-tr-[8px]'}`} data-name="normalTabs 选项卡-默认主题">
-              <div className="content-stretch flex items-start overflow-clip relative rounded-[inherit] size-full">
-                <div className="bg-white content-stretch flex items-start p-[8px] relative shrink-0" data-name="item/normalTabs/top/m">
-                  {activeTab === 'liveData' && <div aria-hidden="true" className="absolute border-[#1450f5] border-b-3 border-solid inset-0 pointer-events-none" />}
-                  <Content2 t={t} isActive={activeTab === 'liveData'} onClick={() => handleTabChange('liveData')} />
-                </div>
-                <div className="bg-white content-stretch flex items-start p-[8px] relative shrink-0" data-name="item/normalTabs/top/m">
-                  {activeTab === 'masterData' && <div aria-hidden="true" className="absolute border-[#1450f5] border-b-3 border-solid inset-0 pointer-events-none" />}
-                  <Content3 t={t} isActive={activeTab === 'masterData'} onClick={() => handleTabChange('masterData')} />
-                </div>
-                <div className="bg-white content-stretch flex items-start p-[8px] relative shrink-0" data-name="item/normalTabs/top/m">
-                  {activeTab === 'statistics' && <div aria-hidden="true" className="absolute border-[#1450f5] border-b-3 border-solid inset-0 pointer-events-none" />}
-                  <Content4 t={t} isActive={activeTab === 'statistics'} onClick={() => handleTabChange('statistics')} />
-                </div>
-                <div className="bg-white content-stretch flex items-start p-[8px] relative shrink-0" data-name="item/normalTabs/top/m">
-                  {activeTab === 'events' && <div aria-hidden="true" className="absolute border-[#1450f5] border-b-3 border-solid inset-0 pointer-events-none" />}
-                  <Content5 t={t} isActive={activeTab === 'events'} onClick={() => handleTabChange('events')} />
-                </div>
-                <div className="bg-white content-stretch flex items-start p-[8px] relative shrink-0" data-name="item/normalTabs/top/m">
-                  {activeTab === 'operationRecords' && <div aria-hidden="true" className="absolute border-[#1450f5] border-b-3 border-solid inset-0 pointer-events-none" />}
-                  <Content6 t={t} isActive={activeTab === 'operationRecords'} onClick={() => handleTabChange('operationRecords')} />
-                </div>
-              </div>
-              <div aria-hidden="true" className={`absolute border-[#dfe1e8] border-b border-solid inset-0 pointer-events-none ${isTabSticky ? '' : 'rounded-tl-[8px] rounded-tr-[8px]'}`} />
-            </div>
+          {/* 页签（Figma 5813:34058）：吸顶后铺满宽度，未吸顶时与上方面板同宽 */}
+          <div ref={tabRef} className={`sticky top-0 z-10 ${isTabSticky ? '' : 'mx-6 mt-5 overflow-hidden rounded-t-lg'}`}>
+            <DeviceDetailTabs language={language} value={activeTab} onChange={handleTabChange} />
           </div>
 
-          {/* Tab Content */}
-          <div className="flex-1 mx-[24px] mt-[16px]">
+          {/* Tab Content —— 顶栏「刷新」通过 key 重挂载当前选项卡内容 */}
+          <div key={detailRefreshKey} className="flex-1 mx-[24px] mt-[16px]">
             {activeTab === 'liveData' && <LiveDataContent language={language} />}
             {activeTab === 'masterData' && <DeviceArchiveContent language={language} />}
-            {activeTab === 'events' && (
-              <EventsTabContent t={t} language={language} />
-            )}
-            {activeTab === 'statistics' && <StatisticsContentScrollable t={t} language={language} />}
+            {activeTab === 'events' && <DeviceEventsTab device={selectedQueryDevice} language={language} />}
+            {activeTab === 'statistics' && <DeviceStatisticsTab device={selectedQueryDevice} language={language} />}
             {activeTab === 'operationRecords' && <OperationRecordsContent t={t} />}
           </div>
-
+            </>
+          )}
             </>
           )}
 

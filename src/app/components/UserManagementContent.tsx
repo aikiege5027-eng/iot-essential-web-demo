@@ -23,7 +23,7 @@ type Language = "en" | "cn";
  * 按钮靠右、与输入框底部对齐。
  *
  * 关键词 / 角色只在点击「查询」（或在关键词框按回车）时生效，与批量操作页一致。
- * 「禁用 / 启用」只改本地状态，没有接后端；「编辑」尚无设计稿，先给出开发中提示。
+ * 「禁用 / 启用」只改本地状态，没有接后端；「重置密码」（仅仟帆）二次确认后只弹成功提示；「编辑」尚无设计稿，先给出开发中提示。
  */
 
 const PAGE_SIZE = 10;
@@ -48,6 +48,11 @@ const copy = {
     disable: "禁用",
     enable: "启用",
     deregister: "注销",
+    resetPassword: "重置密码",
+    passwordReset: (name: string) => `${name} 的密码重置成功`,
+    resetTitle: "重置密码",
+    resetBody: (name: string) => `确认重置「${name}」的密码吗？重置后该用户需使用新密码登录。`,
+    resetOk: "确认重置",
     disableTitle: "禁用用户",
     disableBody: (name: string) => `确认禁用「${name}」吗？禁用后该账号将无法登录，可随时重新启用。`,
     disableOk: "确认禁用",
@@ -81,6 +86,11 @@ const copy = {
     disable: "Disable",
     enable: "Enable",
     deregister: "Deregister",
+    resetPassword: "Reset Password",
+    passwordReset: (name: string) => `Password reset for ${name}`,
+    resetTitle: "Reset password",
+    resetBody: (name: string) => `Reset the password of "${name}"? The user will need the new password to sign in.`,
+    resetOk: "Reset",
     disableTitle: "Disable user",
     disableBody: (name: string) => `Disable "${name}"? The account can no longer sign in until it is enabled again.`,
     disableOk: "Disable",
@@ -115,6 +125,7 @@ export default function UserManagementContent({ language, edition }: UserManagem
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [pendingDeregister, setPendingDeregister] = useState<ManagedUser | null>(null);
   const [pendingDisable, setPendingDisable] = useState<ManagedUser | null>(null);
+  const [pendingReset, setPendingReset] = useState<ManagedUser | null>(null);
 
   const submitQuery = () => {
     setAppliedKeyword(keyword.trim().toLowerCase());
@@ -173,6 +184,13 @@ export default function UserManagementContent({ language, edition }: UserManagem
     if (!pendingDisable) return;
     setStatus(pendingDisable, "disabled");
     setPendingDisable(null);
+  };
+
+  /** 重置密码需要二次确认（仟帆）；演示环境不改本地数据，只提示重置成功。 */
+  const confirmReset = () => {
+    if (!pendingReset) return;
+    MessagePlugin.success(t.passwordReset(pendingReset.name), 3000);
+    setPendingReset(null);
   };
 
   /** 注销：账号被注销后从名单中移除（仅仟帆开放）。 */
@@ -282,20 +300,22 @@ export default function UserManagementContent({ language, edition }: UserManagem
         const canManage = !PROTECTED_ROLES.has(user.role);
         const toggleLabel = user.status === "normal" ? t.disable : t.enable;
 
-        // 仟帆：编辑 + 「更多 ▾」（禁用 / 启用、注销收进下拉）
+        // 仟帆：编辑 + 「更多 ▾」（禁用 / 启用、重置密码、注销收进下拉）。
+        // 仟帆只有陈思远一个登录账号，他自己那一行在上面已置空，所以其余每一行都能重置密码；
+        // 其他系统管理员不可禁用 / 注销，下拉里只有「重置密码」。
         if (hasTenant) {
           return (
             <div className="flex items-center gap-2 whitespace-nowrap">
               {editLink}
-              {canManage && (
-                <Dropdown
+              <Dropdown
                   trigger="click"
                   placement="bottom-right"
                   // 菜单宽度与任务中心「更多」菜单一致（112）
                   minColumnWidth={112}
                   options={[
-                    { content: toggleLabel, value: "toggle" },
-                    { content: t.deregister, value: "deregister" },
+                    ...(canManage ? [{ content: toggleLabel, value: "toggle" }] : []),
+                    { content: t.resetPassword, value: "reset-password" },
+                    ...(canManage ? [{ content: t.deregister, value: "deregister" }] : []),
                   ]}
                   onClick={(option) => {
                     if (option.value === "toggle") {
@@ -303,6 +323,8 @@ export default function UserManagementContent({ language, edition }: UserManagem
                       if (user.status === "normal") setPendingDisable(user);
                       else setStatus(user, "normal");
                     }
+                    // 重置密码先二次确认
+                    if (option.value === "reset-password") setPendingReset(user);
                     if (option.value === "deregister") setPendingDeregister(user);
                   }}
                 >
@@ -316,7 +338,6 @@ export default function UserManagementContent({ language, edition }: UserManagem
                     <ChevronDown aria-hidden="true" className="size-3.5" />
                   </button>
                 </Dropdown>
-              )}
             </div>
           );
         }
@@ -386,6 +407,18 @@ export default function UserManagementContent({ language, edition }: UserManagem
           confirmBtn={t.disableOk}
           onConfirm={confirmDisable}
           onClose={() => setPendingDisable(null)}
+        />
+        <Dialog
+          visible={pendingReset !== null}
+          // 与禁用确认同一形式（Figma Dialog theme=warning）
+          theme="warning"
+          header={t.resetTitle}
+          body={pendingReset ? t.resetBody(pendingReset.name) : null}
+          placement="center"
+          cancelBtn={{ content: t.cancel, theme: "default", variant: "base" }}
+          confirmBtn={t.resetOk}
+          onConfirm={confirmReset}
+          onClose={() => setPendingReset(null)}
         />
         <Dialog
           visible={pendingDeregister !== null}

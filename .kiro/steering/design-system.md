@@ -344,6 +344,7 @@ Figma 图标页的说明是「icon 与开发一致」，即两者应当对齐。
 | Transfer 穿梭框 | `Transfer` | 列表框宽 200，行高 32 | ⚠ 头部无 title，需显式关掉 |
 | Dialog 对话框 | `Dialog`（静态陈列 `DialogCard`） | 宽 480（min 480 / max 960），圆角 8，内边距 32 | ⚠ 分割线变体与 `error` 主题名无 API 对应；全屏模式样式未补 |
 | Message 全局提示 | `Message` / `MessagePlugin` | 高 48，圆角 6，图标 20 | ⚠ 阴影变量与节点实测不一致；`question` / `loading` 主题需确认用法 |
+| Drawer 抽屉 | `Drawer`（样式类 `km-drawer`） | 宽 300 / 500 / 760，头部与底部各 56，蒙层 #141414 60% | 后补入（[45841:327431](https://www.figma.com/design/b5cc1y3jzLmOQkpa8vz5AX/China-Design-system-for-web?node-id=45841-327431)），`tdesign-components.md` 尚无详细小节；首个使用方是设备查询的「设备筛选」抽屉，审批中心详情抽屉仍是手写实现、未迁移 |
 
 ### 跨组件通用规则
 
@@ -540,7 +541,21 @@ import { WorkbenchIcon, LanguageIcon, NotificationIcon } from "@/app/components/
 
 规格：控件组前有一条 37px 竖分隔线，三个 32×32 圆角 4px 按钮，间距 8px，图标 16×16。
 
-**省略某个回调即为禁用态**（`text-disabled`），对应设计稿中「前进」置灰 `#959595` 的表现。目前仅任务进度视图启用这组控件。
+**省略某个回调即为禁用态**（`text-disabled`），对应设计稿中「前进」置灰 `#959595` 的表现。目前任务进度视图与设备总览的「设备筛选」视图启用这组控件；二级视图用它返回上级，不再在页面内另放面包屑。
+
+### 移动端框架（< 768px）
+
+设计来源 IOT Delivery [7103:36620](https://www.figma.com/design/L9e70WefNsB8pSYKB5U7zh/IOT-Delivery?node-id=7103-36620)（模板 8895:32007），组件在 `src/app/components/mobile/MobileShell.tsx`，入口 `IoTMobileApp.tsx`。**新建移动端页面用 `MobileShell` + `MobilePageTitle`（+ 可选 `MobileBottomBar`），不要自己拼顶栏。**
+
+| 区域 | 规格 |
+| --- | --- |
+| 顶栏 `MobileTopNav` | 56 高，KONE 标识 + `text-h7 font-semibold` 产品名；右侧 32 圆形 `bg-brand-light` 按钮（账号 / 菜单，展开时菜单变关闭）；点 Logo 回首页 |
+| 菜单 `MobileNavMenu` | 顶栏下方整屏白面板：中英文分段切换 + 一级导航项（`px-5 py-3`、图标 20、`text-h7 font-medium`，选中 `bg-brand-light`） |
+| 页面标题 `MobilePageTitle` | 50 高白底，二级页带 20 返回箭头，标题 `text-h6 font-semibold`，可带右侧操作 |
+| 底部操作 `MobileBottomBar` | 白底 `p-4`、间距 8，TDesign Button `size="large" block`；圆角 6 / 16 Semibold 由 `.km-mobile-actions` 补齐，次要按钮（品牌浅底）用 `.km-mobile-button--secondary` |
+| 底部面板 | TDesign `Drawer placement="bottom"` + `.km-mobile-sheet`（顶部圆角 12、标题居中、24 关闭） |
+
+设计稿里的状态栏、浏览器地址栏与底部工具栏是手机浏览器外壳，不实现。
 
 ### 已知差异
 

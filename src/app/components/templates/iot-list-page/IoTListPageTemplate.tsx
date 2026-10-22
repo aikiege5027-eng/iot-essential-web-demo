@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Button, Dropdown, Input, Pagination, Table } from "tdesign-react";
+import { Button, Drawer, Dropdown, Input, Pagination, Table } from "tdesign-react";
 import type { PrimaryTableCol, PrimaryTableRef, TableRowData } from "tdesign-react";
 import {
   ChevronDown,
@@ -14,11 +14,13 @@ import {
 } from "../../icons/iot-list-page-icons";
 import { cn } from "../../ui/utils";
 import type {
+  IoTEmbeddedFilterToggle,
   IoTFilterField,
   IoTListPageTemplateProps,
   IoTPageAction,
   IoTRowAction,
 } from "./types";
+import { EDGE_END_CLASS, EDGE_START_CLASS, TABLE_EDGE_END, useEdgeFitColumns } from "./useEdgeFitColumns";
 
 const actionTheme = (action: IoTPageAction) => action.theme ?? "default";
 
@@ -205,6 +207,81 @@ function NormalFilters({
   );
 }
 
+const DRAWER_WIDTH = { small: "300px", medium: "500px", large: "760px" } as const;
+
+/**
+ * 筛选抽屉（TDesign Drawer，Figma China Design system 45841:327431「placement=right, overlay=true」）：
+ * 宽度按规范三档 300 / 500 / 760（默认 500）、#141414 60% 蒙层；头部 56 高（H7 Semibold 标题 + 关闭按钮），底部 56 高、按钮左对齐「主按钮 / 次按钮」。
+ * 样式收口在 tdesign-patches.css 的 .km-drawer 下。
+ */
+function FilterDrawer({
+  id,
+  open,
+  onClose,
+  title,
+  toggle,
+  children,
+}: {
+  id: string;
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  toggle?: IoTEmbeddedFilterToggle;
+  children: ReactNode;
+}) {
+  // 不带蒙层时点击抽屉外的页面任意处关闭抽屉（该次点击照常作用于页面，不拦截）。
+  // 排除：抽屉本身、挂在 body 上的下拉 / 日期等弹出层、打开抽屉的按钮（它自己负责切换）。
+  const overlay = toggle?.drawerOverlay ?? true;
+  useEffect(() => {
+    if (!open || overlay) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      if (!target?.closest) return;
+      if (target.closest(".km-drawer .t-drawer__content-wrapper, .t-popup, .t-select__dropdown, [role='listbox']")) return;
+      if (target.closest(`[aria-controls="${id}"]`)) return;
+      onClose();
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [open, overlay, id, onClose]);
+
+  return (
+    <Drawer
+      // 不带蒙层时加 km-drawer--floating：左侧投影把抽屉与页面（尤其同高 56 的顶栏）区分开
+      className={cn("km-drawer", toggle?.drawerOverlay === false && "km-drawer--floating", toggle?.drawerBelowNav && "km-drawer--below-nav")}
+      visible={open}
+      placement="right"
+      size={typeof toggle?.drawerSize === "number" ? `${toggle.drawerSize}px` : DRAWER_WIDTH[toggle?.drawerSize ?? "medium"]}
+      showOverlay={toggle?.drawerOverlay ?? true}
+      header={<h2 id={`${id}-drawer-title`} className="m-0 text-h7 font-semibold text-primary-text">{title}</h2>}
+      closeBtn
+      onClose={onClose}
+      destroyOnClose={false}
+      footer={
+        <div className="flex items-center gap-2">
+          <Button
+            theme="primary"
+            size="medium"
+            onClick={() => {
+              toggle?.onSubmit?.();
+              onClose();
+            }}
+          >
+            {toggle?.submitLabel ?? "查询"}
+          </Button>
+          <Button theme="default" variant="base" size="medium" onClick={() => toggle?.onReset?.()}>
+            {toggle?.resetLabel ?? "重置"}
+          </Button>
+        </div>
+      }
+    >
+      <div id={id} role="group" aria-labelledby={`${id}-drawer-title`} className="flex flex-col">
+        {children}
+      </div>
+    </Drawer>
+  );
+}
+
 function EmbeddedFilters({
   fields,
   search,
@@ -215,7 +292,14 @@ function EmbeddedFilters({
   expanded,
   panelId,
   onToggle,
+  onClose,
+  footer,
+  toggle,
 }: {
+  /** 只关不开（抽屉的关闭按钮、蒙层、Esc、查询后关闭），避免已关闭时再次触发变成打开 */
+  onClose: () => void;
+  footer?: ReactNode;
+  toggle?: IoTEmbeddedFilterToggle;
   fields: IoTFilterField[];
   search?: IoTListPageTemplateProps<unknown>["embeddedSearch"];
   actions: IoTPageAction[];
@@ -227,13 +311,26 @@ function EmbeddedFilters({
   onToggle: () => void;
 }) {
   const hasSelectedFilters = fields.some((field) => field.value.trim().length > 0);
+  const active = expanded || hasSelectedFilters;
+  const inActions = toggle?.placement === "actions";
+  const inDrawer = toggle?.container === "drawer";
+  const toggleProps = {
+    size: "medium" as const,
+    theme: active ? ("primary" as const) : ("default" as const),
+    variant: active ? ("outline" as const) : ("base" as const),
+    icon: <EmbeddedFilterIcon className="size-4" />,
+    "aria-expanded": expanded,
+    "aria-controls": panelId,
+    ...(inDrawer ? { "aria-haspopup": "dialog" as const } : {}),
+    onClick: onToggle,
+  };
 
   return (
     <div className="flex flex-col gap-4 px-5 pb-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex min-w-0 flex-1 items-center gap-4">
           {search && (
-            <div className="w-full max-w-[400px]">
+            <div className="w-full" style={{ maxWidth: search.maxWidth ?? 400 }}>
               <Input
                 value={search.value}
                 onChange={search.onChange}
@@ -247,24 +344,23 @@ function EmbeddedFilters({
               />
             </div>
           )}
-          {fields.length > 0 && (
-            <Button
-              size="medium"
-              shape="square"
-              theme={expanded || hasSelectedFilters ? "primary" : "default"}
-              variant={expanded || hasSelectedFilters ? "outline" : "base"}
-              icon={<EmbeddedFilterIcon className="size-4" />}
-              aria-label={expanded ? filterLabels.collapse : filterLabels.expand}
-              aria-expanded={expanded}
-              aria-controls={panelId}
-              onClick={onToggle}
-            />
+          {search?.trailing && <div className="flex shrink-0 items-center gap-4">{search.trailing}</div>}
+          {fields.length > 0 && !inActions && (
+            <Button {...toggleProps} shape="square" aria-label={expanded ? filterLabels.collapse : filterLabels.expand} />
           )}
         </div>
-        {customActions ?? <PageActions actions={actions} />}
+        {fields.length > 0 && inActions ? (
+          // 带文字的筛选按钮放在右侧按钮组最左边（样式同设备总览的「设备筛选」）
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button {...toggleProps}>{toggle?.label ?? filterLabels.expand}</Button>
+            {customActions ?? <PageActions actions={actions} />}
+          </div>
+        ) : (
+          customActions ?? <PageActions actions={actions} />
+        )}
       </div>
 
-      {fields.length > 0 && (
+      {fields.length > 0 && !inDrawer && (
         <div
           id={panelId}
           hidden={!expanded}
@@ -273,6 +369,18 @@ function EmbeddedFilters({
           {expanded && (customFilterContent ?? <FilterGrid fields={fields} />)}
         </div>
       )}
+      {fields.length > 0 && inDrawer && (
+        <FilterDrawer
+          id={panelId}
+          open={expanded}
+          onClose={onClose}
+          title={toggle?.drawerTitle ?? toggle?.label ?? filterLabels.expand}
+          toggle={toggle}
+        >
+          {customFilterContent ?? fields.map((field) => <FilterField key={field.id} field={{ ...field, span: 1 }} />)}
+        </FilterDrawer>
+      )}
+      {footer}
     </div>
   );
 }
@@ -344,6 +452,7 @@ function DataTable<Row>({
   | "compactCells"
 >) {
   const tableRef = useRef<PrimaryTableRef>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const captionId = `iot-table-caption-${useId().replaceAll(":", "")}`;
   const tableRows: InternalTableRow<Row>[] = rows.map((value, index) => ({
     __iotKey: getRowKey(value, index),
@@ -389,7 +498,8 @@ function DataTable<Row>({
           {typeof rowOpenLabel === "string" ? rowOpenLabel : "详情"}
         </span>
       ),
-      width: 48,
+      // 箭头列视为最右列：8 + 32px 按钮 + 右边距，按钮右缘距表格右边缘 = 右边距
+      width: TABLE_EDGE_END + 40,
       className: "iot-list-page-table__details",
       cell: ({ row }) => (
         <button
@@ -407,6 +517,15 @@ function DataTable<Row>({
       ),
     });
   }
+
+  // 首尾列统一边距（详情箭头列宽度固定为 8 + 按钮 + 右边距，由自身样式控制，不参与末列收窄）
+  const edgeColumns = tableColumns.map((column, index) => {
+    const isFirst = index === 0;
+    const isLast = index === tableColumns.length - 1 && column.colKey !== "__iot_details";
+    if (!isFirst && !isLast) return column;
+    return { ...column, className: cn(column.className as string, isFirst && EDGE_START_CLASS, isLast && EDGE_END_CLASS) };
+  });
+  const fittedColumns = useEdgeFitColumns(edgeColumns, wrapperRef, minTableWidth);
 
   // TDesign Table 没有原生 caption / table HTML attributes prop。
   // 通过实例 ref 把模板的可访问名称和 busy 状态补到内部原生 table 上。
@@ -437,6 +556,7 @@ function DataTable<Row>({
 
   return (
     <div
+      ref={wrapperRef}
       className="relative mx-5 overflow-x-auto rounded-md border border-stroke"
       aria-busy={loading || undefined}
     >
@@ -462,7 +582,7 @@ function DataTable<Row>({
         ref={tableRef}
         className={cn("iot-list-page-table", compactCells && "iot-list-page-table--compact")}
         style={{ minWidth: `${minTableWidth}px` }}
-        columns={tableColumns}
+        columns={fittedColumns}
         data={loading && loadingMode === "replace" ? [] : tableRows}
         rowKey="__iotKey"
         size="medium"
@@ -541,9 +661,15 @@ export function IoTListPageTemplate<Row>({
   tableCaption,
   minTableWidth,
   compactCells,
+  embeddedFooter,
+  embeddedFilterToggle,
   beforeTable,
+  customBody,
   pagination,
   footer,
+  fillHeight = false,
+  stickyToolbar = false,
+  customBodyHeader,
   className,
 }: IoTListPageTemplateProps<Row>) {
   const [internalExpanded, setInternalExpanded] = useState(defaultFilterExpanded);
@@ -557,46 +683,63 @@ export function IoTListPageTemplate<Row>({
   };
 
   return (
-    <div className={cn("flex min-h-full w-full min-w-0 flex-col px-6 pt-[22px]", className)}>
-      <section aria-labelledby={`${panelId}-title`} className="overflow-hidden rounded-md border border-stroke bg-container">
-        <header className="flex min-h-[68px] flex-wrap items-center justify-between gap-4 px-5 py-4">
-          <h1 id={`${panelId}-title`} className="text-h5 font-semibold text-primary-text">
-            {title}
-          </h1>
-          {headerTrailing ??
-            (filterMode !== "embedded" && !(filterMode === "normal" && actionsPlacement === "filter") ? (
-              <PageActions actions={actions} />
-            ) : null)}
-        </header>
+    <div className={cn("flex min-h-full w-full min-w-0 flex-col px-6 pt-[22px]", fillHeight && "flex-1", className)}>
+      <section
+        aria-labelledby={`${panelId}-title`}
+        // 吸顶时卡片不能设 overflow：overflow-hidden 会让卡片自身成为滚动容器（sticky 失效），overflow-clip 会裁掉上方的遮挡层
+        className={cn("rounded-md border border-stroke bg-container", !stickyToolbar && "overflow-hidden", fillHeight && "flex flex-1 flex-col")}
+      >
+        {/* 标题 + 筛选工具栏；stickyToolbar 时固定在初始位置（距主区顶部 22px）不随结果滚动：
+            外层向上延伸 22px、页面底色，遮住滚上去的结果；内层自带卡片的上、左、右描边覆盖在卡片描边上。
+            customBodyHeader（如「搜索结果（N）」）也在固定区内，下方只有结果列表滚动 */}
+        <div className={cn(stickyToolbar && "sticky top-0 z-10 -mx-px -mt-[23px] bg-page pt-[22px]")}>
+        <div className={cn(stickyToolbar && "rounded-t-md border-x border-t border-stroke bg-container")}>
+          <header className="flex min-h-[68px] flex-wrap items-center justify-between gap-4 px-5 py-4">
+            <h1 id={`${panelId}-title`} className="text-h5 font-semibold text-primary-text">
+              {title}
+            </h1>
+            {headerTrailing ??
+              (filterMode !== "embedded" && !(filterMode === "normal" && actionsPlacement === "filter") ? (
+                <PageActions actions={actions} />
+              ) : null)}
+          </header>
 
-        {filterMode === "normal" && (
-          <NormalFilters
-            fields={filters}
-            collapsedCount={normalCollapsedCount}
-            labels={embeddedFilterLabels}
-            expanded={expanded}
-            panelId={panelId}
-            onToggle={() => setExpanded(!expanded)}
-            trailing={actionsPlacement === "filter" ? <PageActions actions={actions} /> : undefined}
-          />
-        )}
+          {filterMode === "normal" && (
+            <NormalFilters
+              fields={filters}
+              collapsedCount={normalCollapsedCount}
+              labels={embeddedFilterLabels}
+              expanded={expanded}
+              panelId={panelId}
+              onToggle={() => setExpanded(!expanded)}
+              trailing={actionsPlacement === "filter" ? <PageActions actions={actions} /> : undefined}
+            />
+          )}
 
-        {filterMode === "embedded" && (
-          <EmbeddedFilters
-            fields={filters}
-            search={embeddedSearch}
-            actions={actions}
-            customActions={embeddedActions}
-            customFilterContent={embeddedFilterContent}
-            filterLabels={embeddedFilterLabels}
-            expanded={expanded}
-            panelId={panelId}
-            onToggle={() => setExpanded(!expanded)}
-          />
-        )}
-
+          {filterMode === "embedded" && (
+            <EmbeddedFilters
+              fields={filters}
+              search={embeddedSearch}
+              actions={actions}
+              customActions={embeddedActions}
+              customFilterContent={embeddedFilterContent}
+              filterLabels={embeddedFilterLabels}
+              expanded={expanded}
+              panelId={panelId}
+              onToggle={() => setExpanded(!expanded)}
+              onClose={() => setExpanded(false)}
+              footer={embeddedFooter}
+              toggle={embeddedFilterToggle}
+            />
+          )}
+          {customBodyHeader && <div className="px-5 pb-5">{customBodyHeader}</div>}
+        </div>
+        </div>
         {beforeTable}
 
+        {customBody ? (
+          <div className={cn("px-5 pb-2", fillHeight && "flex-1")}>{customBody}</div>
+        ) : (
         <DataTable
           columns={columns}
           rows={rows}
@@ -614,6 +757,7 @@ export function IoTListPageTemplate<Row>({
           minTableWidth={minTableWidth}
           compactCells={compactCells}
         />
+        )}
         <PagePagination pagination={pagination} />
       </section>
 

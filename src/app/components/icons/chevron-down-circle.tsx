@@ -1,0 +1,17 @@
+import type { SVGProps } from "react";
+
+/**
+ * KONE 图标库 `chevron-down-circle`（16×16），取自设备总览「项目列表」展开列的图标实例。
+ * 原稿填充为 #959595，这里改为 currentColor。展开态由调用方旋转 180° 表示收起。
+ */
+export function ChevronDownCircleIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path d="M10.7929 6.20707L7.99996 9L5.20704 6.20707L4.49993 6.91418L7.99996 10.4142L11.5 6.91418L10.7929 6.20707Z" fill="currentColor" />
+      <path
+        d="M1 8C1 4.13401 4.13401 0.999999 8 0.999999C11.866 1 15 4.13401 15 8C15 11.866 11.866 15 8 15C4.13401 15 1 11.866 1 8ZM2 8C2 11.3137 4.68629 14 8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}

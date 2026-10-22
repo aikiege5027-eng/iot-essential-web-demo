@@ -1,17 +1,5 @@
 import { useState } from "react";
-
-function SectionHeader({ title }: { title: string }) {
-  return (
-    <div className="bg-[#fafbfc] relative shrink-0 w-full" style={{ borderBottom: "1px solid #dfe1e8" }}>
-      <div className="flex flex-row items-center px-[12px] py-[8px]">
-        <div className="flex gap-[8px] items-center">
-          <div className="bg-[#4373f7] h-[14px] rounded-[1px] w-[4px]" />
-          <span className="font-['PingFang_SC:Medium',sans-serif] text-[14px] leading-[22px] text-[#141414] whitespace-nowrap">{title}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
+import { DetailSection } from "./device-detail/DetailSection";
 
 function FieldCard({ label, value }: { label: string; value: string }) {
   return (
@@ -125,42 +113,48 @@ export function DeviceArchiveContent({ language }: { language: 'en' | 'cn' }) {
   return (
     <div className="flex flex-col gap-[16px] pb-[24px]">
       {/* 设备信息 */}
-      <div className="relative rounded-[8px] overflow-hidden border border-[#dfe1e8]">
-        <SectionHeader title={language === 'cn' ? "设备信息" : "Device Information"} />
-        <div className="bg-white p-[12px]">
+      <DetailSection title={language === 'cn' ? "设备信息" : "Device Information"} titleId="archive-device-title">
+        <div className="p-3">
           <FieldGrid fields={deviceInfoFields} />
         </div>
-      </div>
+      </DetailSection>
 
       {/* 合同信息 */}
-      <div className="relative rounded-[8px] overflow-hidden border border-[#dfe1e8]">
-        <SectionHeader title={language === 'cn' ? "合同信息" : "Contract Information"} />
-        <div className="bg-white p-[12px] pt-[12px]">
-          <FieldGrid fields={contractInfoFields} />
-        </div>
-        <div className="absolute top-[7px] right-[12px] flex gap-[7px]">
+      <DetailSection
+        title={language === 'cn' ? "合同信息" : "Contract Information"}
+        titleId="archive-contract-title"
+        extra={
+          <div className="flex gap-[7px]">
           <TabButton label={language === 'cn' ? "合同主体" : "Main Contract"} active={contractTab === '主体'} onClick={() => setContractTab('主体')} />
           <TabButton label={language === 'cn' ? "数字化服务" : "Digital Services"} active={contractTab === '数字化服务'} onClick={() => setContractTab('数字化服务')} />
+          </div>
+        }
+      >
+        <div className="p-3">
+          <FieldGrid fields={contractInfoFields} />
         </div>
-      </div>
+      </DetailSection>
 
       {/* 配置参数 */}
-      <div className="relative rounded-[8px] overflow-hidden border border-[#dfe1e8]">
-        <SectionHeader title={language === 'cn' ? "配置参数" : "Configuration"} />
-        <div className="bg-white p-[12px]">
-          <FieldGrid fields={configFields} />
-        </div>
-        <div className="absolute top-[8px] right-[12px] flex gap-[7px]">
+      <DetailSection
+        title={language === 'cn' ? "配置参数" : "Configuration"}
+        titleId="archive-config-title"
+        extra={
+          <div className="flex gap-[7px]">
           <TabButton label={language === 'cn' ? "主体" : "Main"} active={configTab === '主体'} onClick={() => setConfigTab('主体')} />
           <TabButton label={language === 'cn' ? "井道和悬吊" : "Hoistway"} active={configTab === '井道和悬吊'} onClick={() => setConfigTab('井道和悬吊')} />
           <TabButton label={language === 'cn' ? "门" : "Door"} active={configTab === '门'} onClick={() => setConfigTab('门')} />
+          </div>
+        }
+      >
+        <div className="p-3">
+          <FieldGrid fields={configFields} />
         </div>
-      </div>
+      </DetailSection>
 
       {/* 楼层信息 */}
-      <div className="relative rounded-[8px] overflow-hidden border border-[#dfe1e8]">
-        <SectionHeader title={language === 'cn' ? "楼层信息" : "Floor Information"} />
-        <div className="bg-white p-[12px]">
+      <DetailSection title={language === 'cn' ? "楼层信息" : "Floor Information"} titleId="archive-floor-title">
+        <div className="p-3">
           <div className="grid grid-cols-3 gap-[12px] items-stretch">
             {/* 总楼层数 */}
             <div className="bg-[#f5f7fa] rounded-[6px] flex items-center justify-center px-[28px] py-[20px]">
@@ -213,7 +207,7 @@ export function DeviceArchiveContent({ language }: { language: 'en' | 'cn' }) {
             </div>
           </div>
         </div>
-      </div>
+      </DetailSection>
     </div>
   );
 }

@@ -163,6 +163,44 @@
   --chart-4: #0dd2e1;
   --chart-5: #722ed1;
 
+  /* 设备总览（IOT Delivery 7105:16867）用到的数据可视化辅助色。
+   * 变量名取 Figma 变量路径：color/brand_2nd/green、color/brand_2nd/pink、
+   * theme/categorical/color-1、theme/categorical/color-4。
+   * 只用于图表、图例圆点这类装饰性填充，不能当文字色。 */
+  --brand-2nd-green: #aae1c8;
+  --brand-2nd-pink: #ffcdd7;
+  --categorical-color-1: #4373f7;
+  --categorical-color-4: #43e7c0;
+
+  /* 设备详情 · 统计数据「楼层统计」三组柱（Figma 6178:20424）：上行 / 下行 / 总运行 */
+  --chart-floor-up: #4373f7;
+  --chart-floor-down: #0dd2e1;
+  --chart-floor-total: #ffcb49;
+
+  /* 设备详情 · 设备事件时间线色块（Figma 7173:14163 / 7217:8993）。
+   * 每类事件一种填充色；静止、运行、呼梯为浅底 + 深色文字，其余为实色 + 白字。
+   * Hover / Hit 态在 tdesign-patches.css 的 .event-block 下统一处理。仅用于时间线色块与图例圆点。 */
+  --timeline-static: #f2f4f7;
+  --timeline-running: #e7edfe;
+  --timeline-call: #dbfbea;
+  --timeline-call-text: #14663b;
+  --timeline-fault: #ff7949;
+  --timeline-alarm: #ffb145;
+  --timeline-mode: #0dd2e1;
+  --timeline-customer: #ffcb49;
+  --timeline-service: #c4a5ff;
+  --timeline-repair: #cca43d;
+  --timeline-maintenance: #7296f9;
+
+  /* 设备详情 · 实时数据（Figma IOT Delivery 8460:8453）。变量值取 Figma 变量：
+   * 分区标题栏底色 color/grey/50；数据格右侧 36px 图标底：实时数据 color/blue/70、
+   * 传感器数据 color/purple/50（图标 #3c3bc6）、运行数据 color/grey/250。仅用于这类装饰性底色与图标。 */
+  --section-header-bg: #fafbfc;
+  --metric-tile-brand: #e7edfe;
+  --metric-tile-sensor: #e3e3ff;
+  --metric-icon-sensor: #3c3bc6;
+  --metric-tile-neutral: #eaecf1;
+
   --sidebar: var(--bg-color-container);
   --sidebar-foreground: var(--text-color-primary);
   --sidebar-primary: var(--brand-color);
@@ -319,6 +357,15 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-brand-2nd-green: var(--brand-2nd-green);
+  --color-brand-2nd-pink: var(--brand-2nd-pink);
+  --color-categorical-1: var(--categorical-color-1);
+  --color-categorical-4: var(--categorical-color-4);
+  --color-section-header: var(--section-header-bg);
+  --color-metric-tile-brand: var(--metric-tile-brand);
+  --color-metric-tile-sensor: var(--metric-tile-sensor);
+  --color-metric-icon-sensor: var(--metric-icon-sensor);
+  --color-metric-tile-neutral: var(--metric-tile-neutral);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
