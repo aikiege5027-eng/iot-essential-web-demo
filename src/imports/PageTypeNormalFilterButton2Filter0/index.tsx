@@ -234,7 +234,7 @@ function HeaderMenu({ className }: { className?: string }) {
                 </div>
               </div>
             </div>
-            <p className="[word-break:break-word] font-['PingFang_SC:Semibold',sans-serif] leading-[26px] not-italic relative shrink-0 text-[#141414] text-[18px] text-center whitespace-nowrap">IOT Essential</p>
+            <p className="[word-break:break-word] font-['PingFang_SC:Semibold',sans-serif] leading-[26px] not-italic relative shrink-0 text-[#141414] text-[18px] text-center whitespace-nowrap">IoT Essential</p>
           </div>
           <div className="content-stretch flex gap-[8px] items-center justify-end relative shrink-0">
             <div className="content-stretch flex gap-[8px] h-[32px] items-center relative shrink-0" data-name=".master/item headerMenu/menuOperations">

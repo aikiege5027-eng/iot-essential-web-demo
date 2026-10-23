@@ -6,12 +6,12 @@ import liuAvatar from "../../imports/Component10/340e161f99fe54cc796d4ef8ee2b090
 import zhaoAvatar from "../../imports/Component10/ddf94a90705d5dea2421c8ad86a24839c9b0e289.png";
 import zhouAvatar from "../../imports/Component10/2ce0faf98af7b6e81e7b1e7e4a1fd3b77c325d8f.png";
 
-/** 平台版本：KONE 自有的 IOT Essential，以及仟帆版本的 IOT Essential。 */
+/** 平台版本：KONE 自有的 IoT Essential，以及仟帆版本的 IoT Essential。 */
 export type AppEdition = "iot" | "qianfan";
 
 export const EDITION_TITLES: Record<AppEdition, string> = {
-  iot: "通力IOT Essential",
-  qianfan: "仟帆IOT Essential",
+  iot: "通力IoT Essential",
+  qianfan: "仟帆IoT Essential",
 };
 
 export type AppAccount = {
@@ -25,12 +25,27 @@ export type AppAccount = {
   roleEn: string;
   avatar: string;
   sidebarPermissions: string[];
-  /** 账号所属平台版本；未填表示 IOT Essential。 */
+  /** 账号所属平台版本；未填表示 IoT Essential。 */
   edition?: AppEdition;
+  /**
+   * 所属租户（仅仟帆）：租户（维保分包商）的管理员账号。租户管理员只管理本租户的员工，
+   * 可创建「运营人员 / 前线维保员工」；仟帆自己的管理员没有租户。
+   */
+  tenant?: string;
 };
 
 /** 仟帆版本的模拟管理员（演示数据）。 */
 export const QIANFAN_ADMIN_EMAIL = "siyuan.chen@qianfan-iot.com";
+
+/**
+ * 仟帆「被管理员重置密码」的演示用户：与用户管理名单里的 Zhou Yutong（前线维保员工，鼎力机电维保）是同一人。
+ * 登录页「重置密码链接」模拟他收到的临时链接，设置新密码后用新密码登录。
+ */
+export const QIANFAN_RESET_DEMO_EMAIL = "yutong.zhou@qianfan-iot.com";
+
+/** 仟帆租户「鼎力机电维保」的模拟管理员：用来体验租户视角（只看到本租户员工，只能创建运营人员 / 前线维保员工）。 */
+export const QIANFAN_TENANT_ADMIN_EMAIL = "zhenyu.fang@dingli-maint.com";
+export const QIANFAN_DEMO_TENANT = "鼎力机电维保";
 
 /** 各平台的默认账号：登录页进入、切换平台时自动选中；顶栏的平台快捷切换也用它。 */
 export const EDITION_DEFAULT_EMAILS: Record<AppEdition, string> = {
@@ -40,7 +55,7 @@ export const EDITION_DEFAULT_EMAILS: Record<AppEdition, string> = {
 
 export const getAccountEdition = (account?: Pick<AppAccount, "edition">): AppEdition => account?.edition ?? "iot";
 
-/** 按邮箱判断所属平台版本，找不到账号时视为 IOT Essential。 */
+/** 按邮箱判断所属平台版本，找不到账号时视为 IoT Essential。 */
 export const getEditionByEmail = (email: string): AppEdition => getAccountEdition(ACCOUNTS.find((account) => account.email === email));
 
 export const ACCOUNTS: AppAccount[] = [
@@ -54,4 +69,6 @@ export const ACCOUNTS: AppAccount[] = [
   // 仟帆版本目前只开放：设备总览 / 设备查询 / 设备注册 / 权限管理（用户、角色）。
   // 物联卡管理、运维管理、系统设置三个分组先移除；后续要恢复，把对应菜单 id 加回这个数组即可。
   { employeeId: "20260001", email: QIANFAN_ADMIN_EMAIL, password: "123", name: "陈思远", nameEn: "Chen Siyuan", role: "系统管理员", roleEn: "System Administrator", avatar: linAvatar, edition: "qianfan", sidebarPermissions: ["overview", "search", "provisioning", "permissions", "user-management", "role-management", "approval-center"] },
+  { employeeId: "20260300", email: QIANFAN_TENANT_ADMIN_EMAIL, password: "123", name: "方振宇", nameEn: "Fang Zhenyu", role: "系统管理员", roleEn: "System Administrator", avatar: wangAvatar, edition: "qianfan", tenant: QIANFAN_DEMO_TENANT, sidebarPermissions: ["overview", "search", "provisioning", "permissions", "user-management"] },
+  { employeeId: "20260010", email: QIANFAN_RESET_DEMO_EMAIL, password: "123", name: "周雨桐", nameEn: "Zhou Yutong", role: "前线维保员工", roleEn: "Frontline Technician", avatar: liuAvatar, edition: "qianfan", sidebarPermissions: ["overview", "search", "provisioning"] },
 ];

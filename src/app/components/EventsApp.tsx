@@ -2619,8 +2619,8 @@ export default function Events({
           这组控件在顶栏中是可选元素，其余视图不显示。
           右区的消息中心与账号菜单属于业务功能，通过 trailing 插槽传入。 */}
       <TopNav
-        // 顶栏标题暂不区分平台，两个版本都显示 IOT Essential（登录页的平台选择仍带「通力 / 仟帆」）
-        title="IOT Essential"
+        // 顶栏标题暂不区分平台，两个版本都显示 IoT Essential（登录页的平台选择仍带「通力 / 仟帆」）
+        title="IoT Essential"
         className="fixed left-0 right-0 top-0 z-40"
         pageControls={isTaskProgressPage ? {
           onBack: () => setIsTaskProgressPage(false),
@@ -2695,7 +2695,13 @@ export default function Events({
             />
           ) : isUserManagementPage ? (
             // 按平台版本重挂载：通力 / 仟帆各自一份用户名单
-            <UserManagementContent key={getAccountEdition(displayUser)} language={language} edition={getAccountEdition(displayUser)} />
+            <UserManagementContent
+              key={`${getAccountEdition(displayUser)}-${displayUser.tenant ?? "platform"}`}
+              language={language}
+              edition={getAccountEdition(displayUser)}
+              currentEmail={displayUser.email}
+              currentTenant={displayUser.tenant}
+            />
           ) : isRoleManagementPage ? (
             <RoleManagementContent key={getAccountEdition(displayUser)} language={language} edition={getAccountEdition(displayUser)} />
           ) : isRuleConfigurationPage ? (

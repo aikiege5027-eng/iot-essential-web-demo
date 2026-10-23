@@ -48,7 +48,7 @@ export interface TopNavAction {
 }
 
 export interface TopNavProps {
-  /** 产品名，设计稿为「IOT Essential」 */
+  /** 产品名，设计稿为「IoT Essential」 */
   title?: string;
   actions?: TopNavAction[];
   user?: {
@@ -108,7 +108,7 @@ function PageControls({ onBack, onForward, onRefresh, labels }: TopNavPageContro
 }
 
 export function TopNav({
-  title = "IOT Essential",
+  title = "IoT Essential",
   actions = [],
   user,
   onLogoClick,

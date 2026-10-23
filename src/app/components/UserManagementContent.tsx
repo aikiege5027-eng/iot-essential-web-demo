@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Dialog, Dropdown, Input, Link, MessagePlugin, Select } from "tdesign-react";
-import { QIANFAN_ADMIN_EMAIL, type AppEdition } from "../data/accounts";
+import type { AppEdition } from "../data/accounts";
 import {
   getInitialManagedUsers,
   PROTECTED_ROLES,
@@ -111,9 +111,17 @@ const copy = {
 type UserManagementContentProps = {
   language: Language;
   edition: AppEdition;
+  /** 当前登录账号的邮箱：自己那一行不开放操作 */
+  currentEmail: string;
+  /**
+   * 当前账号所属租户（仅仟帆租户管理员）。有值时为租户视角：只看到本租户员工、不显示「所属租户」列，
+   * 创建用户只能选运营人员 / 前线维保员工，新用户归属本租户。为空时是仟帆管理员视角：看到全部租户员工，
+   * 可禁用 / 注销，但创建用户只能是仟帆自己的系统管理员。
+   */
+  currentTenant?: string;
 };
 
-export default function UserManagementContent({ language, edition }: UserManagementContentProps) {
+export default function UserManagementContent({ language, edition, currentEmail, currentTenant }: UserManagementContentProps) {
   const t = copy[language];
   // 两个平台各有一份名单；用 key 在父级按 edition 重挂载，所以这里初始化一次即可。
   const [users, setUsers] = useState<ManagedUser[]>(() => getInitialManagedUsers(edition));
@@ -133,14 +141,18 @@ export default function UserManagementContent({ language, edition }: UserManagem
     setPage(1);
   };
 
-  const filteredUsers = useMemo(
-    () =>
-      users.filter((user) => {
-        if (appliedRole && user.role !== appliedRole) return false;
-        if (!appliedKeyword) return true;
-        return [user.employeeId, user.name, user.email].some((value) => value.toLowerCase().includes(appliedKeyword));
-      }),
-    [users, appliedKeyword, appliedRole],
+  // 租户视角只看本租户的人；整份名单仍保留在 users 里，账号判重按全平台进行。
+  // 当前登录的管理员自己那一行固定在最前（新建用户排在它后面），其余按创建时间倒序。
+  const filteredUsers = useMemo(() => {
+    const matched = users.filter((user) => {
+      if (currentTenant && user.tenant !== currentTenant) return false;
+      if (appliedRole && user.role !== appliedRole) return false;
+      if (!appliedKeyword) return true;
+      return [user.employeeId, user.name, user.email].some((value) => value.toLowerCase().includes(appliedKeyword));
+    });
+    const self = matched.filter((user) => user.email === currentEmail);
+    return [...self, ...matched.filter((user) => user.email !== currentEmail)];
+  }, [users, appliedKeyword, appliedRole, currentTenant, currentEmail],
   );
 
   const pagedUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -167,6 +179,8 @@ export default function UserManagementContent({ language, edition }: UserManagem
       role,
       createdAt,
       status: "normal",
+      // 租户管理员创建的人归属本租户；仟帆管理员创建的是仟帆自己的系统管理员，没有租户
+      tenant: currentTenant,
     };
     setUsers((current) => [created, ...current]);
     // 清掉已应用的筛选并回到第一页，保证新用户马上能在列表顶部看到
@@ -247,6 +261,8 @@ export default function UserManagementContent({ language, edition }: UserManagem
   // 所以仟帆这张表开启紧凑单元格（内边距 16px），每一列都给明确宽度——宽屏下 TDesign 会按比例放大所有列，列间距才均匀；
   // 只让某一列（如邮箱）吃掉剩余空间，会让它和相邻列之间出现一大片空白。
   const hasTenant = edition === "qianfan";
+  // 租户视角下所有人都是本租户，「所属租户」列没有信息量，不显示
+  const showTenantColumn = hasTenant && !currentTenant;
 
   const columns: IoTTableColumn<ManagedUser>[] = [
     {
@@ -257,10 +273,11 @@ export default function UserManagementContent({ language, edition }: UserManagem
     },
     { id: "employeeId", title: t.columns.employeeId, width: hasTenant ? 100 : 116, render: (user) => <span className="block truncate text-primary-text" title={user.employeeId}>{user.employeeId}</span> },
     { id: "name", title: t.columns.name, width: hasTenant ? 132 : 176, render: (user) => <span className="block truncate text-primary-text" title={user.name}>{user.name}</span> },
-    { id: "email", title: t.columns.email, width: hasTenant ? 202 : 206, render: (user) => <span className="block truncate text-primary-text" title={user.email || user.phone}>{user.email || "-"}</span> },
+    // 租户视角没有「所属租户」列，把空出来的宽度分给邮箱，避免长邮箱被截断
+    { id: "email", title: t.columns.email, width: hasTenant ? (showTenantColumn ? 202 : 260) : 206, render: (user) => <span className="block truncate text-primary-text" title={user.email || user.phone}>{user.email || "-"}</span> },
     { id: "role", title: t.columns.role, width: hasTenant ? 120 : 132, render: (user) => <span className="text-primary-text">{user.role}</span> },
     { id: "createdAt", title: t.columns.createdAt, width: hasTenant ? 180 : 196, render: (user) => <span className="tabular-nums text-primary-text">{user.createdAt}</span> },
-    ...(hasTenant
+    ...(showTenantColumn
       ? [{ id: "tenant", title: t.columns.tenant, width: 124, render: (user: ManagedUser) => <span className="block truncate text-primary-text" title={user.tenant}>{user.tenant ?? "-"}</span> }]
       : []),
     {
@@ -280,8 +297,8 @@ export default function UserManagementContent({ language, edition }: UserManagem
       width: 112,
       ellipsis: false,
       render: (user) => {
-        // 仟帆的初始管理员（陈思远）暂时不开放任何操作，操作列置空
-        if (hasTenant && user.email === QIANFAN_ADMIN_EMAIL) return null;
+        // 当前登录者自己那一行不开放任何操作（仟帆：陈思远 / 租户管理员），操作列置空
+        if (hasTenant && user.email === currentEmail) return null;
 
         const editLink = (
           <Link
@@ -301,7 +318,7 @@ export default function UserManagementContent({ language, edition }: UserManagem
         const toggleLabel = user.status === "normal" ? t.disable : t.enable;
 
         // 仟帆：编辑 + 「更多 ▾」（禁用 / 启用、重置密码、注销收进下拉）。
-        // 仟帆只有陈思远一个登录账号，他自己那一行在上面已置空，所以其余每一行都能重置密码；
+        // 当前登录者自己那一行在上面已置空，其余每一行都能重置密码；
         // 其他系统管理员不可禁用 / 注销，下拉里只有「重置密码」。
         if (hasTenant) {
           return (
@@ -383,7 +400,7 @@ export default function UserManagementContent({ language, edition }: UserManagem
       getRowKey={(user) => user.id}
       emptyText={t.empty}
       tableCaption={t.caption}
-      minTableWidth={hasTenant ? 1100 : 1116}
+      minTableWidth={hasTenant ? (showTenantColumn ? 1100 : 1034) : 1116}
       compactCells={hasTenant}
       pagination={{
         current: page,
@@ -395,7 +412,14 @@ export default function UserManagementContent({ language, edition }: UserManagem
     />
     {edition === "qianfan" && (
       <>
-        <CreateUserDialog visible={isCreateOpen} language={language} onClose={() => setIsCreateOpen(false)} onCreate={createUser} />
+        {/* 仟帆管理员只能为仟帆本公司创建「系统管理员」，不能替租户加人；租户管理员只能创建运营人员 / 前线维保员工 */}
+        <CreateUserDialog
+          visible={isCreateOpen}
+          language={language}
+          creatorScope={currentTenant ? "tenant" : "platform"}
+          onClose={() => setIsCreateOpen(false)}
+          onCreate={createUser}
+        />
         <Dialog
           visible={pendingDisable !== null}
           // 警示风格与注销确认一致（Figma Dialog theme=warning）

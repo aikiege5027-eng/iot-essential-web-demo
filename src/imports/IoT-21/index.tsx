@@ -306,7 +306,7 @@ function Frame6() {
   return (
     <div className="content-stretch flex gap-[24px] items-center relative shrink-0">
       <Content />
-      <p className="[word-break:break-word] font-['PingFang_SC:Semibold',sans-serif] leading-[26px] not-italic relative shrink-0 text-[#141414] text-[18px] text-center whitespace-nowrap">IOT Essential</p>
+      <p className="[word-break:break-word] font-['PingFang_SC:Semibold',sans-serif] leading-[26px] not-italic relative shrink-0 text-[#141414] text-[18px] text-center whitespace-nowrap">IoT Essential</p>
     </div>
   );
 }

@@ -197,7 +197,7 @@ export default function IoTPageTemplateShowcase() {
         navItems={getSideNavItems("cn")}
         activeId={activeNav}
         onNavSelect={setActiveNav}
-        title="IOT Essential"
+        title="IoT Essential"
         user={{ name: "模板验证用户" }}
         headerSlot={<span className="text-foot12 text-secondary-text">页面模板验证</span>}
         actions={[

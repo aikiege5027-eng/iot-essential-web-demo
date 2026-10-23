@@ -1,11 +1,12 @@
-import type { AppEdition } from "./accounts";
+import { QIANFAN_DEMO_TENANT, QIANFAN_TENANT_ADMIN_EMAIL, type AppEdition } from "./accounts";
 
 /**
  * 用户管理页的演示数据。
  *
  * 两个平台（通力 / 仟帆）共用同一个用户管理模块，但各自有独立的用户名单：
- * 通力 37 人（前 10 行与设计稿截图一致），仟帆 26 人；仟帆只有系统管理员 / 管理层员工 / 前线维保员工三个角色，
- * 其中前线维保员工属于各维保分包商租户，管理层员工和系统管理员是仟帆自己的人（无租户）。
+ * 通力 37 人（前 10 行与设计稿截图一致），仟帆 26 人；仟帆只有系统管理员 / 前线维保员工 / 运营人员三个角色，
+ * 其中前线维保员工和运营人员都归属于各维保分包商租户；系统管理员是仟帆自己的人（无租户），
+ * 例外是租户自己的管理员（如鼎力机电维保的 Fang Zhenyu），角色同为系统管理员但带租户。
  * 数据按创建时间倒序，页面内的「禁用 / 启用」只改本地状态，刷新后恢复。
  */
 
@@ -29,8 +30,8 @@ export type ManagedUser = {
 
 /** 角色下拉选项（按平台）；与角色管理页的角色列表保持一致。 */
 export const USER_ROLES: Record<AppEdition, string[]> = {
-  iot: ["系统管理员", "管理层员工", "前线维保员工", "L2人员", "Devops人员", "研发人员", "IOTEssential测试角色", "测试角色:{{timestamp}}", "自动化测试角色-勿删"],
-  qianfan: ["系统管理员", "管理层员工", "前线维保员工"],
+  iot: ["系统管理员", "管理层员工", "前线维保员工", "L2人员", "Devops人员", "研发人员", "IoTEssential测试角色", "测试角色:{{timestamp}}", "自动化测试角色-勿删"],
+  qianfan: ["系统管理员", "前线维保员工", "运营人员"],
 };
 
 /** 管理员角色不可被禁用（设计稿中这类行只有「编辑」）。 */
@@ -84,7 +85,7 @@ function buildKoneUsers(): ManagedUser[] {
 
 /**
  * 仟帆合作的电梯维保分包商（虚构）。
- * 租户人员的角色只有「前线维保员工」；系统管理员 / 管理层员工都是仟帆自己的人，不属于任何租户（列表里显示「-」）。
+ * 前线维保员工和运营人员都归属于租户；只有系统管理员是仟帆自己的人，不属于任何租户（列表里显示「-」）。
  */
 const QIANFAN_TENANTS = ["申城电梯维保", "鼎力机电维保", "恒安电梯服务", "南粤电梯工程", "京津电梯维保", "西蜀电梯技服"];
 
@@ -118,11 +119,25 @@ const QIANFAN_ACCOUNTS: string[] = [
   "zihan.qi",
 ];
 
+/** 租户「鼎力机电维保」的管理员（演示租户视角的登录账号，见 accounts.ts） */
+const QIANFAN_TENANT_ADMIN: ManagedUser = {
+  id: "qianfan-tenant-admin",
+  employeeId: "20260300",
+  name: "Fang Zhenyu",
+  email: QIANFAN_TENANT_ADMIN_EMAIL,
+  role: "系统管理员",
+  createdAt: "2026-03-02 10:00:00",
+  status: "normal",
+  tenant: QIANFAN_DEMO_TENANT,
+};
+
 function buildQianfanUsers(): ManagedUser[] {
-  return QIANFAN_ACCOUNTS.map((account, index) => {
-    // 每 3 人里有 1 位是仟帆自己的人（系统管理员 2 位，其余为管理层员工），其余都是租户的前线维保员工
-    const isPlatformStaff = index % 3 === 0;
-    const role = isPlatformStaff ? (index === 0 || index === 6 ? "系统管理员" : "管理层员工") : "前线维保员工";
+  const staff = QIANFAN_ACCOUNTS.map((account, index): ManagedUser => {
+    // 每 3 人里有 1 位是运营人员（其中第 1、7 位是系统管理员），其余为前线维保员工；
+    // 除系统管理员外都归属于租户
+    const isOperations = index % 3 === 0;
+    const isAdmin = index === 0 || index === 6;
+    const role = isAdmin ? "系统管理员" : isOperations ? "运营人员" : "前线维保员工";
     const [given, family] = account.split(".");
     const capitalize = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
     const name = `${capitalize(family)} ${capitalize(given)}`;
@@ -139,9 +154,12 @@ function buildQianfanUsers(): ManagedUser[] {
       role,
       createdAt: `2026-${month}-${day} ${hour}:${minute}:${second}`,
       status: index === 8 ? "disabled" : "normal",
-      tenant: isPlatformStaff ? undefined : QIANFAN_TENANTS[index % QIANFAN_TENANTS.length],
+      // 运营人员的序号都是 3 的倍数，按 index % 6 只会落到两个租户，改按 index / 3 轮换，让各租户都有运营人员
+      tenant: isAdmin ? undefined : QIANFAN_TENANTS[(isOperations ? Math.floor(index / 3) : index) % QIANFAN_TENANTS.length],
     };
   });
+  // 名单按创建时间倒序，租户管理员创建得最早，放在最后
+  return [...staff, QIANFAN_TENANT_ADMIN];
 }
 
 export function getInitialManagedUsers(edition: AppEdition): ManagedUser[] {

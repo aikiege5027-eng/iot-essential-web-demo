@@ -1,7 +1,7 @@
 
-  # IOT Essential
+  # IoT Essential
 
-  This is a code bundle for IOT Essential. The original project is available at https://www.figma.com/design/wXMeMdhsQR0YOdCqdqoX63/IOT-Essential.
+  This is a code bundle for IoT Essential. The original project is available at https://www.figma.com/design/wXMeMdhsQR0YOdCqdqoX63/IOT-Essential.
 
   ## Disclaimer
 

@@ -587,7 +587,7 @@ function HeaderMenu({ className, badge = false, badge1 = false, propValue = fals
                   </div>
                 </div>
               </div>
-              <p className="[word-break:break-word] font-['PingFang_SC:Semibold',sans-serif] leading-[26px] not-italic relative shrink-0 text-[#141414] text-[18px] text-center whitespace-nowrap">IOT Essential</p>
+              <p className="[word-break:break-word] font-['PingFang_SC:Semibold',sans-serif] leading-[26px] not-italic relative shrink-0 text-[#141414] text-[18px] text-center whitespace-nowrap">IoT Essential</p>
             </div>
             {propValue && (
               <div className="flex h-[37px] items-center justify-center relative shrink-0 w-0">

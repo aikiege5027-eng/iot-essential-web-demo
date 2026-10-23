@@ -964,3 +964,43 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/**
+ * Alert 警告（Figma China Design system 50063:541914）
+ * 规范与 TDesign 默认的差异：浅底用各状态的 -light 色（TDesign 用 -focus，偏深）、图标 20px、单行时图标与文字垂直居中。
+ * 内边距 16/24、圆角 6、图标与文字间距 8 与 TDesign 默认一致，不再覆盖。
+ */
+.km-alert.t-alert {
+  align-items: center;
+}
+
+.km-alert.t-alert--info {
+  background-color: var(--brand-color-light);
+}
+
+.km-alert.t-alert--success {
+  background-color: var(--success-color-light);
+}
+
+.km-alert.t-alert--warning {
+  background-color: var(--warning-color-light);
+}
+
+.km-alert.t-alert--error {
+  background-color: var(--error-color-light);
+}
+
+.km-alert .t-alert__icon {
+  font-size: 20px;
+}
+
+/* 紧凑变体：弹窗等窄容器内的单行提示，上下 8、左右 12（规范默认 16 / 24 在 480 宽弹窗里显得过重） */
+.km-alert--compact.t-alert {
+  padding: 8px 12px;
+}
+
+/* 只有一行提示（规范的「仅标题」变体）时，TDesign 把 message 渲染进 __description 并用次要色；规范要求主文字色。
+ * 同时传了 title 时，description 仍保持次要色（规范的「标题 + 描述」变体）。 */
+.km-alert .t-alert__content > .t-alert__message:first-child .t-alert__description {
+  color: var(--text-color-primary);
+}

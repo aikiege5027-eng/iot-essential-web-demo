@@ -41,13 +41,17 @@ export default function App() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [taskBadgeCount, setTaskBadgeCount] = useState(2);
   const edition: AppEdition = getAccountEdition(currentUser ?? undefined);
-  // 审批与通知按平台版本隔离：仟帆版本看不到 IOT Essential 的审批单，反之亦然。
+  // 审批与通知按平台版本隔离：仟帆版本看不到 IoT Essential 的审批单，反之亦然。
   const editionApprovals = approvals.filter((approval) => getEditionByEmail(approval.initiatorEmail) === edition);
+  // 登录页「忘记密码」修改后的密码（演示：只存在内存里，刷新页面后恢复为账号的默认密码）
+  const [passwordOverrides, setPasswordOverrides] = useState<Record<string, string>>({});
+  const getPassword = (email: string) => passwordOverrides[email] ?? ACCOUNTS.find((account) => account.email === email)?.password ?? "";
   const handleLogin = (email: string, password: string, loginEdition: AppEdition) => {
     // 账号必须属于登录页上选择的平台，否则按账号或密码错误处理。
-    const account = ACCOUNTS.find((candidate) => candidate.email === email && candidate.password === password && getAccountEdition(candidate) === loginEdition);
+    const account = ACCOUNTS.find((candidate) => candidate.email === email && getPassword(candidate.email) === password && getAccountEdition(candidate) === loginEdition);
     if (!account) return false;
-    setCurrentUser(account);
+    // 登录态里带上当前有效密码，账号菜单「修改密码」校验原密码时用的就是它
+    setCurrentUser({ ...account, password });
     return true;
   };
 
@@ -57,7 +61,7 @@ export default function App() {
     return `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
   };
   const submitUpgradeForApproval = ({ initiator, scheduledAt, packages, upgradeDetails, submissionRemark }: { initiator: AppAccount; scheduledAt: string; packages: Record<string, string>; upgradeDetails?: UpgradeDetail[]; submissionRemark?: string }) => {
-    // 仟帆版本目前只有一位管理员，审批人就是该管理员；IOT Essential 仍由系统管理员审批。
+    // 仟帆版本目前只有一位管理员，审批人就是该管理员；IoT Essential 仍由系统管理员审批。
     const approver = ACCOUNTS.find((account) => account.email === (getAccountEdition(initiator) === "qianfan" ? QIANFAN_ADMIN_EMAIL : "mingyuan.zhang@kone.com"))!;
     const totalDevices = Object.keys(packages).length;
     const deviceCount = upgradeDetails?.reduce((total, detail) => total + Number(detail.quantity), 0) ?? totalDevices;
@@ -99,7 +103,15 @@ export default function App() {
   };
   const markNotificationsRead = (email: string) => setNotifications((current) => current.map((notification) => notification.recipientEmail === email ? { ...notification, unread: false } : notification));
 
-  if (!currentUser) return <LoginPage onLogin={handleLogin} />;
+  if (!currentUser) {
+    return (
+      <LoginPage
+        onLogin={handleLogin}
+        getPassword={getPassword}
+        onPasswordReset={(email, newPassword) => setPasswordOverrides((current) => ({ ...current, [email]: newPassword }))}
+      />
+    );
+  }
 
   return (
     <>

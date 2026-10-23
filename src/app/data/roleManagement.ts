@@ -29,14 +29,15 @@ const ROLE_SEEDS: Record<AppEdition, RoleSeed[]> = {
     { name: "L2人员", createdAt: "2026-10-08 16:20", builtin: false },
     { name: "Devops人员", createdAt: "2026-10-08 16:20", builtin: false },
     { name: "研发人员", createdAt: "2026-10-08 16:20", builtin: false },
-    { name: "IOTEssential测试角色", createdAt: "2026-08-14 18:55", builtin: false },
+    { name: "IoTEssential测试角色", createdAt: "2026-08-14 18:55", builtin: false },
     { name: "测试角色:{{timestamp}}", createdAt: "2026-06-22 09:46", builtin: false },
     { name: "自动化测试角色-勿删", createdAt: "2026-04-03 13:19", builtin: false },
   ],
   qianfan: [
+    // 仟帆三类角色：系统管理员、前线维保员工（租户人员）、运营人员（仟帆自己的运营）
     { name: "系统管理员", createdAt: "2026-02-10 09:30", builtin: true },
-    { name: "管理层员工", createdAt: "2026-02-10 09:30", builtin: true },
     { name: "前线维保员工", createdAt: "2026-02-10 09:30", builtin: true },
+    { name: "运营人员", createdAt: "2026-02-10 09:30", builtin: true },
   ],
 };
 

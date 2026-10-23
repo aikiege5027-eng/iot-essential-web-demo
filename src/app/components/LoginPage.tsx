@@ -3,25 +3,33 @@ import { Button, Checkbox, Input, Link, Select } from "tdesign-react";
 // 背景图与设计系统登录页模板同源（2880×1800，16:10），按 cover + 居中铺满；旧图是 3:2 的另一种裁切，视野范围不同。
 import loginBackground from "../../imports/LoginDesktop/login-bg.jpg";
 import koneLogo from "../../imports/KONE_Logo_Primary_RGB.svg";
-import { ACCOUNTS, EDITION_DEFAULT_EMAILS, EDITION_TITLES, QIANFAN_ADMIN_EMAIL, type AppEdition } from "../data/accounts";
+import { ACCOUNTS, EDITION_DEFAULT_EMAILS, EDITION_TITLES, getAccountEdition, QIANFAN_ADMIN_EMAIL, QIANFAN_RESET_DEMO_EMAIL, QIANFAN_TENANT_ADMIN_EMAIL, type AppEdition } from "../data/accounts";
 import ForgotPasswordDialog from "./ForgotPasswordDialog";
+import ResetLinkPasswordDialog from "./ResetLinkPasswordDialog";
 import { EyeClosedIcon, EyeOpenIcon } from "./icons/login-icons";
 import { cn } from "./ui/utils";
 
 /**
  * 登录页。布局、尺寸与配色对齐设计系统的登录页模板（#/login）：
  * 440 宽卡片、24 圆角、40 内边距、标题与表单间距 32；输入框 40 高 8 圆角，聚焦时品牌蓝描边加 3px 外环；
- * 记住我用 TDesign Checkbox（默认不勾选）；Log In 为全圆角 40 高按钮；忘记密码用 TDesign Link。
+ * Log In 为全圆角 40 高按钮；忘记密码用 TDesign Link（「记住我」已按产品要求移除）。
  *
  * 页面底部的「平台选择」「用户选择」是演示用的快捷登录：
- * 通力 IOT Essential 为企业账号登录（对齐模板 #/amp：一个 Log in with KONE Account 按钮 + 隐私政策勾选），
+ * 通力 IoT Essential 为企业账号登录（对齐模板 #/amp：一个 Log in with KONE Account 按钮 + 隐私政策勾选），
  * 选中什么角色就以该角色登录；仟帆仍是邮箱 + 密码登录。
- * 每个平台有默认账号（IOT Essential → 张明远，仟帆 → 管理员），进入页面和切换平台时自动选中并填入；
+ * 每个平台有默认账号（IoT Essential → 张明远，仟帆 → 管理员），进入页面和切换平台时自动选中并填入；
  * 也可以换选其他用户，自动填入对应邮箱和密码（统一为 123）。账号必须属于所选平台，否则登录失败。
+ *
+ * 左下角的「重置密码链接」模拟仟帆用户（周雨桐）被管理员重置密码后，从邮件 / 短信里的临时链接进入的页面：
+ * 登录卡片隐藏，只显示 ResetLinkPasswordDialog；设置成功后回到登录页，切到仟帆并填好该账号、清空密码框。
  */
 
 type LoginPageProps = {
   onLogin: (email: string, password: string, edition: AppEdition) => boolean;
+  /** 账号当前的密码（忘记密码修改后为新密码），演示快捷登录用它自动填入 */
+  getPassword: (email: string) => string;
+  /** 忘记密码流程修改成功：记住该账号的新密码 */
+  onPasswordReset: (email: string, newPassword: string) => void;
 };
 
 type LoginUser = { email: string; label: string };
@@ -36,12 +44,16 @@ const LOGIN_USERS: Record<AppEdition, LoginUser[]> = {
     { email: "mingyuan.zhang@kone.com", label: "张明远 · 系统管理员" },
     { email: "qiang.zhou@kone.com", label: "周强 · 超级管理员" },
   ],
-  qianfan: [{ email: QIANFAN_ADMIN_EMAIL, label: "管理员" }],
+  qianfan: [
+    { email: QIANFAN_ADMIN_EMAIL, label: "管理员" },
+    { email: QIANFAN_TENANT_ADMIN_EMAIL, label: "方振宇 · 鼎力机电维保管理员" },
+    { email: QIANFAN_RESET_DEMO_EMAIL, label: "周雨桐 · 前线维保员工" },
+  ],
 };
 
-function getDefaultCredentials(edition: AppEdition) {
+function getDefaultCredentials(edition: AppEdition, getPassword: (email: string) => string) {
   const account = ACCOUNTS.find((candidate) => candidate.email === EDITION_DEFAULT_EMAILS[edition]);
-  return { email: account?.email ?? "", password: account?.password ?? "" };
+  return { email: account?.email ?? "", password: account ? getPassword(account.email) : "" };
 }
 
 const PLATFORM_OPTIONS = (Object.keys(EDITION_TITLES) as AppEdition[]).map((edition) => ({ value: edition, label: EDITION_TITLES[edition] }));
@@ -50,18 +62,18 @@ function KoneLogo() {
   return <img src={koneLogo} alt="KONE" className="h-7 w-[72px] object-contain object-left" />;
 }
 
-export default function LoginPage({ onLogin }: LoginPageProps) {
+export default function LoginPage({ onLogin, getPassword, onPasswordReset }: LoginPageProps) {
   const [platform, setPlatform] = useState<AppEdition>("iot");
-  const [email, setEmail] = useState(() => getDefaultCredentials("iot").email);
-  const [password, setPassword] = useState(() => getDefaultCredentials("iot").password);
-  const [remember, setRemember] = useState(false);
+  const [email, setEmail] = useState(() => getDefaultCredentials("iot", getPassword).email);
+  const [password, setPassword] = useState(() => getDefaultCredentials("iot", getPassword).password);
   const [agreedPolicy, setAgreedPolicy] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
+  const [isResetLinkOpen, setIsResetLinkOpen] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [error, setError] = useState("");
 
-  // 通力 IOT Essential 使用企业账号登录，仟帆仍是邮箱 + 密码。
+  // 通力 IoT Essential 使用企业账号登录，仟帆仍是邮箱 + 密码。
   const isSso = platform === "iot";
   const users = LOGIN_USERS[platform];
   const normalizedEmail = email.trim().toLowerCase();
@@ -79,7 +91,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     const next = String(value) as AppEdition;
     if (next === platform) return;
     // 账号属于各自的平台，切换平台时改为填入该平台的默认账号。
-    const defaults = getDefaultCredentials(next);
+    const defaults = getDefaultCredentials(next, getPassword);
     setPlatform(next);
     setEmail(defaults.email);
     setPassword(defaults.password);
@@ -90,9 +102,35 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     const account = ACCOUNTS.find((candidate) => candidate.email === String(value));
     if (!account) return;
     setEmail(account.email);
-    setPassword(account.password);
+    setPassword(getPassword(account.email));
     setError("");
   };
+
+  /**
+   * 忘记密码修改成功：修改的是邮箱框里的仟帆账号（邮箱框不是仟帆账号时视为默认管理员），
+   * 回到登录卡片后保留邮箱、清空密码框，让用户用新密码重新登录。
+   */
+  const handlePasswordReset = (newPassword: string) => {
+    const target = ACCOUNTS.find((candidate) => candidate.email === normalizedEmail && getAccountEdition(candidate) === "qianfan")?.email ?? QIANFAN_ADMIN_EMAIL;
+    onPasswordReset(target, newPassword);
+    setEmail(target);
+    setPassword("");
+    setIsPasswordVisible(false);
+    setError("");
+  };
+
+  /** 临时链接页设置新密码成功：回到登录页，以仟帆、该账号、空密码框等待用新密码登录 */
+  const handleResetLinkSubmit = (newPassword: string) => {
+    onPasswordReset(QIANFAN_RESET_DEMO_EMAIL, newPassword);
+    setPlatform("qianfan");
+    setEmail(QIANFAN_RESET_DEMO_EMAIL);
+    setPassword("");
+    setIsPasswordVisible(false);
+    setError("");
+    setIsResetLinkOpen(false);
+  };
+
+  const resetLinkAccount = ACCOUNTS.find((account) => account.email === QIANFAN_RESET_DEMO_EMAIL)!;
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-container">
@@ -104,12 +142,12 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           className={cn(
             "flex w-full max-w-[440px] flex-col gap-8 rounded-[24px] bg-container p-10 shadow-[0_8px_40px_rgba(0,0,0,0.12)]",
             // 重置密码弹窗出现时，它代替登录卡片；关闭后登录卡片恢复，已填内容保留
-            isResetOpen && "hidden",
+            (isResetOpen || isResetLinkOpen) && "hidden",
           )}
         >
           <div className="flex flex-col gap-6">
             <KoneLogo />
-            <h1 className="text-h3 font-semibold text-primary-text">Welcome to IOT Essential</h1>
+            <h1 className="text-h3 font-semibold text-primary-text">Welcome to IoT Essential</h1>
           </div>
 
           {isSso ? (
@@ -127,7 +165,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               </Checkbox>
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
+            // 输入框与 Log In 按钮之间 32px（移除「记住我」后原来的 16px 显得局促），与标题到表单的间距一致
+            <div className="flex flex-col gap-8">
               <div className="flex flex-col gap-6">
                 <div className="flex flex-col gap-1">
                   {/* TDesign Input 把 id / aria-* 透传到外层容器而不是 <input>，所以用包裹式 label 给输入框命名 */}
@@ -180,9 +219,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               </div>
 
               <div className="flex flex-col items-start gap-4">
-                <Checkbox checked={remember} onChange={(checked) => setRemember(Boolean(checked))}>
-                  Remember me
-                </Checkbox>
                 <Button type="submit" theme="primary" size="large" shape="round" block>
                   <strong>Log In</strong>
                 </Button>
@@ -206,7 +242,13 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         </form>
       </section>
 
-      <ForgotPasswordDialog visible={isResetOpen} onClose={() => setIsResetOpen(false)} />
+      <ForgotPasswordDialog visible={isResetOpen} onClose={() => setIsResetOpen(false)} onReset={handlePasswordReset} />
+      <ResetLinkPasswordDialog
+        visible={isResetLinkOpen}
+        account={resetLinkAccount}
+        onClose={() => setIsResetLinkOpen(false)}
+        onSubmit={handleResetLinkSubmit}
+      />
 
       {/* 演示用快捷登录：先选平台，再选用户，自动填入邮箱和密码 */}
       <div className="absolute bottom-5 left-6 z-20 flex flex-wrap items-center gap-6 pr-6">
@@ -232,6 +274,22 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             popupProps={{ placement: "top-left" }}
           />
         </div>
+        {/* 演示入口：模拟用户从「管理员已重置密码」邮件 / 短信里点开的临时链接 */}
+        {!isResetLinkOpen && (
+          <Link
+            className="iot-login-link"
+            theme="primary"
+            hover="underline"
+            href="#"
+            onClick={(event) => {
+              event.preventDefault();
+              setIsResetOpen(false);
+              setIsResetLinkOpen(true);
+            }}
+          >
+            重置密码链接
+          </Link>
+        )}
       </div>
     </main>
   );
