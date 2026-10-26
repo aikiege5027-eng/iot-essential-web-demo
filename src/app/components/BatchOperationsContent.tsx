@@ -9,6 +9,8 @@ import {
 } from "./templates/iot-list-page";
 import { EmbeddedSearchIcon } from "./icons/iot-list-page-icons";
 import BatchConfigUpdateDialog from "./BatchConfigUpdateDialog";
+import ExecutionModeField, { IMMEDIATE_EXECUTION, type ExecutionMode } from "./ExecutionModeField";
+import { isValidExecutionTime } from "./ExecutionTimePicker";
 import batchSvgPaths from "../../imports/IotWebTemplateUntitledEmbedFilterButton3StateCollapsed-1/svg-k7keowhjm7";
 import upgradeSvgPaths from "../../imports/IotWebTemplate批量升级OverlayContentDialogContent/svg-uj64kmlbtu";
 import upgradeSelectedSvgPaths from "../../imports/IotWebTemplate批量升级OverlayContentDialogContent-2/svg-p0m9k99e2p";
@@ -123,7 +125,7 @@ const copy = {
     remarkPlaceholder: "请输入备注信息",
     upgradePackage: "升级安装包",
     upgradeQuantity: "升级数量",
-    executeNow: "立即执行",
+    executeNow: "即时执行",
     scheduleExecution: "定时执行",
     executionTime: "执行时间",
     selectedDevices: "已选择设备",
@@ -131,8 +133,6 @@ const copy = {
     upgradeReady: "批量升级任务已创建",
     upgradeSubmitted: "批量升级任务已进入审批，您可以在审批中心查看进度。",
     removeUpgrade: "移除升级",
-    scheduleHint: "请设定批量系统升级执行时间。",
-    schedulePlaceholder: "请设定执行时间",
     selectDeviceFirst: "请先勾选至少一台设备后再执行批量系统升级。",
     selectDeviceFirstConfig: "请先勾选至少一台设备后再执行批量配置更新。",
     config: "配置更新",
@@ -206,8 +206,6 @@ const copy = {
     upgradeReady: "Batch upgrade task created",
     upgradeSubmitted: "The batch upgrade request was submitted for approval. Track progress in the Approval Center.",
     removeUpgrade: "Remove upgrade",
-    scheduleHint: "Set the execution time for this batch system upgrade.",
-    schedulePlaceholder: "Set execution time",
     selectDeviceFirst: "Select at least one device before starting a batch system upgrade.",
     selectDeviceFirstConfig: "Select at least one device before starting a batch configuration update.",
     config: "Configuration Update",
@@ -266,29 +264,6 @@ function TableCheckbox({ checked, onChange, label, disabled = false }: { checked
   );
 }
 
-function padTimeValue(value: number) {
-  return String(value).padStart(2, "0");
-}
-
-function parseDateTimeValue(value: string) {
-  if (!value) return new Date();
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
-}
-
-function toDateTimeValue(date: Date) {
-  return `${date.getFullYear()}-${padTimeValue(date.getMonth() + 1)}-${padTimeValue(date.getDate())}T${padTimeValue(date.getHours())}:${padTimeValue(date.getMinutes())}:${padTimeValue(date.getSeconds())}`;
-}
-
-function TimePickerColumn({ label, value, values, onSelect }: { label: string; value: number; values: number[]; onSelect: (value: number) => void }) {
-  return <div className="min-w-0 flex-1 border-l border-[#dfe1e8] first:border-l-0">
-    <div className="border-b border-[#dfe1e8] px-2 py-2 text-center text-[14px] leading-[22px] text-[#141414]">{label}</div>
-    <div className="h-[168px] overflow-y-auto px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {values.map((item) => <button key={item} type="button" onClick={() => onSelect(item)} className={`flex h-6 w-full items-center justify-center rounded-[4px] text-[14px] leading-[22px] ${item === value ? "bg-[#f3f6fe] text-[#1450f5]" : "text-[#676a72] hover:bg-[#f5f7fa]"}`}>{padTimeValue(item)}</button>)}
-    </div>
-  </div>;
-}
-
 function BulkSystemUpgradeDialog({ language, selectedDevices, onClose, onComplete }: { language: Language; selectedDevices: Device[]; onClose: () => void; onComplete: (submission: { scheduledAt: string; packages: Record<string, string>; upgradeDetails: UpgradeDetail[]; submissionRemark?: string }) => void }) {
   const t = copy[language];
   const kmNumbers = Array.from(new Set(selectedDevices.map((device) => device.km)));
@@ -296,11 +271,9 @@ function BulkSystemUpgradeDialog({ language, selectedDevices, onClose, onComplet
   const [activeKm, setActiveKm] = useState(kmNumbers[0]);
   const [selectedPackages, setSelectedPackages] = useState<Record<string, string>>({});
   const [previewedPackage, setPreviewedPackage] = useState("");
+  const [executionMode, setExecutionMode] = useState<ExecutionMode>("immediate");
   const [scheduledAt, setScheduledAt] = useState("");
   const [submissionRemark, setSubmissionRemark] = useState("");
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-  const [pickerDate, setPickerDate] = useState(() => new Date());
-  const [pickerMonth, setPickerMonth] = useState(() => new Date());
   const tabsRef = useRef<HTMLDivElement>(null);
 
   const scrollTabs = (direction: "left" | "right") => {
@@ -319,8 +292,8 @@ function BulkSystemUpgradeDialog({ language, selectedDevices, onClose, onComplet
   const visiblePreview = activePackages.includes(previewedPackage) ? previewedPackage : "";
   const previewName = visiblePreview.replace(`${activeKm} · `, "").replace(/ T.*$/, "");
   const hasSelectedPackage = Object.keys(selectedPackages).length > 0;
-  const canAdvance = step === 1 ? hasSelectedPackage : step === 2 ? Boolean(scheduledAt) : hasSelectedPackage;
-  const formatExecutionTime = (value: string) => value ? value.replace("T", " ") : "";
+  // 步骤顺序：选择安装包 → 升级内容确认 → 设置执行时间（最后一步提交）
+  const canAdvance = step === 3 ? hasSelectedPackage && (executionMode === "immediate" || isValidExecutionTime(scheduledAt)) : hasSelectedPackage;
   const removeSelectedPackage = (km: string) => setSelectedPackages((current) => { const { [km]: _removedPackage, ...remainingPackages } = current; return remainingPackages; });
   const upgradeRows: UpgradeDetail[] = Object.entries(selectedPackages).map(([hardwareType, packageName]) => ({
     deviceType: "LCE",
@@ -330,29 +303,10 @@ function BulkSystemUpgradeDialog({ language, selectedDevices, onClose, onComplet
   }));
   const next = () => {
     if (step < 3) setStep((current) => current + 1);
-    else onComplete({ scheduledAt, packages: selectedPackages, upgradeDetails: upgradeRows, submissionRemark: submissionRemark.trim() || undefined });
+    else onComplete({ scheduledAt: executionMode === "immediate" ? IMMEDIATE_EXECUTION : `${scheduledAt}:00`, packages: selectedPackages, upgradeDetails: upgradeRows, submissionRemark: submissionRemark.trim() || undefined });
   };
 
-  const steps = [t.stepPackage, t.stepSchedule, t.stepConfirm];
-  const calendarDays = useMemo(() => {
-    const year = pickerMonth.getFullYear();
-    const month = pickerMonth.getMonth();
-    const leadingDays = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    return Array.from({ length: 42 }, (_, index) => {
-      const day = index - leadingDays + 1;
-      return day > 0 && day <= daysInMonth ? new Date(year, month, day) : null;
-    });
-  }, [pickerMonth]);
-  const openDatePicker = () => {
-    const current = parseDateTimeValue(scheduledAt);
-    setPickerDate(current);
-    setPickerMonth(new Date(current.getFullYear(), current.getMonth(), 1));
-    setIsDatePickerOpen(true);
-  };
-  const updatePickerTime = (part: "hours" | "minutes" | "seconds", value: number) => {
-    setPickerDate((current) => { const next = new Date(current); next[`set${part[0].toUpperCase()}${part.slice(1)}` as "setHours" | "setMinutes" | "setSeconds"](value); return next; });
-  };
+  const steps = [t.stepPackage, t.stepConfirm, t.stepSchedule];
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#141414]/60 p-4" role="dialog" aria-modal="true" aria-label={t.batchUpgradeTitle}>
       <div className="flex h-[634px] w-full max-w-[900px] flex-col overflow-hidden rounded-[8px] bg-white shadow-2xl">
@@ -367,8 +321,8 @@ function BulkSystemUpgradeDialog({ language, selectedDevices, onClose, onComplet
               <div ref={tabsRef} className="flex h-12 items-center overflow-x-auto pl-10 pr-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {kmNumbers.map((km) => { const hasSelectedPackage = Boolean(selectedPackages[km]); return <button type="button" key={km} onClick={() => { setActiveKm(km); setPreviewedPackage(""); }} className={`relative inline-flex h-full min-w-[152px] shrink-0 items-center justify-center gap-1 px-3 text-[14px] leading-[22px] ${activeKm === km ? "font-medium text-[#1450f5] after:absolute after:inset-x-0 after:bottom-[-1px] after:z-10 after:h-[3px] after:bg-[#1450f5]" : "text-[#676a72] hover:bg-[#fafbfc] hover:text-[#141414]"}`}>{hasSelectedPackage && <svg aria-hidden="true" className={`size-3 shrink-0 ${activeKm === km ? "text-[#1450f5]" : "text-[#8f9195]"}`} fill="none" viewBox="0 0 14 14"><path d={upgradeSelectedSvgPaths.p72a000} fill="currentColor" /></svg>}{km}</button>; })}
               </div>
-              <button type="button" aria-label="Previous KM" onClick={() => scrollTabs("left")} className="absolute left-0 top-0 z-20 flex size-10 items-center justify-center border-r border-[#dfe1e8] bg-white text-[#676a72] shadow-[10px_0_10px_rgba(0,0,0,0.05)] hover:bg-[#f5f7fa]"><svg aria-hidden="true" className="size-4" fill="none" viewBox="0 0 16 16"><path d={upgradeSvgPaths.p2e389000} fill="currentColor" transform="translate(5.31 3.54)" /></svg></button>
-              <button type="button" aria-label="Next KM" onClick={() => scrollTabs("right")} className="absolute right-0 top-0 z-20 flex size-10 items-center justify-center border-l border-[#dfe1e8] bg-white text-[#676a72] shadow-[-10px_0_10px_rgba(0,0,0,0.05)] hover:bg-[#f5f7fa]"><svg aria-hidden="true" className="size-4 rotate-180" fill="none" viewBox="0 0 16 16"><path d={upgradeSvgPaths.p2e389000} fill="currentColor" transform="translate(5.31 3.54)" /></svg></button>
+              <button type="button" aria-label="Previous KM" onClick={() => scrollTabs("left")} className="absolute left-0 top-0 z-20 flex h-12 w-10 items-center justify-center border-r border-[#dfe1e8] bg-white text-[#676a72] shadow-[10px_0_10px_rgba(0,0,0,0.05)] hover:bg-[#f5f7fa]"><svg aria-hidden="true" className="size-4" fill="none" viewBox="0 0 16 16"><path d={upgradeSvgPaths.p2e389000} fill="currentColor" transform="translate(5.31 3.54)" /></svg></button>
+              <button type="button" aria-label="Next KM" onClick={() => scrollTabs("right")} className="absolute right-0 top-0 z-20 flex h-12 w-10 items-center justify-center border-l border-[#dfe1e8] bg-white text-[#676a72] shadow-[-10px_0_10px_rgba(0,0,0,0.05)] hover:bg-[#f5f7fa]"><svg aria-hidden="true" className="size-4 rotate-180" fill="none" viewBox="0 0 16 16"><path d={upgradeSvgPaths.p2e389000} fill="currentColor" transform="translate(5.31 3.54)" /></svg></button>
             </div>
             <div className={`mt-3 h-[300px] overflow-hidden rounded-[8px] border border-[#c8cad0] bg-white p-2 ${visiblePreview ? "grid grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] gap-4" : "block"}`}>
               <div className="min-w-0 overflow-y-auto rounded-[6px] bg-white px-2 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -407,30 +361,7 @@ function BulkSystemUpgradeDialog({ language, selectedDevices, onClose, onComplet
             </div>
           </div>}
           {step === 2 && <div className="mt-5 w-full">
-            <p className="text-[14px] leading-[22px] text-[#676a72]">{t.scheduleHint}</p>
-            <div className="relative mt-3 w-full max-w-[500px]">
-              <label className="mb-2 block text-[14px] leading-[22px] text-[#141414]">{t.executionTime}<span className="ml-0.5 text-[#f51414]">*</span></label>
-              <button type="button" aria-haspopup="dialog" aria-expanded={isDatePickerOpen} onClick={() => isDatePickerOpen ? setIsDatePickerOpen(false) : openDatePicker()} className={`flex h-8 w-full items-center justify-between rounded-[4px] border bg-white px-2 text-left text-[14px] leading-[22px] outline-none transition-colors ${isDatePickerOpen ? "border-[#1450f5]" : "border-[#c8cad0] hover:border-[#1450f5]"}`}>
-                <span className={scheduledAt ? "text-[#141414]" : "text-[#8f9195]"}>{scheduledAt ? formatExecutionTime(scheduledAt) : t.schedulePlaceholder}</span>
-                <svg aria-hidden="true" className="size-4 text-[#8f9195]" fill="none" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="10" rx="1" stroke="currentColor" /><path d="M5 2.5v3M11 2.5v3M2.5 7h11" stroke="currentColor" strokeLinecap="round" /></svg>
-              </button>
-              {isDatePickerOpen && <div role="dialog" aria-label={t.executionTime} className="absolute left-0 top-[78px] z-40 w-[496px] overflow-hidden rounded-[6px] border border-[#c8cad0] bg-white shadow-[0_4px_10px_rgba(0,0,0,0.1)]">
-                <div className="flex">
-                  <div className="w-[217px] p-3">
-                    <div className="flex items-center justify-between"><button type="button" onClick={() => setPickerMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))} className="flex size-6 items-center justify-center rounded-[3px] text-[#141414] hover:bg-[#f5f7fa]">‹</button><span className="text-[14px] leading-[22px] text-[#141414]">{pickerMonth.getFullYear()}年 {pickerMonth.getMonth() + 1}月</span><button type="button" onClick={() => setPickerMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))} className="flex size-6 items-center justify-center rounded-[3px] text-[#141414] hover:bg-[#f5f7fa]">›</button></div>
-                    <div className="mt-3 grid grid-cols-7 gap-y-1 text-center text-[12px] leading-5 text-[#8f9195]">{(language === "cn" ? ["日", "一", "二", "三", "四", "五", "六"] : ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]).map((day) => <span key={day}>{day}</span>)}</div>
-                    <div className="mt-1 grid grid-cols-7 gap-y-1">{calendarDays.map((date, index) => date ? <button key={date.toISOString()} type="button" onClick={() => setPickerDate((current) => new Date(date.getFullYear(), date.getMonth(), date.getDate(), current.getHours(), current.getMinutes(), current.getSeconds()))} className={`mx-auto flex size-6 items-center justify-center rounded-[3px] text-[14px] leading-[22px] ${date.getFullYear() === pickerDate.getFullYear() && date.getMonth() === pickerDate.getMonth() && date.getDate() === pickerDate.getDate() ? "bg-[#1450f5] text-white" : "text-[#676a72] hover:bg-[#f3f6fe]"}`}>{date.getDate()}</button> : <span key={`empty-${index}`} />)}</div>
-                  </div>
-                  <div className="w-px self-stretch bg-[#dfe1e8]" />
-                  <div className="flex flex-1"><TimePickerColumn label={language === "cn" ? "时" : "Hour"} value={pickerDate.getHours()} values={Array.from({ length: 24 }, (_, index) => index)} onSelect={(value) => updatePickerTime("hours", value)} /><TimePickerColumn label={language === "cn" ? "分" : "Min"} value={pickerDate.getMinutes()} values={Array.from({ length: 60 }, (_, index) => index)} onSelect={(value) => updatePickerTime("minutes", value)} /><TimePickerColumn label={language === "cn" ? "秒" : "Sec"} value={pickerDate.getSeconds()} values={Array.from({ length: 60 }, (_, index) => index)} onSelect={(value) => updatePickerTime("seconds", value)} /></div>
-                </div>
-                <div className="flex h-12 items-center justify-between border-t border-[#dfe1e8] px-3"><button type="button" onClick={() => { const now = new Date(); setPickerDate(now); setPickerMonth(new Date(now.getFullYear(), now.getMonth(), 1)); }} className="text-[12px] leading-5 text-[#1450f5] hover:underline">{language === "cn" ? "此刻" : "Now"}</button><button type="button" onClick={() => { setScheduledAt(toDateTimeValue(pickerDate)); setIsDatePickerOpen(false); }} className="h-[22px] rounded-[4px] bg-[#1450f5] px-2 text-[12px] leading-5 text-white hover:bg-[#0e43d0]">{language === "cn" ? "确定" : "Confirm"}</button></div>
-              </div>}
-            </div>
-          </div>}
-          {step === 3 && <div className="mt-5 w-full">
-            <p className="text-[14px] leading-[22px] text-[#676a72]">{language === "cn" ? "请核对升级内容，确认无误后提交。" : "Review the upgrade content before submitting."}</p>
-            <p className="mt-4 text-[14px] font-medium leading-[22px] text-[#141414]">{t.executionTime}：{formatExecutionTime(scheduledAt)}</p>
+            <p className="text-[14px] leading-[22px] text-[#676a72]">{language === "cn" ? "请核对升级内容，确认无误后设置执行时间。" : "Review the upgrade content, then set the execution time."}</p>
             <div className="mt-4 overflow-hidden rounded-[6px] border border-[#dfe1e8]">
               {/* 首列左 / 末列右边距 = 表格统一边距；末列 w-px + nowrap 收到内容宽度 */}
               <table className="w-full border-collapse text-left text-[12px] leading-5">
@@ -439,6 +370,9 @@ function BulkSystemUpgradeDialog({ language, selectedDevices, onClose, onComplet
               </table>
             </div>
             <label className="mt-4 block text-[14px] font-medium leading-[22px] text-[#141414]">{t.remarkOptional}<textarea value={submissionRemark} onChange={(event) => setSubmissionRemark(event.target.value)} placeholder={t.remarkPlaceholder} className="mt-2 block h-[72px] w-full resize-none rounded-[4px] border border-[#c8cad0] px-3 py-2 text-[14px] font-normal leading-[22px] text-[#141414] outline-none placeholder:text-[#8f9195] focus:border-[#1450f5]" /></label>
+          </div>}
+          {step === 3 && <div className="mt-5 w-full">
+            <ExecutionModeField idPrefix="upgrade" language={language} mode={executionMode} onModeChange={setExecutionMode} scheduledAt={scheduledAt} onScheduledAtChange={setScheduledAt} />
           </div>}
         </div>
         <footer className="flex justify-end gap-2 border-t border-[#e7e7e7] px-8 py-6"><button type="button" onClick={step === 1 ? onClose : () => setStep((current) => current - 1)} className="h-8 rounded-[4px] bg-[#f1f1f1] px-4 text-[14px] text-[#141414] hover:bg-[#e8e8e8]">{step === 1 ? t.cancel : t.previous}</button><button type="button" disabled={!canAdvance} onClick={next} className={`h-8 rounded-[4px] px-4 text-[14px] text-white ${canAdvance ? "bg-[#1450f5] hover:bg-[#0e43d0]" : "cursor-not-allowed bg-[#a1b9fb]"}`}>{step === 3 ? t.confirm : t.next}</button></footer>

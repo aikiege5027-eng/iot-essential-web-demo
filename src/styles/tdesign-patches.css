@@ -1004,3 +1004,27 @@
 .km-alert .t-alert__content > .t-alert__message:first-child .t-alert__description {
   color: var(--text-color-primary);
 }
+
+/*
+ * 执行时间选择器（ExecutionTimePicker）：只有「时、分」两列，没有秒。
+ * TDesign 日期时间面板里的时间区固定 216px（按 时/分/秒 三列各 72 算），只剩两列时每列被拉到 108px。
+ * 这里改为 144px（2 × 72），列宽与三列时一致。
+ *
+ * 面板整体宽度不小于输入框（ExecutionTimePicker 里设了 min-width = 输入框宽度），右边缘与输入框对齐；
+ * 多出来的宽度让日历区拉伸（flex: 1），时间区固定不动，避免时间列又被拉宽。
+ */
+.km-execution-time-panel .t-date-picker__panel .t-time-picker__panel {
+  width: 144px;
+}
+
+.km-execution-time-panel .t-date-picker__panel-content {
+  width: 100%;
+}
+
+.km-execution-time-panel .t-date-picker__panel-content > .t-date-picker__panel-date {
+  flex: 1 1 auto;
+}
+
+.km-execution-time-panel .t-date-picker__panel-content > .t-date-picker__panel-time {
+  flex: 0 0 auto;
+}

@@ -106,6 +106,8 @@ export default function App() {
   if (!currentUser) {
     return (
       <LoginPage
+        language={language}
+        onLanguageChange={setLanguage}
         onLogin={handleLogin}
         getPassword={getPassword}
         onPasswordReset={(email, newPassword) => setPasswordOverrides((current) => ({ ...current, [email]: newPassword }))}

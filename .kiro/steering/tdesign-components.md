@@ -376,6 +376,10 @@ description: 25 个 TDesign 底层组件（Button、Divider、Link、Dropdown、
 - `clearable` / `allowInput` / `firstDayOfWeek` / `format` 无变体。
 - `.item/rangeCell/*` 有 s/m/l 三档（高 20/24/32），但**面板本身无尺寸轴**，这三档没有对应面板来消费，用途不明，需问设计。
 
+**项目内用法：批量操作「执行时间」**
+
+批量系统升级 / 批量配置更新的执行时间统一用 `src/app/components/ExecutionTimePicker.tsx`（TDesign `DatePicker` + `enableTimePicker`，对应面板 `mode = dateTimes`），**不要再手写日历 + 时分秒列**。规则：精确到分、值格式 `YYYY-MM-DD HH:mm`；分钟只有 00 / 30（`timePickerProps.steps = [1, 30]`）；最早可选 = 当前时间 + 30 分钟向上取整到整点/半点，更早的日期整天置灰、当天更早的小时与分钟隐藏。面板底部只有「确定」，没有「此刻」。提交时补 `:00` 秒位以兼容审批中心的 `YYYY-MM-DD HH:mm:ss`。
+
 ---
 
 ## 选择控件

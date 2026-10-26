@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { Button, Checkbox, DatePicker, Input, Steps, Tooltip } from "tdesign-react";
+import { Button, Checkbox, Input, Steps, Tooltip } from "tdesign-react";
+import ExecutionModeField, { IMMEDIATE_EXECUTION, type ExecutionMode } from "./ExecutionModeField";
+import { isValidExecutionTime } from "./ExecutionTimePicker";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { cn } from "./ui/utils";
 import { ResetDefaultIcon, ScrollLeftIcon, ScrollRightIcon } from "./icons/config-update-icons";
@@ -49,7 +51,7 @@ const copy = {
   cn: {
     title: "批量配置更新",
     hardwareTypes: (count: number) => `共${count}个硬件类型`,
-    steps: ["更新Profile", "设置执行时间", "升级内容确认"],
+    steps: ["更新Profile", "升级内容确认", "设置执行时间"],
     hardwareTypeTabs: "硬件类型",
     profileFiles: "Profile 文件",
     scrollLeft: "向左滚动",
@@ -62,10 +64,7 @@ const copy = {
     previous: "上一步",
     next: "下一步",
     submit: "提交",
-    scheduleHint: "请设定批量配置更新的执行时间。",
-    executionTime: "执行时间",
-    schedulePlaceholder: "请设定执行时间",
-    confirmHint: "请核对以下配置变更，确认无误后提交。",
+    confirmHint: "请核对以下配置变更，确认无误后设置执行时间。",
     deviceCount: "更新设备数量",
     hardwareType: "硬件类型",
     profile: "Profile 文件",
@@ -75,7 +74,7 @@ const copy = {
   en: {
     title: "Batch configuration update",
     hardwareTypes: (count: number) => `${count} hardware type${count === 1 ? "" : "s"}`,
-    steps: ["Update profile", "Set execution time", "Confirm changes"],
+    steps: ["Update profile", "Confirm changes", "Set execution time"],
     hardwareTypeTabs: "Hardware types",
     profileFiles: "Profile files",
     scrollLeft: "Scroll left",
@@ -88,10 +87,7 @@ const copy = {
     previous: "Previous",
     next: "Next",
     submit: "Submit",
-    scheduleHint: "Set the execution time for this batch configuration update.",
-    executionTime: "Execution time",
-    schedulePlaceholder: "Set execution time",
-    confirmHint: "Review the configuration changes below before submitting.",
+    confirmHint: "Review the configuration changes below, then set the execution time.",
     deviceCount: "Devices to update",
     hardwareType: "Hardware type",
     profile: "Profile file",
@@ -396,6 +392,7 @@ export default function BatchConfigUpdateDialog({
   const [activeKm, setActiveKm] = useState(kmNumbers[0] ?? "");
   const [activeProfile, setActiveProfile] = useState(PROFILE_FILES[0]);
   const [editsByProfile, setEditsByProfile] = useState<Record<string, ProfileEdits>>({});
+  const [executionMode, setExecutionMode] = useState<ExecutionMode>("immediate");
   const [scheduledAt, setScheduledAt] = useState("");
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -452,10 +449,11 @@ export default function BatchConfigUpdateDialog({
     setActiveProfile(PROFILE_FILES[0]);
   };
 
-  const canAdvance = step === 1 ? selectedFieldTotal > 0 : step === 2 ? Boolean(scheduledAt) : true;
+  // 步骤顺序：更新 Profile → 升级内容确认 → 设置执行时间（最后一步提交）
+  const canAdvance = step === 3 ? selectedFieldTotal > 0 && (executionMode === "immediate" || isValidExecutionTime(scheduledAt)) : selectedFieldTotal > 0;
   const goNext = () => {
     if (step < 3) setStep(step + 1);
-    else onComplete({ scheduledAt, selectedProfiles: selectedProfiles.length });
+    else onComplete({ scheduledAt: executionMode === "immediate" ? IMMEDIATE_EXECUTION : `${scheduledAt}:00`, selectedProfiles: selectedProfiles.length });
   };
 
   const idPrefix = `config-${activeKm}-${profileIndex}`.replace(/[^a-zA-Z0-9_-]/g, "");
@@ -529,38 +527,12 @@ export default function BatchConfigUpdateDialog({
 
           {step === 2 && (
             <div className="min-h-0 flex-1 overflow-y-auto">
-              <p className="text-body text-secondary-text">{t.scheduleHint}</p>
-              <div className="mt-3 flex max-w-[500px] flex-col gap-2">
-                <label htmlFor="config-execution-time" className="text-body font-normal text-primary-text">
-                  {t.executionTime}
-                  <span className="ml-0.5 text-error" aria-hidden="true">*</span>
-                </label>
-                <DatePicker
-                  inputProps={{ id: "config-execution-time" }}
-                  enableTimePicker
-                  allowInput
-                  clearable
-                  size="medium"
-                  format="YYYY-MM-DD HH:mm:ss"
-                  value={scheduledAt}
-                  placeholder={t.schedulePlaceholder}
-                  onChange={(value) => setScheduledAt(String(value ?? ""))}
-                  // Radix Dialog 会让 body 外的元素不可点击，浮层需挂到弹窗内部。
-                  popupProps={{ attach: () => dialogRef.current ?? document.body }}
-                />
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="min-h-0 flex-1 overflow-y-auto">
               <p className="text-body text-secondary-text">{t.confirmHint}</p>
-              <p className="mt-4 text-body font-medium text-primary-text">
-                {t.executionTime}：{scheduledAt}
-              </p>
               {/* 首列左 / 末列右边距 = 表格统一边距；末列 w-px + nowrap 收到内容宽度，右侧不留多余空白 */}
-              <table className="mt-4 w-full border-collapse overflow-hidden rounded-md border border-stroke text-left text-foot12">
-                <thead className="bg-secondarycontainer text-secondary-text">
+              {/* 外框和圆角画在外层 div 上：border-collapse 的 table 不支持 border-radius / overflow，画在 table 上会丢失；最后一行不再画底线，避免与外框重叠。与批量系统升级的确认表格一致 */}
+              <div className="mt-4 overflow-hidden rounded-md border border-stroke">
+              <table className="w-full border-collapse text-left text-foot12">
+                <thead className="bg-secondarycontainer text-placeholder">
                   <tr>
                     <th scope="col" className="w-[calc(144px+var(--iot-table-edge-start))] border-b border-stroke py-2 pl-[var(--iot-table-edge-start)] pr-2 font-normal">{t.hardwareType}</th>
                     <th scope="col" className="w-[220px] border-b border-stroke px-2 py-2 font-normal">{t.profile}</th>
@@ -570,7 +542,7 @@ export default function BatchConfigUpdateDialog({
                 </thead>
                 <tbody>
                   {selectedProfiles.map((row) => (
-                    <tr key={editKey(row.km, row.profile)} className="align-top">
+                    <tr key={editKey(row.km, row.profile)} className="bg-container align-top last:[&>td]:border-b-0">
                       <td className="border-b border-stroke py-2 pl-[var(--iot-table-edge-start)] pr-2 text-primary-text">{row.km}</td>
                       <td className="border-b border-stroke px-2 py-2 text-primary-text">{row.profile}</td>
                       <td className="border-b border-stroke px-2 py-2 text-primary-text">
@@ -588,6 +560,24 @@ export default function BatchConfigUpdateDialog({
                   ))}
                 </tbody>
               </table>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            // overflow-y-auto 会连带裁掉横向溢出：输入框聚焦时 2px 的浅蓝外环在最左边被切掉。
+            // 容器左右各外扩 4px 再用内边距补回，输入框位置不变，外环完整显示。
+            <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
+              <ExecutionModeField
+                idPrefix="config"
+                language={language}
+                mode={executionMode}
+                onModeChange={setExecutionMode}
+                scheduledAt={scheduledAt}
+                onScheduledAtChange={setScheduledAt}
+                // Radix Dialog 会让 body 外的元素不可点击，浮层需挂到弹窗内部。
+                popupProps={{ attach: () => dialogRef.current ?? document.body }}
+              />
             </div>
           )}
         </div>

@@ -7,6 +7,7 @@ import emptyApprovalIllustration from "../../imports/MainContent/a61db6f0d807006
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { IoTListPageTemplate, type IoTTableColumn } from "./templates/iot-list-page";
 import type { AppAccount } from "../data/accounts";
+import { IMMEDIATE_EXECUTION } from "./ExecutionModeField";
 import { getApprovalTaskContext, type UpgradeApproval } from "../data/approvalWorkflow";
 import { QIANFAN_ADMIN_EMAIL } from "../data/accounts";
 
@@ -130,7 +131,7 @@ function TaskDetailsDrawer({ approval, language, currentUser, pendingAsInProgres
   const isConfigurationUpdate = approval.content.includes("批量配置更新");
   const isDeviceUnbind = approval.content.includes("设备解绑");
   const isDeviceReboot = approval.content.includes("批量设备重启");
-  const fields = [[t.content, approval.content], [t.initiator, approval.initiatorName], [t.initiatedAt, approval.initiatedAt], [t.executionTime, approval.scheduledAt.replace("T", " ")]];
+  const fields = [[t.content, approval.content], [t.initiator, approval.initiatorName], [t.initiatedAt, approval.initiatedAt], [t.executionTime, approval.scheduledAt === IMMEDIATE_EXECUTION ? (language === "cn" ? "即时执行" : "Run immediately") : approval.scheduledAt.replace("T", " ")]];
   const canReview = approval.status === "pending" && approval.approverEmail === currentUser.email;
   return <div className="fixed inset-0 z-[130] flex bg-[#141414]/60" role="dialog" aria-modal="true" aria-labelledby="task-details-title">
     <button type="button" aria-label={t.close} onClick={onClose} className="min-w-0 flex-1 cursor-default" />

@@ -7,6 +7,7 @@ import { ACCOUNTS, EDITION_DEFAULT_EMAILS, EDITION_TITLES, getAccountEdition, QI
 import ForgotPasswordDialog from "./ForgotPasswordDialog";
 import ResetLinkPasswordDialog from "./ResetLinkPasswordDialog";
 import { EyeClosedIcon, EyeOpenIcon } from "./icons/login-icons";
+import { LanguageCnIcon, LanguageIcon } from "./icons/nav-icons";
 import { cn } from "./ui/utils";
 
 /**
@@ -25,6 +26,9 @@ import { cn } from "./ui/utils";
  */
 
 type LoginPageProps = {
+  /** 当前界面语言；登录后的主界面沿用同一个值，所以在登录页切换后进入系统不会被重置 */
+  language: "cn" | "en";
+  onLanguageChange: (language: "cn" | "en") => void;
   onLogin: (email: string, password: string, edition: AppEdition) => boolean;
   /** 账号当前的密码（忘记密码修改后为新密码），演示快捷登录用它自动填入 */
   getPassword: (email: string) => string;
@@ -51,6 +55,44 @@ const LOGIN_USERS: Record<AppEdition, LoginUser[]> = {
   ],
 };
 
+/** 登录卡片文案。底部的演示快捷登录（平台 / 用户选择）不是产品界面，不随语言切换。 */
+const COPY = {
+  cn: {
+    title: "欢迎使用 IoT Essential",
+    ssoLogin: "使用通力账号登录",
+    agreePrefix: "继续即表示您同意我们的",
+    privacyPolicy: "隐私政策",
+    username: "用户名",
+    usernamePlaceholder: "请输入用户名",
+    password: "密码",
+    passwordPlaceholder: "请输入密码",
+    showPassword: "显示密码",
+    hidePassword: "隐藏密码",
+    login: "登录",
+    forgotPassword: "忘记密码？",
+    ssoError: "登录失败，请重新选择用户后再试。",
+    credentialError: "邮箱或密码不正确，请重新输入。",
+    switchLanguage: "切换语言",
+  },
+  en: {
+    title: "Welcome to IoT Essential",
+    ssoLogin: "Log in with KONE Account",
+    agreePrefix: "By continuing, you agree to our",
+    privacyPolicy: "Privacy Policy",
+    username: "Username",
+    usernamePlaceholder: "Enter your username",
+    password: "Password",
+    passwordPlaceholder: "Enter your password",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
+    login: "Log In",
+    forgotPassword: "Forgot password?",
+    ssoError: "Login failed. Please select a user and try again.",
+    credentialError: "Incorrect email or password. Please try again.",
+    switchLanguage: "Switch language",
+  },
+} as const;
+
 function getDefaultCredentials(edition: AppEdition, getPassword: (email: string) => string) {
   const account = ACCOUNTS.find((candidate) => candidate.email === EDITION_DEFAULT_EMAILS[edition]);
   return { email: account?.email ?? "", password: account ? getPassword(account.email) : "" };
@@ -62,7 +104,7 @@ function KoneLogo() {
   return <img src={koneLogo} alt="KONE" className="h-7 w-[72px] object-contain object-left" />;
 }
 
-export default function LoginPage({ onLogin, getPassword, onPasswordReset }: LoginPageProps) {
+export default function LoginPage({ language, onLanguageChange, onLogin, getPassword, onPasswordReset }: LoginPageProps) {
   const [platform, setPlatform] = useState<AppEdition>("iot");
   const [email, setEmail] = useState(() => getDefaultCredentials("iot", getPassword).email);
   const [password, setPassword] = useState(() => getDefaultCredentials("iot", getPassword).password);
@@ -71,7 +113,10 @@ export default function LoginPage({ onLogin, getPassword, onPasswordReset }: Log
   const [isResetLinkOpen, setIsResetLinkOpen] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-  const [error, setError] = useState("");
+  // 错误提示记成「哪一类」而不是文本，这样切换语言后提示会跟着变
+  const [error, setError] = useState<"" | "sso" | "credential">("");
+  const t = COPY[language];
+  const errorText = error === "sso" ? t.ssoError : error === "credential" ? t.credentialError : "";
 
   // 通力 IoT Essential 使用企业账号登录，仟帆仍是邮箱 + 密码。
   const isSso = platform === "iot";
@@ -83,7 +128,7 @@ export default function LoginPage({ onLogin, getPassword, onPasswordReset }: Log
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!onLogin(normalizedEmail, password, platform)) {
-      setError(isSso ? "登录失败，请重新选择用户后再试。" : "邮箱或密码不正确，请重新输入。");
+      setError(isSso ? "sso" : "credential");
     }
   };
 
@@ -136,6 +181,18 @@ export default function LoginPage({ onLogin, getPassword, onPasswordReset }: Log
     <main className="relative min-h-screen overflow-hidden bg-container">
       <img src={loginBackground} alt="" aria-hidden="true" className="fixed inset-0 size-full object-cover object-center" />
 
+      {/* 右上角语言切换：32×32 圆角 4px、图标 16×16，配色与顶栏操作按钮一致（品牌蓝，hover 浅蓝底）。默认语言为中文（App 的 language 初始值 "cn"） */}
+      <button
+        type="button"
+        onClick={() => onLanguageChange(language === "cn" ? "en" : "cn")}
+        aria-label={t.switchLanguage}
+        title={t.switchLanguage}
+        className="absolute right-6 top-2 z-20 flex size-8 items-center justify-center rounded-sm border-0 bg-transparent text-link transition-colors hover:bg-brand-light/50 focus-visible:outline-2 focus-visible:outline-brand-base"
+      >
+        {/* 图标显示当前语言（中文显示「中」，英文显示「EN」），取自 Design Token China 图标库 623:1817 */}
+        {language === "cn" ? <LanguageCnIcon className="size-4" /> : <LanguageIcon className="size-4" />}
+      </button>
+
       <section className="relative z-10 flex min-h-screen items-center justify-center p-6">
         <form
           onSubmit={submit}
@@ -147,20 +204,20 @@ export default function LoginPage({ onLogin, getPassword, onPasswordReset }: Log
         >
           <div className="flex flex-col gap-6">
             <KoneLogo />
-            <h1 className="text-h3 font-semibold text-primary-text">Welcome to IoT Essential</h1>
+            <h1 className="text-h3 font-semibold text-primary-text">{t.title}</h1>
           </div>
 
           {isSso ? (
             // 通力平台走企业账号（SSO）登录：不再输入账号密码，以底部「用户选择」选中的角色登录
             <div className="flex w-full flex-col gap-6">
               <Button type="submit" theme="primary" size="large" shape="round" block>
-                <strong>Log in with KONE Account</strong>
+                <strong>{t.ssoLogin}</strong>
               </Button>
-              {error && <p role="alert" className="text-foot12 text-error">{error}</p>}
+              {error && <p role="alert" className="text-foot12 text-error">{errorText}</p>}
               <Checkbox checked={agreedPolicy} onChange={(checked) => setAgreedPolicy(Boolean(checked))}>
-                By continuing, you agree to our{" "}
+                {t.agreePrefix}{language === "en" ? " " : ""}
                 <Link className="iot-login-policy-link" theme="primary" hover="underline" href="#" onClick={(event) => event.preventDefault()}>
-                  Privacy Policy
+                  {t.privacyPolicy}
                 </Link>
               </Checkbox>
             </div>
@@ -171,13 +228,13 @@ export default function LoginPage({ onLogin, getPassword, onPasswordReset }: Log
                 <div className="flex flex-col gap-1">
                   {/* TDesign Input 把 id / aria-* 透传到外层容器而不是 <input>，所以用包裹式 label 给输入框命名 */}
                   <label className="block">
-                    <span className="sr-only">Email</span>
+                    <span className="sr-only">{t.username}</span>
                     <Input
                       className="iot-login-input"
                       size="large"
                       type="text"
                       autocomplete="username"
-                      placeholder="Enter your username"
+                      placeholder={t.usernamePlaceholder}
                       status={error ? "error" : "default"}
                       value={email}
                       onChange={(value) => { setEmail(String(value)); setError(""); }}
@@ -186,7 +243,7 @@ export default function LoginPage({ onLogin, getPassword, onPasswordReset }: Log
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="login-password" className="sr-only">Password</label>
+                  <label htmlFor="login-password" className="sr-only">{t.password}</label>
                   <div
                     className={cn(
                       "flex h-10 w-full items-center rounded-[8px] border bg-container px-3 transition-[border-color,box-shadow] duration-200",
@@ -197,7 +254,7 @@ export default function LoginPage({ onLogin, getPassword, onPasswordReset }: Log
                       id="login-password"
                       type={isPasswordVisible ? "text" : "password"}
                       autoComplete="current-password"
-                      placeholder="Enter your password"
+                      placeholder={t.passwordPlaceholder}
                       value={password}
                       onChange={(event) => { setPassword(event.target.value); setError(""); }}
                       onFocus={() => setIsPasswordFocused(true)}
@@ -207,20 +264,20 @@ export default function LoginPage({ onLogin, getPassword, onPasswordReset }: Log
                     <button
                       type="button"
                       onClick={() => setIsPasswordVisible((visible) => !visible)}
-                      aria-label={isPasswordVisible ? "隐藏密码" : "显示密码"}
+                      aria-label={isPasswordVisible ? t.hidePassword : t.showPassword}
                       aria-pressed={isPasswordVisible}
                       className="flex size-[18px] items-center justify-center rounded-xs text-placeholder transition-colors hover:text-primary-text focus-visible:outline-2 focus-visible:outline-brand-base"
                     >
                       {isPasswordVisible ? <EyeOpenIcon className="size-[18px]" /> : <EyeClosedIcon className="size-[18px]" />}
                     </button>
                   </div>
-                  {error && <p role="alert" className="text-foot12 text-error">{error}</p>}
+                  {error && <p role="alert" className="text-foot12 text-error">{errorText}</p>}
                 </div>
               </div>
 
               <div className="flex flex-col items-start gap-4">
                 <Button type="submit" theme="primary" size="large" shape="round" block>
-                  <strong>Log In</strong>
+                  <strong>{t.login}</strong>
                 </Button>
                 <div className="flex w-full justify-center">
                   <Link
@@ -233,7 +290,7 @@ export default function LoginPage({ onLogin, getPassword, onPasswordReset }: Log
                       setIsResetOpen(true);
                     }}
                   >
-                    Forgot password？
+                    {t.forgotPassword}
                   </Link>
                 </div>
               </div>
