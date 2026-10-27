@@ -4,10 +4,10 @@ import ExecutionTimePicker from "./ExecutionTimePicker";
 
 /**
  * 批量操作「设置执行时间」步骤的完整内容（批量系统升级 / 批量配置更新共用）：
- * 执行方式单选（即时执行 / 定时执行）+ 对应的说明文案；选择定时执行时再显示执行时间选择器。
+ * 执行方式单选（即时执行 / 计划执行）+ 对应的说明文案；选择计划执行时再显示计划执行时间选择器。
  *
  * - 即时执行：审批完成后即刻执行，不需要时间，提交时 `scheduledAt` 用 {@link IMMEDIATE_EXECUTION} 标记。
- * - 定时执行：必须选择合法的执行时间（规则见 ExecutionTimePicker）。
+ * - 计划执行：必须选择合法的计划执行时间（规则见 ExecutionTimePicker）。
  */
 
 export type ExecutionMode = "immediate" | "scheduled";
@@ -19,21 +19,21 @@ const copy = {
   cn: {
     groupLabel: "执行方式",
     immediate: "即时执行",
-    scheduled: "定时执行",
+    scheduled: "计划执行",
     immediateHint: "当前为即时执行，点击提交后，任务将在审批完成后即刻执行。",
-    scheduledHint: "当前为定时执行，将在审批结束后按指定时间执行任务；若在指定时间到达时仍未获批准，此条申请将失效。",
-    executionTime: "执行时间",
-    placeholder: "请设定执行时间",
+    scheduledHint: "当前为计划执行，将在审批结束后按指定时间执行任务；如在计划执行时间之后才通过审批，任务会在通过审批后即刻执行。",
+    executionTime: "计划执行时间",
+    placeholder: "请设定计划执行时间",
   },
   en: {
     groupLabel: "Execution mode",
     immediate: "Run immediately",
-    scheduled: "Schedule execution",
+    scheduled: "Planned execution",
     immediateHint: "Run immediately: after you submit, the task runs as soon as the approval is completed.",
     scheduledHint:
-      "Scheduled: after approval, the task runs at the time you set. If the request is still not approved when that time arrives, it expires.",
-    executionTime: "Execution time",
-    placeholder: "Set execution time",
+      "Planned: after approval, the task runs at the planned time you set. If the request is approved after the planned time, the task runs immediately once approved.",
+    executionTime: "Planned execution time",
+    placeholder: "Set planned execution time",
   },
 } as const;
 

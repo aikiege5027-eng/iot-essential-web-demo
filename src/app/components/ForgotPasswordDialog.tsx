@@ -5,7 +5,7 @@ import { Alert, Button, Dialog, Input, MessagePlugin, Steps } from "tdesign-reac
  * 仟帆 IoT Essential 登录页「忘记密码」→「修改密码」弹窗，两步完成：
  *
  *   1. 验证手机号：手机号 + 验证码（发送 / 60s 后重新发送），校验通过进入下一步；
- *   2. 设置新密码：新密码输入两遍，两次一致后「确认」。顶部黄色 Alert 倒计时 1 分钟；
+ *   2. 设置新密码：新密码输入两遍，两次一致后「确认」。顶部黄色 Alert 倒计时 5 分钟；
  *      超时后两个输入框与「确认」都置为禁用，提示条改为「密码修改已超时，请重新验证并重试」，只能「上一步」。
  *
  * 从第二步「上一步」回到第一步时，手机号、验证码、发送状态全部清空，必须重新输入手机号并重新获取验证码。
@@ -33,7 +33,7 @@ const PHONE_PATTERN = /^\d{11}$/;
 const DEMO_CODE = "123456";
 const RESEND_SECONDS = 60;
 /** 验证通过后，设置新密码的有效时长 */
-const RESET_WINDOW_SECONDS = 60;
+const RESET_WINDOW_SECONDS = 5 * 60;
 
 /** 秒数格式化为 mm:ss */
 const formatCountdown = (seconds: number) =>
@@ -57,7 +57,7 @@ export default function ForgotPasswordDialog({ visible, onClose, onReset }: Forg
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<FieldErrors>(NO_ERRORS);
-  // 第二步剩余秒数：进入第二步时从 60 开始倒数，回到第一步再进来会重新计时
+  // 第二步剩余秒数：进入第二步时从 5 分钟（300 秒）开始倒数，回到第一步再进来会重新计时
   const [resetRemaining, setResetRemaining] = useState(RESET_WINDOW_SECONDS);
   // TDesign Dialog 的 footer 不会随每次输入重新渲染，按钮回调里的闭包会停留在旧值；
   // 校验统一从这个 ref 读取最新输入。

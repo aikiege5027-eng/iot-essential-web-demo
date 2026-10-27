@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Checkbox, Dropdown, Input, Select } from "tdesign-react";
+import { Button, Checkbox, Dialog, Dropdown, Input, Select } from "tdesign-react";
 import type { UpgradeDetail } from "../data/approvalWorkflow";
 import {
   IoTListPageTemplate,
@@ -126,7 +126,7 @@ const copy = {
     upgradePackage: "升级安装包",
     upgradeQuantity: "升级数量",
     executeNow: "即时执行",
-    scheduleExecution: "定时执行",
+    scheduleExecution: "计划执行",
     executionTime: "执行时间",
     selectedDevices: "已选择设备",
     selectedPackages: "安装包",
@@ -308,13 +308,34 @@ function BulkSystemUpgradeDialog({ language, selectedDevices, onClose, onComplet
 
   const steps = [t.stepPackage, t.stepConfirm, t.stepSchedule];
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#141414]/60 p-4" role="dialog" aria-modal="true" aria-label={t.batchUpgradeTitle}>
-      <div className="flex h-[634px] w-full max-w-[900px] flex-col overflow-hidden rounded-[8px] bg-white shadow-2xl">
-        <header className="flex items-center justify-between border-b border-[#e7e7e7] px-8 py-6">
-          <div className="flex items-center gap-2"><h2 className="text-[16px] font-semibold leading-6 text-[#141414]">{t.batchUpgradeTitle}</h2><span className="text-[14px] leading-[22px] text-[#676a72]">{kmNumbers.length} {t.hardwareTypes}</span></div>
-          <button type="button" onClick={onClose} aria-label={t.cancel} className="flex size-6 items-center justify-center rounded-[3px] text-[#727272] hover:bg-[#f5f7fa]"><svg aria-hidden="true" className="size-4" fill="none" viewBox="0 0 16 16"><path d={upgradeSvgPaths.p1e5ad00} fill="currentColor" transform="translate(4 4)" /></svg></button>
-        </header>
-        <div className="flex-1 overflow-y-auto px-8 py-3">
+    // 迁移自手写的 fixed 遮罩层：宽 900、固定高 634（km-dialog--batch）。
+    // 与原来一致：点击遮罩、按 Esc 不会关闭，只有右上角关闭按钮和第一步的「取消」会关闭。
+    <Dialog
+      visible
+      width={900}
+      placement="center"
+      dialogClassName="km-dialog--divider km-dialog--batch"
+      closeOnOverlayClick={false}
+      closeOnEscKeydown={false}
+      header={
+        <span className="flex items-center gap-2">
+          <span className="text-h7 font-semibold text-primary-text">{t.batchUpgradeTitle}</span>
+          <span className="text-body font-normal text-secondary-text">{kmNumbers.length} {t.hardwareTypes}</span>
+        </span>
+      }
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          <Button size="medium" theme="default" variant="base" onClick={step === 1 ? onClose : () => setStep((current) => current - 1)}>
+            {step === 1 ? t.cancel : t.previous}
+          </Button>
+          <Button size="medium" theme="primary" variant="base" disabled={!canAdvance} onClick={next}>
+            {step === 3 ? t.confirm : t.next}
+          </Button>
+        </div>
+      }
+      onClose={() => onClose()}
+    >
+        <div className="min-h-0 flex-1 overflow-y-auto px-8 py-3">
           <ol className="flex w-full items-start">{steps.map((label, index) => { const number = index + 1; const active = step === number; const complete = step > number; return <li key={label} className="flex min-w-0 flex-1 items-center last:flex-none"><div className="flex items-center gap-3"><span className={`flex size-6 shrink-0 items-center justify-center rounded-full border text-[14px] font-semibold ${active ? "border-[#1450f5] bg-[#1450f5] text-white" : complete ? "border-[#1450f5] bg-white text-[#1450f5]" : "border-[#8f9195] text-[#8f9195]"}`}>{complete ? "✓" : number}</span><span className={`whitespace-nowrap text-[16px] leading-6 ${active ? "font-semibold text-[#1450f5]" : complete ? "text-[#141414]" : "text-[#8f9195]"}`}>{label}</span></div>{index < 2 && <span className={`mx-4 h-[2px] min-w-4 flex-1 ${step > number ? "bg-[#1450f5]" : "bg-[#c8cad0]"}`} />}</li>; })}</ol>
           {step === 1 && <div className="mt-4">
             <div className="relative border-b border-[#dfe1e8]">
@@ -375,9 +396,7 @@ function BulkSystemUpgradeDialog({ language, selectedDevices, onClose, onComplet
             <ExecutionModeField idPrefix="upgrade" language={language} mode={executionMode} onModeChange={setExecutionMode} scheduledAt={scheduledAt} onScheduledAtChange={setScheduledAt} />
           </div>}
         </div>
-        <footer className="flex justify-end gap-2 border-t border-[#e7e7e7] px-8 py-6"><button type="button" onClick={step === 1 ? onClose : () => setStep((current) => current - 1)} className="h-8 rounded-[4px] bg-[#f1f1f1] px-4 text-[14px] text-[#141414] hover:bg-[#e8e8e8]">{step === 1 ? t.cancel : t.previous}</button><button type="button" disabled={!canAdvance} onClick={next} className={`h-8 rounded-[4px] px-4 text-[14px] text-white ${canAdvance ? "bg-[#1450f5] hover:bg-[#0e43d0]" : "cursor-not-allowed bg-[#a1b9fb]"}`}>{step === 3 ? t.confirm : t.next}</button></footer>
-      </div>
-    </div>
+    </Dialog>
   );
 }
 

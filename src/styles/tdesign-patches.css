@@ -386,6 +386,34 @@
 }
 
 /*
+ * 批量操作多步骤弹窗（批量系统升级 / 批量配置更新）：叠加在 km-dialog--divider 上使用。
+ * 宽 900（小屏时左右各留 16）、固定高 634（矮屏时上下各留 16）；头、脚高度固定，内容区撑满中间并自行处理内边距与滚动，
+ * 所以这里把 body 的内边距清零，由弹窗内容的最外层 div 决定（升级：px-8 py-3 可滚动；配置更新：px-8 pt-3 pb-6，内部区域各自滚动）。
+ */
+.t-dialog.km-dialog--divider.km-dialog--batch {
+  /* TDesign 在弹窗元素上写了内联 style="display: block"，只能用 !important 才能改成纵向 flex */
+  display: flex !important;
+  flex-direction: column;
+  height: 634px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+}
+
+.t-dialog.km-dialog--batch .t-dialog__header,
+.t-dialog.km-dialog--batch .t-dialog__footer {
+  flex-shrink: 0;
+}
+
+.t-dialog.km-dialog--divider.km-dialog--batch .t-dialog__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/*
  * 紧凑信息展示变体（IOT Delivery 7105:14727「个人信息」）：叠加在 km-dialog--divider 上使用。
  * 头部 `px-24 py-16`、内容区 `p-24`、无页脚；关闭按钮距右边 16px（头部内边距 24 再回收 8）。
  */

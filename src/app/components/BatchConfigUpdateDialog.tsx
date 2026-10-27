@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { Button, Checkbox, Input, Steps, Tooltip } from "tdesign-react";
+import { Button, Checkbox, Dialog, Input, Steps, Tooltip } from "tdesign-react";
 import ExecutionModeField, { IMMEDIATE_EXECUTION, type ExecutionMode } from "./ExecutionModeField";
 import { isValidExecutionTime } from "./ExecutionTimePicker";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { cn } from "./ui/utils";
 import { ResetDefaultIcon, ScrollLeftIcon, ScrollRightIcon } from "./icons/config-update-icons";
 
@@ -394,7 +393,6 @@ export default function BatchConfigUpdateDialog({
   const [editsByProfile, setEditsByProfile] = useState<Record<string, ProfileEdits>>({});
   const [executionMode, setExecutionMode] = useState<ExecutionMode>("immediate");
   const [scheduledAt, setScheduledAt] = useState("");
-  const dialogRef = useRef<HTMLDivElement>(null);
 
   const profileIndex = PROFILE_FILES.indexOf(activeProfile);
   const currentKey = editKey(activeKm, activeProfile);
@@ -459,21 +457,32 @@ export default function BatchConfigUpdateDialog({
   const idPrefix = `config-${activeKm}-${profileIndex}`.replace(/[^a-zA-Z0-9_-]/g, "");
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent
-        // 打开时把焦点放在弹窗本身，而不是第一个选项卡，避免一打开就出现焦点环。
-        onOpenAutoFocus={(event) => {
-          event.preventDefault();
-          (event.currentTarget as HTMLElement).focus();
-        }}
-        className="flex h-[634px] max-h-[calc(100vh-2rem)] flex-col gap-0 overflow-hidden border-stroke bg-container p-0 shadow-modal sm:max-w-[900px] [&>button]:right-8 [&>button]:top-7"
-      >
-        <DialogHeader className="shrink-0 flex-row items-center gap-2 border-b border-stroke px-8 py-6 pr-16 text-left">
-          <DialogTitle className="text-h7 font-semibold text-primary-text">{t.title}</DialogTitle>
-          <DialogDescription className="text-body text-secondary-text">{t.hardwareTypes(kmNumbers.length)}</DialogDescription>
-        </DialogHeader>
-
-        <div ref={dialogRef} className="flex min-h-0 flex-1 flex-col gap-4 px-8 pb-6 pt-3">
+    // 迁移自 shadcn/ui Dialog：宽 900、固定高 634（样式见 tdesign-patches.css 的 km-dialog--batch），
+    // 头 / 脚各一条分割线（km-dialog--divider）。点击遮罩、Esc、右上角关闭都会关闭，与原来一致。
+    <Dialog
+      visible={open}
+      width={900}
+      placement="center"
+      dialogClassName="km-dialog--divider km-dialog--batch"
+      header={
+        <span className="flex items-center gap-2">
+          <span className="text-h7 font-semibold text-primary-text">{t.title}</span>
+          <span className="text-body font-normal text-secondary-text">{t.hardwareTypes(kmNumbers.length)}</span>
+        </span>
+      }
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          <Button size="medium" theme="default" variant="base" onClick={step === 1 ? onClose : () => setStep(step - 1)}>
+            {step === 1 ? t.cancel : t.previous}
+          </Button>
+          <Button size="medium" theme="primary" variant="base" disabled={!canAdvance} onClick={goNext}>
+            {step === 3 ? t.submit : t.next}
+          </Button>
+        </div>
+      }
+      onClose={() => onClose()}
+    >
+        <div className="flex min-h-0 flex-1 flex-col gap-4 px-8 pb-6 pt-3">
           <Steps current={step - 1} layout="horizontal" className="iot-config-steps shrink-0">
             {t.steps.map((title) => (
               <Steps.StepItem key={title} title={title} />
@@ -575,22 +584,10 @@ export default function BatchConfigUpdateDialog({
                 onModeChange={setExecutionMode}
                 scheduledAt={scheduledAt}
                 onScheduledAtChange={setScheduledAt}
-                // Radix Dialog 会让 body 外的元素不可点击，浮层需挂到弹窗内部。
-                popupProps={{ attach: () => dialogRef.current ?? document.body }}
               />
             </div>
           )}
         </div>
-
-        <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-stroke px-8 py-6">
-          <Button size="medium" theme="default" variant="base" onClick={step === 1 ? onClose : () => setStep(step - 1)}>
-            {step === 1 ? t.cancel : t.previous}
-          </Button>
-          <Button size="medium" theme="primary" variant="base" disabled={!canAdvance} onClick={goNext}>
-            {step === 3 ? t.submit : t.next}
-          </Button>
-        </footer>
-      </DialogContent>
     </Dialog>
   );
 }
