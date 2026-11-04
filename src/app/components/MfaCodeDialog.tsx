@@ -55,7 +55,7 @@ export default function MfaCodeDialog({ visible, onSubmit, onCancel }: MfaCodeDi
   return (
     <Dialog
       visible={visible}
-      header="动态验证码"
+      header="Authenticator Code"
       // 6 个 48 宽的格子 + 5 个 12 的间距 = 348，加上左右内边距各 32，弹窗宽 412：格子左缘对齐文字，右缘对齐内边距
       width={412}
       placement="center"

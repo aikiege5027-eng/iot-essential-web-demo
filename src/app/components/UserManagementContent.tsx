@@ -178,6 +178,10 @@ export default function UserManagementContent({ language, edition, currentEmail,
   const [pendingDisable, setPendingDisable] = useState<ManagedUser | null>(null);
   const [pendingReset, setPendingReset] = useState<ManagedUser | null>(null);
 
+  // 仟帆额外支持按手机号搜索，文案和占位符只在仟帆版变化；通力保留既有的工号 / 姓名 / 邮箱。
+  const keywordLabel = edition === "qianfan" ? (language === "cn" ? "工号/姓名/邮箱/手机号" : "Employee ID / Name / Email / Phone") : t.keywordLabel;
+  const keywordPlaceholder = edition === "qianfan" ? (language === "cn" ? "请输入工号、姓名、邮箱、手机号" : "Enter employee ID, name, email or phone") : t.keywordPlaceholder;
+
   const submitQuery = () => {
     setAppliedKeyword(keyword.trim().toLowerCase());
     setAppliedRole(role);
@@ -191,11 +195,11 @@ export default function UserManagementContent({ language, edition, currentEmail,
       if (currentTenant && user.tenant !== currentTenant) return false;
       if (appliedRole && user.role !== appliedRole) return false;
       if (!appliedKeyword) return true;
-      return [user.employeeId, user.name, user.email].some((value) => value.toLowerCase().includes(appliedKeyword));
+      return (edition === "qianfan" ? [user.employeeId, user.name, user.email, user.phone ?? ""] : [user.employeeId, user.name, user.email]).some((value) => value.toLowerCase().includes(appliedKeyword));
     });
     const self = matched.filter((user) => user.email === currentEmail);
     return [...self, ...matched.filter((user) => user.email !== currentEmail)];
-  }, [users, appliedKeyword, appliedRole, currentTenant, currentEmail],
+  }, [users, appliedKeyword, appliedRole, currentTenant, currentEmail, edition],
   );
 
   const pagedUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -307,13 +311,13 @@ export default function UserManagementContent({ language, edition, currentEmail,
   const filters: IoTFilterField[] = [
     {
       id: "keyword",
-      label: t.keywordLabel,
+      label: keywordLabel,
       value: keyword,
-      placeholder: t.keywordPlaceholder,
+      placeholder: keywordPlaceholder,
       onChange: setKeyword,
       // 关键词框里按回车等同点击「查询」
       render: ({ id, value, onChange }) => (
-        <Input id={id} size="medium" value={value} placeholder={t.keywordPlaceholder} onChange={(next) => onChange(String(next))} onEnter={submitQuery} />
+        <Input id={id} size="medium" value={value} placeholder={keywordPlaceholder} onChange={(next) => onChange(String(next))} onEnter={submitQuery} />
       ),
     },
     {
