@@ -5,6 +5,8 @@ import linAvatar from "../../imports/Component10/6847d687db3edf3e5d330faa9a67e02
 import liuAvatar from "../../imports/Component10/340e161f99fe54cc796d4ef8ee2b090b96f49df0.png";
 import zhaoAvatar from "../../imports/Component10/ddf94a90705d5dea2421c8ad86a24839c9b0e289.png";
 import zhouAvatar from "../../imports/Component10/2ce0faf98af7b6e81e7b1e7e4a1fd3b77c325d8f.png";
+// 创建用户首次登录时使用的通用卡通头像：非真人、与既有演示账户的照片头像不同。
+import genericUserAvatar from "../../assets/generic-user-avatar.svg";
 
 /** 平台版本：KONE 自有的 IoT Essential，以及仟帆版本的 IoT Essential。 */
 export type AppEdition = "iot" | "qianfan";
@@ -32,7 +34,55 @@ export type AppAccount = {
    * 可创建「运营人员 / 前线维保员工」；仟帆自己的管理员没有租户。
    */
   tenant?: string;
+  /** 演示中由「用户管理 → 创建用户 → 首次登录设置密码」临时生成的账号（只存在内存里，刷新后消失）。 */
+  createdInDemo?: boolean;
 };
+
+/**
+ * 管理员在用户管理里创建、还没有设置过密码的用户：创建后系统会向其邮箱发送"账号创建完成"的邮件，邮件里的链接进入「首次登录密码设置」。
+ * 登录页左下角的「首次登录设置链接」模拟这个链接。
+ */
+export type PendingInvite = {
+  email: string;
+  name: string;
+  employeeId: string;
+  phone: string;
+  role: string;
+  tenant?: string;
+};
+
+/** 仟帆各角色在侧栏上的菜单权限（和上面的演示账号保持一致）。 */
+const QIANFAN_ROLE_PERMISSIONS: Record<string, string[]> = {
+  系统管理员: ["overview", "search", "provisioning", "permissions", "user-management", "role-management", "approval-center"],
+  前线维保员工: ["overview", "search", "provisioning"],
+  运营人员: ["overview", "search", "provisioning"],
+};
+const QIANFAN_ROLE_EN: Record<string, string> = { 系统管理员: "System Administrator", 前线维保员工: "Frontline Technician", 运营人员: "Operations Staff" };
+
+/**
+ * 首次登录设置好密码后，把被邀请的用户登记成可登录的仟帆账号。
+ * 直接放进下面的 ACCOUNTS（演示用，刷新页面后消失），这样登录页、判断平台版本、审批等所有按邮箱找账号的地方都能认出这个人。
+ */
+export function registerInvitedAccount(invite: PendingInvite, password: string): AppAccount {
+  const account: AppAccount = {
+    employeeId: invite.employeeId || undefined,
+    email: invite.email,
+    password,
+    name: invite.name,
+    nameEn: invite.name,
+    role: invite.role,
+    roleEn: QIANFAN_ROLE_EN[invite.role] ?? invite.role,
+    avatar: genericUserAvatar,
+    edition: "qianfan",
+    tenant: invite.tenant,
+    sidebarPermissions: QIANFAN_ROLE_PERMISSIONS[invite.role] ?? ["overview", "search"],
+    createdInDemo: true,
+  };
+  const existing = ACCOUNTS.findIndex((item) => item.email === invite.email);
+  if (existing >= 0) ACCOUNTS[existing] = account;
+  else ACCOUNTS.push(account);
+  return account;
+}
 
 /** 仟帆版本的模拟管理员（演示数据）。 */
 export const QIANFAN_ADMIN_EMAIL = "siyuan.chen@qianfan-iot.com";

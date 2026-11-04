@@ -24,6 +24,8 @@ export type ManagedUser = {
   status: ManagedUserStatus;
   /** 所属租户（仅仟帆）：仟帆合作的电梯维保分包商；仟帆自己的人没有租户（undefined）。 */
   tenant?: string;
+  /** 是否已绑定 MFA（动态验证码）：已绑定的用户在用户管理的操作里多一项「MFA解绑」。演示里首次登录后视为已绑定。 */
+  mfaBound?: boolean;
   /** 以手机号作为账户名称创建的用户：此时 email 为空串，列表里显示「-」。 */
   phone?: string;
 };
@@ -154,6 +156,10 @@ function buildQianfanUsers(): ManagedUser[] {
       role,
       createdAt: `2026-${month}-${day} ${hour}:${minute}:${second}`,
       status: index === 8 ? "disabled" : "normal",
+      // 手机号是选填项：一部分用户填了（确定性生成的 13x 开头 11 位号码，互不重复），其余留空，列表显示「-」
+      // 部分用户已绑定 MFA（演示"MFA解绑"）；陈思远 / 周雨桐是可登录的演示账号，保持未绑定，登录页不用输动态验证码
+      mfaBound: index % 2 === 0 && index !== 0,
+      phone: index % 3 === 1 ? undefined : `13${(index % 7) + 3}${String(1000000 + index * 7919).padStart(8, "0")}`,
       // 运营人员的序号都是 3 的倍数，按 index % 6 只会落到两个租户，改按 index / 3 轮换，让各租户都有运营人员
       tenant: isAdmin ? undefined : QIANFAN_TENANTS[(isOperations ? Math.floor(index / 3) : index) % QIANFAN_TENANTS.length],
     };

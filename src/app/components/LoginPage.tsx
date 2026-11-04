@@ -1,10 +1,11 @@
 import { FormEvent, useState } from "react";
-import { Button, Checkbox, Input, Link, Select } from "tdesign-react";
+import { Button, Checkbox, Input, Link, MessagePlugin, Select } from "tdesign-react";
 // 背景图与设计系统登录页模板同源（2880×1800，16:10），按 cover + 居中铺满；旧图是 3:2 的另一种裁切，视野范围不同。
 import loginBackground from "../../imports/LoginDesktop/login-bg.jpg";
 import koneLogo from "../../imports/KONE_Logo_Primary_RGB.svg";
-import { ACCOUNTS, EDITION_DEFAULT_EMAILS, EDITION_TITLES, getAccountEdition, QIANFAN_ADMIN_EMAIL, QIANFAN_RESET_DEMO_EMAIL, QIANFAN_TENANT_ADMIN_EMAIL, type AppEdition } from "../data/accounts";
+import { ACCOUNTS, EDITION_DEFAULT_EMAILS, EDITION_TITLES, getAccountEdition, QIANFAN_ADMIN_EMAIL, QIANFAN_RESET_DEMO_EMAIL, QIANFAN_TENANT_ADMIN_EMAIL, type AppEdition, type PendingInvite } from "../data/accounts";
 import ForgotPasswordDialog from "./ForgotPasswordDialog";
+import MfaCodeDialog from "./MfaCodeDialog";
 import ResetLinkPasswordDialog from "./ResetLinkPasswordDialog";
 import { EyeClosedIcon, EyeOpenIcon } from "./icons/login-icons";
 import { LanguageCnIcon, LanguageIcon } from "./icons/nav-icons";
@@ -29,7 +30,15 @@ type LoginPageProps = {
   /** 当前界面语言；登录后的主界面沿用同一个值，所以在登录页切换后进入系统不会被重置 */
   language: "cn" | "en";
   onLanguageChange: (language: "cn" | "en") => void;
-  onLogin: (email: string, password: string, edition: AppEdition) => boolean;
+  /**
+   * "frozen"：账号被管理员冻结，不能登录；
+   * "mfa"：账号密码正确，但该账号已绑定 MFA，还需要动态验证码（带上 mfaCode 再调一次）；"mfa-invalid"：动态验证码不对。
+   */
+  onLogin: (email: string, password: string, edition: AppEdition, mfaCode?: string) => "ok" | "invalid" | "frozen" | "mfa" | "mfa-invalid";
+  /** 管理员创建、还没设置过密码的用户（按创建先后）：登录页左下角的「首次登录设置链接」模拟他们邮件里的链接 */
+  invites: PendingInvite[];
+  /** 首次登录：设置好密码后直接登录系统 */
+  onFirstLogin: (invite: PendingInvite, password: string) => "ok" | "frozen";
   /** 账号当前的密码（忘记密码修改后为新密码），演示快捷登录用它自动填入 */
   getPassword: (email: string) => string;
   /** 忘记密码流程修改成功：记住该账号的新密码 */
@@ -73,6 +82,7 @@ const COPY = {
     ssoError: "登录失败，请重新选择用户后再试。",
     credentialError: "邮箱或密码不正确，请重新输入。",
     switchLanguage: "切换语言",
+    frozen: "该用户账号已冻结，请联系系统管理员处理",
   },
   en: {
     title: "Welcome to IoT Essential",
@@ -90,6 +100,7 @@ const COPY = {
     ssoError: "Login failed. Please select a user and try again.",
     credentialError: "Incorrect email or password. Please try again.",
     switchLanguage: "Switch language",
+    frozen: "This account has been frozen. Please contact the system administrator.",
   },
 } as const;
 
@@ -104,13 +115,16 @@ function KoneLogo() {
   return <img src={koneLogo} alt="KONE" className="h-7 w-[72px] object-contain object-left" />;
 }
 
-export default function LoginPage({ language, onLanguageChange, onLogin, getPassword, onPasswordReset }: LoginPageProps) {
-  const [platform, setPlatform] = useState<AppEdition>("iot");
-  const [email, setEmail] = useState(() => getDefaultCredentials("iot", getPassword).email);
-  const [password, setPassword] = useState(() => getDefaultCredentials("iot", getPassword).password);
+export default function LoginPage({ language, onLanguageChange, onLogin, invites, onFirstLogin, getPassword, onPasswordReset }: LoginPageProps) {
+  // 默认登录仟帆；默认填入仟帆管理员的邮箱和密码。切换平台时仍会填入各自平台的默认账号。
+  const [platform, setPlatform] = useState<AppEdition>("qianfan");
+  const [email, setEmail] = useState(() => getDefaultCredentials("qianfan", getPassword).email);
+  const [password, setPassword] = useState(() => getDefaultCredentials("qianfan", getPassword).password);
   const [agreedPolicy, setAgreedPolicy] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [isResetLinkOpen, setIsResetLinkOpen] = useState(false);
+  const [isFirstLoginOpen, setIsFirstLoginOpen] = useState(false);
+  const [isMfaOpen, setIsMfaOpen] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   // 错误提示记成「哪一类」而不是文本，这样切换语言后提示会跟着变
@@ -120,15 +134,56 @@ export default function LoginPage({ language, onLanguageChange, onLogin, getPass
 
   // 通力 IoT Essential 使用企业账号登录，仟帆仍是邮箱 + 密码。
   const isSso = platform === "iot";
-  const users = LOGIN_USERS[platform];
+  // 演示中创建并首次登录过的用户也出现在"用户选择"里，方便再次登录时一键填入账号密码
+  const users = [
+    ...LOGIN_USERS[platform],
+    ...ACCOUNTS.filter((account) => account.createdInDemo && getAccountEdition(account) === platform).map((account) => ({ email: account.email, label: `${account.name} · ${account.role}` })),
+  ];
   const normalizedEmail = email.trim().toLowerCase();
   // 用户下拉的选中项由邮箱框的内容推导：手动输入了列表里的邮箱，下拉也会同步高亮。
   const selectedUser = users.find((user) => user.email === normalizedEmail)?.email;
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!onLogin(normalizedEmail, password, platform)) {
+    const result = onLogin(normalizedEmail, password, platform);
+    if (result === "frozen") {
+      // 冻结账号：弹出提示（Message），不在表单里留错误
+      setError("");
+      MessagePlugin.error(t.frozen, 4000);
+      return;
+    }
+    if (result === "mfa") {
+      // 已绑定 MFA：账号密码通过后，弹出「动态验证码」窗口
+      setError("");
+      setIsMfaOpen(true);
+      return;
+    }
+    if (result !== "ok") {
       setError(isSso ? "sso" : "credential");
+    }
+  };
+
+  /** 动态验证码窗口点「登录」：返回错误文案（空串 = 通过，登录成功后页面会切到系统） */
+  const submitMfa = (code: string) => {
+    const result = onLogin(normalizedEmail, password, platform, code);
+    if (result === "ok") return "";
+    if (result === "mfa-invalid") return "验证码错误，请重新输入";
+    // 验证码阶段账号被冻结 / 注销等：回到登录卡片
+    setIsMfaOpen(false);
+    if (result === "frozen") MessagePlugin.error(t.frozen, 4000);
+    else setError(isSso ? "sso" : "credential");
+    return "";
+  };
+
+  // 最近一次创建的待首次登录用户（模拟他收到的"账号创建完成"邮件里的链接）
+  const firstLoginInvite = invites[invites.length - 1];
+
+  /** 首次登录设置好密码：直接登录系统；账号刚好被冻结则提示并回到登录卡片 */
+  const handleFirstLoginSubmit = (newPassword: string) => {
+    if (!firstLoginInvite) return;
+    if (onFirstLogin(firstLoginInvite, newPassword) === "frozen") {
+      setIsFirstLoginOpen(false);
+      MessagePlugin.error(t.frozen, 4000);
     }
   };
 
@@ -199,7 +254,7 @@ export default function LoginPage({ language, onLanguageChange, onLogin, getPass
           className={cn(
             "flex w-full max-w-[440px] flex-col gap-8 rounded-[24px] bg-container p-10 shadow-[0_8px_40px_rgba(0,0,0,0.12)]",
             // 重置密码弹窗出现时，它代替登录卡片；关闭后登录卡片恢复，已填内容保留
-            (isResetOpen || isResetLinkOpen) && "hidden",
+            (isResetOpen || isResetLinkOpen || isFirstLoginOpen || isMfaOpen) && "hidden",
           )}
         >
           <div className="flex flex-col gap-6">
@@ -307,6 +362,16 @@ export default function LoginPage({ language, onLanguageChange, onLogin, getPass
         onSubmit={handleResetLinkSubmit}
       />
 
+      <ResetLinkPasswordDialog
+        visible={isFirstLoginOpen && Boolean(firstLoginInvite)}
+        account={{ name: firstLoginInvite?.name ?? "", email: firstLoginInvite?.email }}
+        title="首次登录密码设置"
+        notice="您的IoT账号已创建，首次登录时请设置密码。"
+        successMessage="密码设置成功"
+        onClose={() => setIsFirstLoginOpen(false)}
+        onSubmit={handleFirstLoginSubmit}
+      />
+      <MfaCodeDialog visible={isMfaOpen} onSubmit={submitMfa} onCancel={() => setIsMfaOpen(false)} />
       {/* 演示用快捷登录：先选平台，再选用户，自动填入邮箱和密码 */}
       <div className="absolute bottom-5 left-6 z-20 flex flex-wrap items-center gap-6 pr-6">
         {/* 文字标签已去掉，用 group 的名称给读屏用户说明这两个下拉框的用途 */}
@@ -345,6 +410,27 @@ export default function LoginPage({ language, onLanguageChange, onLogin, getPass
             }}
           >
             重置密码链接
+          </Link>
+        )}
+        {/* 演示入口：模拟新用户从"账号创建完成"邮件里点开的链接，进入「首次登录密码设置」 */}
+        {!isFirstLoginOpen && (
+          <Link
+            className="iot-login-link"
+            theme="primary"
+            hover="underline"
+            href="#"
+            onClick={(event) => {
+              event.preventDefault();
+              if (!firstLoginInvite) {
+                MessagePlugin.info("暂无待首次登录的用户，请先在「用户管理」中创建用户", 3000);
+                return;
+              }
+              setIsResetOpen(false);
+              setIsResetLinkOpen(false);
+              setIsFirstLoginOpen(true);
+            }}
+          >
+            首次登录设置链接
           </Link>
         )}
       </div>

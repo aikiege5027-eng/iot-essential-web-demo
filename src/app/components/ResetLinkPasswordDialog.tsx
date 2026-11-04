@@ -22,6 +22,12 @@ type ResetLinkPasswordDialogProps = {
   account: { name: string; email?: string; phone?: string };
   onClose: () => void;
   onSubmit: (newPassword: string) => void;
+  /** 标题，默认「修改密码」；首次登录用「首次登录密码设置」 */
+  title?: string;
+  /** 顶部提示条文案，默认是"管理员已重置你的登录密码…" */
+  notice?: string;
+  /** 设置成功后的提示；默认"新密码设置成功，请重新登录"。传 null 表示不在这里提示（由调用方接着处理，如直接登录） */
+  successMessage?: string | null;
 };
 
 type FieldErrors = { password: string; confirm: string };
@@ -31,7 +37,15 @@ function FieldMessage({ error }: { error?: string }) {
   return error ? <p role="alert" className="mt-1 text-foot12 text-error">{error}</p> : null;
 }
 
-export default function ResetLinkPasswordDialog({ visible, account, onClose, onSubmit }: ResetLinkPasswordDialogProps) {
+export default function ResetLinkPasswordDialog({
+  visible,
+  account,
+  onClose,
+  onSubmit,
+  title = "修改密码",
+  notice = "管理员已重置你的登录密码，请设置新密码后再访问系统。",
+  successMessage = "新密码设置成功，请重新登录",
+}: ResetLinkPasswordDialogProps) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<FieldErrors>(NO_ERRORS);
@@ -56,7 +70,7 @@ export default function ResetLinkPasswordDialog({ visible, account, onClose, onS
     setErrors(next);
     if (next.password || next.confirm) return;
     onSubmit(password);
-    MessagePlugin.success("新密码设置成功，请重新登录", 3000);
+    if (successMessage) MessagePlugin.success(successMessage, 3000);
   };
 
   // 账号可能是邮箱，也可能是手机号
@@ -67,7 +81,7 @@ export default function ResetLinkPasswordDialog({ visible, account, onClose, onS
       visible={visible}
       header={
         <div className="flex min-w-0 flex-col">
-          <span>修改密码</span>
+          <span>{title}</span>
           <span className="truncate text-body font-normal text-secondary-text" title={`${account.name} · ${accountId}`}>
             {account.name} · {accountId}
           </span>
@@ -89,7 +103,7 @@ export default function ResetLinkPasswordDialog({ visible, account, onClose, onS
         <Alert
           className="km-alert km-alert--compact"
           theme="info"
-          message="管理员已重置你的登录密码，请设置新密码后再访问系统。"
+          message={notice}
         />
         <label className="block">
           <span className="sr-only">新密码</span>

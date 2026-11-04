@@ -1,11 +1,14 @@
 import { useState } from "react";
 import LoginPage from "./components/LoginPage";
-import { ACCOUNTS, getAccountEdition, getEditionByEmail, QIANFAN_ADMIN_EMAIL, type AppAccount, type AppEdition } from "./data/accounts";
+import { ACCOUNTS, getAccountEdition, getEditionByEmail, QIANFAN_ADMIN_EMAIL, registerInvitedAccount, type AppAccount, type AppEdition, type PendingInvite } from "./data/accounts";
 import { getApprovalDeviceCount, getApprovalTaskContext, type AppNotification, type UpgradeApproval, type UpgradeDetail } from "./data/approvalWorkflow";
 import Events from "./components/EventsApp";
+import type { ManagedUser } from "./data/userManagement";
 import IoTMobileApp from "./components/IoTMobileApp";
 
 type CoreTab = "liveData" | "masterData" | "events";
+/** 演示用的 MFA 动态验证码：固定 6 个 0（真实环境由用户手机上的验证 App 生成） */
+const MFA_DEMO_CODE = "000000";
 type Lang = "en" | "cn";
 
 
@@ -39,6 +42,16 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<AppAccount | null>(null);
   const [approvals, setApprovals] = useState<UpgradeApproval[]>(DEMO_APPROVALS);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  // 用户管理里被冻结 / 注销的账号：冻结后无法登录（登录页提示已冻结），注销后账号不存在（演示：只存在内存里，刷新后恢复）
+  const [frozenEmails, setFrozenEmails] = useState<string[]>([]);
+  const [deregisteredEmails, setDeregisteredEmails] = useState<string[]>([]);
+  // 管理员刚创建、还没设置过密码的用户（收到了"账号创建完成"的邮件，链接 = 登录页左下角的「首次登录设置链接」）
+  const [invites, setInvites] = useState<PendingInvite[]>([]);
+  // 演示中创建过的用户：放在 App 里，管理员退出再登录后名单里还能看到（刷新页面后消失）
+  const [createdUsers, setCreatedUsers] = useState<ManagedUser[]>([]);
+  // 邮箱 → 是否已绑定 MFA：首次登录后视为已绑定（用户用手机扫码绑定的过程不模拟），管理员「MFA解绑」后为 false；
+  // 已绑定的账号登录时，输完账号密码还要输动态验证码。没有记录的账号（如默认演示账号）不需要。
+  const [mfaOverrides, setMfaOverrides] = useState<Record<string, boolean>>({});
   const [taskBadgeCount, setTaskBadgeCount] = useState(2);
   const edition: AppEdition = getAccountEdition(currentUser ?? undefined);
   // 审批与通知按平台版本隔离：仟帆版本看不到 IoT Essential 的审批单，反之亦然。
@@ -46,13 +59,32 @@ export default function App() {
   // 登录页「忘记密码」修改后的密码（演示：只存在内存里，刷新页面后恢复为账号的默认密码）
   const [passwordOverrides, setPasswordOverrides] = useState<Record<string, string>>({});
   const getPassword = (email: string) => passwordOverrides[email] ?? ACCOUNTS.find((account) => account.email === email)?.password ?? "";
-  const handleLogin = (email: string, password: string, loginEdition: AppEdition) => {
-    // 账号必须属于登录页上选择的平台，否则按账号或密码错误处理。
+  const handleLogin = (email: string, password: string, loginEdition: AppEdition, mfaCode?: string): "ok" | "invalid" | "frozen" | "mfa" | "mfa-invalid" => {
+    // 账号必须属于登录页上选择的平台，否则按账号或密码错误处理；已注销的账号等同于不存在。
     const account = ACCOUNTS.find((candidate) => candidate.email === email && getPassword(candidate.email) === password && getAccountEdition(candidate) === loginEdition);
-    if (!account) return false;
+    if (!account || deregisteredEmails.includes(account.email)) return "invalid";
+    // 被管理员冻结的账号无法登录
+    if (frozenEmails.includes(account.email)) return "frozen";
+    // 已绑定 MFA：账号密码通过后还要动态验证码（没带验证码时先要求输入，带了就校验）
+    if (mfaOverrides[account.email]) {
+      if (mfaCode === undefined) return "mfa";
+      if (mfaCode !== MFA_DEMO_CODE) return "mfa-invalid";
+    }
     // 登录态里带上当前有效密码，账号菜单「修改密码」校验原密码时用的就是它
     setCurrentUser({ ...account, password });
-    return true;
+    return "ok";
+  };
+  /**
+   * 首次登录：用户点邮件里的链接，设置好登录密码后直接登录系统。
+   * 把被邀请的用户登记成可登录的账号，并视为已绑定 MFA（之后每次登录都要动态验证码）。
+   */
+  const activateInvite = (invite: PendingInvite, password: string): "ok" | "frozen" => {
+    if (frozenEmails.includes(invite.email)) return "frozen";
+    const account = registerInvitedAccount(invite, password);
+    setInvites((current) => current.filter((item) => item.email !== invite.email));
+    setMfaOverrides((current) => ({ ...current, [invite.email]: true }));
+    setCurrentUser({ ...account, password });
+    return "ok";
   };
 
   const formatNow = () => new Intl.DateTimeFormat("sv-SE", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date()).replace(" ", " ");
@@ -109,6 +141,8 @@ export default function App() {
         language={language}
         onLanguageChange={setLanguage}
         onLogin={handleLogin}
+        invites={invites}
+        onFirstLogin={activateInvite}
         getPassword={getPassword}
         onPasswordReset={(email, newPassword) => setPasswordOverrides((current) => ({ ...current, [email]: newPassword }))}
       />
@@ -134,6 +168,23 @@ export default function App() {
           onReviewUpgradeApproval={reviewUpgradeApproval}
           onReapplyUpgradeApproval={reapplyUpgradeApproval}
           onMarkNotificationsRead={() => markNotificationsRead(currentUser.email)}
+          accountControl={{
+            frozenEmails,
+            deregisteredEmails,
+            onFrozenChange: (email, frozen) => setFrozenEmails((current) => (frozen ? [...new Set([...current, email])] : current.filter((item) => item !== email))),
+            onDeregister: (email) => {
+              setDeregisteredEmails((current) => [...new Set([...current, email])]);
+              setInvites((current) => current.filter((item) => item.email !== email));
+              setCreatedUsers((current) => current.filter((item) => item.email !== email));
+            },
+            mfaOverrides,
+            onMfaUnbind: (email) => setMfaOverrides((current) => ({ ...current, [email]: false })),
+            onUserCreated: (invite, user) => {
+              setInvites((current) => [...current.filter((item) => item.email !== invite.email), invite]);
+              setCreatedUsers((current) => [user, ...current]);
+            },
+            createdUsers,
+          }}
         />
       </div>
       {/* Mobile layout (< 768px) */}

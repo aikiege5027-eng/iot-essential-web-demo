@@ -28,7 +28,7 @@ import BatchOperationsContent from "./BatchOperationsContent";
 import ApprovalCenterContent from "./ApprovalCenterContent";
 import TaskListContent from "./TaskListContent";
 import RuleConfigurationContent from "./RuleConfigurationContent";
-import UserManagementContent from "./UserManagementContent";
+import UserManagementContent, { type AccountControl } from "./UserManagementContent";
 import DeviceOverviewContent, { type DeviceOverviewView } from "./DeviceOverviewContent";
 import DeviceQueryContent from "./DeviceQueryContent";
 import { DeviceInfoCard } from "./device-query/DeviceInfoCard";
@@ -2476,6 +2476,7 @@ export default function Events({
   onReviewUpgradeApproval,
   onReapplyUpgradeApproval,
   onMarkNotificationsRead,
+  accountControl,
 }: {
   activeTabOverride?: CoreTab;
   onCoreTabChange?: (tab: CoreTab) => void;
@@ -2491,6 +2492,8 @@ export default function Events({
   onReviewUpgradeApproval?: (id: string, result: "approved" | "rejected", reviewRemark?: string) => void;
   onReapplyUpgradeApproval?: (id: string, submissionRemark?: string) => void;
   onMarkNotificationsRead?: () => void;
+  /** 用户管理里的冻结 / 注销状态（由 App 持有，登录页据此拦截） */
+  accountControl?: AccountControl;
 } = {}) {
   const [language, setLanguage] = useState<'en' | 'cn'>(languageOverride ?? 'en');
   const [activeTab, setActiveTab] = useState<'liveData' | 'masterData' | 'statistics' | 'events' | 'operationRecords'>(
@@ -2701,6 +2704,7 @@ export default function Events({
               edition={getAccountEdition(displayUser)}
               currentEmail={displayUser.email}
               currentTenant={displayUser.tenant}
+              accountControl={accountControl}
             />
           ) : isRoleManagementPage ? (
             <RoleManagementContent key={getAccountEdition(displayUser)} language={language} edition={getAccountEdition(displayUser)} />
