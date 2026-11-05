@@ -8,6 +8,7 @@ import { MobileElevatorIcon, MobileServerIcon } from "./icons/mobile-icons";
 import { MobileDeviceQuery } from "./mobile/MobileDeviceQuery";
 import { MobileDeviceDetailCard } from "./mobile/MobileDeviceCard";
 import { MobilePageTitle, MobileShell, type MobileNavItem } from "./mobile/MobileShell";
+import qianFanLogo from "../../imports/QianFan_Logo.svg";
 
 /**
  * 移动端应用（< 768px）。框架见 mobile/MobileShell（Figma IOT Delivery 7103:36620）：
@@ -99,6 +100,7 @@ export default function IoTMobileApp({
       onMenuOpenChange={setMenuOpen}
       // 点 Logo 回首页：设备查询首页
       onLogoClick={() => handleNavSelect("search")}
+      brandLogo={edition === "qianfan" ? <img src={qianFanLogo} alt="" className="h-11 w-32 shrink-0 object-contain object-left" /> : undefined}
     >
       {activePage === "search" ? (
         <>

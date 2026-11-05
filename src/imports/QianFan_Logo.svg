@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 670 222">
+  <defs>
+    <linearGradient id="qianfan-mark-top" x1="1" y1="3" x2="135" y2="137" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#11d9dc"/>
+      <stop offset=".52" stop-color="#075bf7"/>
+      <stop offset="1" stop-color="#1700ec"/>
+    </linearGradient>
+    <linearGradient id="qianfan-mark-bottom" x1="2" y1="85" x2="126" y2="221" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#12dfd5"/>
+      <stop offset=".5" stop-color="#0764f6"/>
+      <stop offset="1" stop-color="#1900e9"/>
+    </linearGradient>
+    <linearGradient id="qianfan-word" x1="184" y1="47" x2="665" y2="169" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#19d8dc"/>
+      <stop offset=".5" stop-color="#0864f4"/>
+      <stop offset="1" stop-color="#1900e8"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(28.4 22.2) scale(.8)">
+    <path fill="url(#qianfan-mark-top)" d="M25 0h91.8c14 0 25.4 11.4 25.4 25.4 0 14-11.4 25.4-25.4 25.4H78.9l39.7 39.7c9.9 9.9 9.9 25.9 0 35.8-9.9 9.9-25.9 9.9-35.8 0L7.4 51C-2.5 41.1-2.5 25.1 7.4 15.2A25.2 25.2 0 0 1 25 0Z"/>
+    <path fill="url(#qianfan-mark-bottom)" d="M7.4 84.9c9.9-9.9 25.9-9.9 35.8 0l75.4 75.4c9.9 9.9 9.9 25.9 0 35.8-9.9 9.9-25.9 9.9-35.8 0L7.4 120.7c-9.9-9.9-9.9-25.9 0-35.8Z"/>
+  </g>
+  <text x="181" y="169" fill="url(#qianfan-word)" font-family="Arial Rounded MT Bold, Arial, sans-serif" font-size="132" font-weight="700" letter-spacing="-7">QianFan</text>
+</svg>

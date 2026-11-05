@@ -56,6 +56,8 @@ export interface TopNavProps {
     avatarUrl?: string;
   };
   onLogoClick?: () => void;
+  /** 可选品牌标识。未传时沿用 KONE 标识。 */
+  brandLogo?: ReactNode;
   /** 头像点击（账号菜单）。未传时头像为纯展示元素 */
   onUserClick?: () => void;
   /** 可选的页面导航控件（返回/前进/刷新），紧随品牌区之后 */
@@ -114,6 +116,7 @@ export function TopNav({
   onLogoClick,
   onUserClick,
   pageControls,
+  brandLogo,
   children,
   trailing,
   className,
@@ -129,7 +132,7 @@ export function TopNav({
     >
       {/* 左区：品牌 + 产品名 + 插槽 */}
       <div className="flex min-w-0 items-center gap-8">
-        <div className="flex min-w-0 items-center gap-6">
+        <div className={cn("flex min-w-0 items-center", brandLogo ? "gap-3" : "gap-6")}>
           {onLogoClick ? (
             <button
               type="button"
@@ -137,10 +140,10 @@ export function TopNav({
               aria-label={`${title} 首页`}
               className="shrink-0 rounded-sm border-0 bg-transparent text-brand-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-base"
             >
-              <KoneLogo className="h-7 w-auto" />
+              {brandLogo ?? <KoneLogo className="h-7 w-auto" />}
             </button>
           ) : (
-            <KoneLogo className="h-7 w-auto shrink-0 text-brand-base" />
+            brandLogo ?? <KoneLogo className="h-7 w-auto shrink-0 text-brand-base" />
           )}
           <p className="truncate text-h6 font-semibold text-primary-text">{title}</p>
         </div>

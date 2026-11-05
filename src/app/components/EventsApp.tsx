@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import qianFanLogo from "../../imports/QianFan_Logo.svg";
 import figmaSidebarPaths from "../../imports/IotWebTemplateUntitledEmbedFilterButton3StateCollapsed/svg-slzfzlnwha";
 import svgPaths from "../../imports/Events-1/svg-sie2nzrjk8";
 import accountMenuSvgPaths from "../../imports/个人信息/svg-8fxy3hc6dq";
@@ -2624,6 +2625,7 @@ export default function Events({
       <TopNav
         // 顶栏标题暂不区分平台，两个版本都显示 IoT Essential（登录页的平台选择仍带「通力 / 仟帆」）
         title="IoT Essential"
+        brandLogo={currentEdition === "qianfan" ? <img src={qianFanLogo} alt="仟帆" className="h-8 w-24 shrink-0 object-contain object-left" /> : undefined}
         className="fixed left-0 right-0 top-0 z-40"
         pageControls={isTaskProgressPage ? {
           onBack: () => setIsTaskProgressPage(false),

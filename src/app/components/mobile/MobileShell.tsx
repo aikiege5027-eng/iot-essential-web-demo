@@ -39,6 +39,7 @@ export function MobileTopNav({
   onToggleMenu,
   onLogoClick,
   onUserClick,
+  brandLogo,
 }: {
   language: MobileLang;
   menuOpen: boolean;
@@ -46,6 +47,8 @@ export function MobileTopNav({
   onToggleMenu: () => void;
   onLogoClick?: () => void;
   onUserClick?: () => void;
+  /** 可选品牌标识。未传时沿用 KONE 标识。 */
+  brandLogo?: ReactNode;
 }) {
   const t = copy[language];
   return (
@@ -56,7 +59,7 @@ export function MobileTopNav({
         aria-label={t.home}
         className="flex min-w-0 cursor-pointer items-center gap-3.5 rounded-sm border-0 bg-transparent p-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-base"
       >
-        <KoneLogo aria-hidden="true" role="presentation" className="h-7 w-[72px] shrink-0 text-brand-base" />
+        {brandLogo ?? <KoneLogo aria-hidden="true" role="presentation" className="h-7 w-[72px] shrink-0 text-brand-base" />}
         <span className="truncate text-h7 font-semibold text-primary-text">IoT Essential</span>
       </button>
       <div className="flex items-center gap-2">
@@ -207,6 +210,7 @@ export function MobileShell<K extends string>({
   onMenuOpenChange,
   onLogoClick,
   onUserClick,
+  brandLogo,
   children,
 }: {
   language: MobileLang;
@@ -218,6 +222,8 @@ export function MobileShell<K extends string>({
   onMenuOpenChange: (open: boolean) => void;
   onLogoClick?: () => void;
   onUserClick?: () => void;
+  /** 可选品牌标识。未传时沿用 KONE 标识。 */
+  brandLogo?: ReactNode;
   children: ReactNode;
 }) {
   const menuId = useId();
@@ -233,6 +239,7 @@ export function MobileShell<K extends string>({
           onLogoClick?.();
         }}
         onUserClick={onUserClick}
+        brandLogo={brandLogo}
       />
       <MobileNavMenu
         id={menuId}

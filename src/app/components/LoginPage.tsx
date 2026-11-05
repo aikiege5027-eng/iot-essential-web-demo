@@ -3,6 +3,7 @@ import { Button, Checkbox, Input, Link, MessagePlugin, Select } from "tdesign-re
 // 背景图与设计系统登录页模板同源（2880×1800，16:10），按 cover + 居中铺满；旧图是 3:2 的另一种裁切，视野范围不同。
 import loginBackground from "../../imports/LoginDesktop/login-bg.jpg";
 import koneLogo from "../../imports/KONE_Logo_Primary_RGB.svg";
+import qianFanLogo from "../../imports/QianFan_Logo.svg";
 import { ACCOUNTS, EDITION_DEFAULT_EMAILS, EDITION_TITLES, getAccountEdition, QIANFAN_ADMIN_EMAIL, QIANFAN_RESET_DEMO_EMAIL, QIANFAN_TENANT_ADMIN_EMAIL, type AppEdition, type PendingInvite } from "../data/accounts";
 import ForgotPasswordDialog from "./ForgotPasswordDialog";
 import MfaCodeDialog from "./MfaCodeDialog";
@@ -111,8 +112,15 @@ function getDefaultCredentials(edition: AppEdition, getPassword: (email: string)
 
 const PLATFORM_OPTIONS = (Object.keys(EDITION_TITLES) as AppEdition[]).map((edition) => ({ value: edition, label: EDITION_TITLES[edition] }));
 
-function KoneLogo() {
-  return <img src={koneLogo} alt="KONE" className="h-7 w-[72px] object-contain object-left" />;
+function BrandLogo({ edition }: { edition: AppEdition }) {
+  const isQianFan = edition === "qianfan";
+  return (
+    <img
+      src={isQianFan ? qianFanLogo : koneLogo}
+      alt={isQianFan ? "仟帆" : "KONE"}
+      className={isQianFan ? "h-11 w-32 object-contain object-left" : "h-7 w-[72px] object-contain object-left"}
+    />
+  );
 }
 
 export default function LoginPage({ language, onLanguageChange, onLogin, invites, onFirstLogin, getPassword, onPasswordReset }: LoginPageProps) {
@@ -257,8 +265,8 @@ export default function LoginPage({ language, onLanguageChange, onLogin, invites
             (isResetOpen || isResetLinkOpen || isFirstLoginOpen || isMfaOpen) && "hidden",
           )}
         >
-          <div className="flex flex-col gap-6">
-            <KoneLogo />
+          <div className={cn("flex flex-col", platform === "qianfan" ? "gap-3" : "gap-6")}>
+            <BrandLogo edition={platform} />
             <h1 className="text-h3 font-semibold text-primary-text">{t.title}</h1>
           </div>
 
