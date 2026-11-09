@@ -8,17 +8,20 @@ import type { ReactNode } from "react";
  * 可选数据时间（Foot 12，次要文字色），与标题间距 12。
  * `extra` 是代码侧的扩展插槽（设计稿未画），放区内操作，靠右对齐。
  *
- * Mobile 变体（7363:31163，右侧带 tag 图标）暂未接入，移动端设备详情更新时再补。
+ * Mobile 变体（7363:31163）沿用相同的标题尺寸与排版；其 20px tag 图标通过 `extra` 插槽传入并靠右对齐。
  */
 export function DetailCardHeader({
   title,
   titleId,
   timestamp,
+  timestampClassName,
   extra,
 }: {
   title: ReactNode;
   titleId?: string;
   timestamp?: ReactNode;
+  /** 标题与后补 timestamp/tag 之间的局部间距修正，不影响通用标题栏。 */
+  timestampClassName?: string;
   extra?: ReactNode;
 }) {
   return (
@@ -29,7 +32,7 @@ export function DetailCardHeader({
         <span aria-hidden="true" className="h-3.5 w-1 shrink-0 rounded-[1px] bg-brand-hover" />
         {title}
       </h2>
-      {timestamp && <p className="m-0 shrink-0 whitespace-nowrap text-foot12 text-secondary-text">{timestamp}</p>}
+      {timestamp && <p className={`m-0 shrink-0 whitespace-nowrap text-foot12 text-secondary-text ${timestampClassName ?? ""}`}>{timestamp}</p>}
       {extra && <div className="ml-auto flex shrink-0 items-center gap-2">{extra}</div>}
     </header>
   );
@@ -40,21 +43,27 @@ export function DetailSection({
   title,
   titleId,
   timestamp,
+  timestampClassName,
   extra,
   children,
   className,
+  contentClassName,
 }: {
   title: ReactNode;
   titleId: string;
   timestamp?: ReactNode;
+  /** 标题与后补 timestamp/tag 之间的局部间距修正，不影响通用标题栏。 */
+  timestampClassName?: string;
   extra?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** 可选内容区样式。用于固定高度卡片的内容撑满，默认不额外包裹，避免影响既有调用。 */
+  contentClassName?: string;
 }) {
   return (
     <section aria-labelledby={titleId} className={`overflow-hidden rounded-lg border border-stroke bg-container ${className ?? ""}`}>
-      <DetailCardHeader title={title} titleId={titleId} timestamp={timestamp} extra={extra} />
-      {children}
+      <DetailCardHeader title={title} titleId={titleId} timestamp={timestamp} timestampClassName={timestampClassName} extra={extra} />
+      {contentClassName ? <div className={contentClassName}>{children}</div> : children}
     </section>
   );
 }

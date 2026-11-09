@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import LoginPage from "./components/LoginPage";
 import { ACCOUNTS, getAccountEdition, getEditionByEmail, QIANFAN_ADMIN_EMAIL, registerInvitedAccount, type AppAccount, type AppEdition, type PendingInvite } from "./data/accounts";
 import { getApprovalDeviceCount, getApprovalTaskContext, type AppNotification, type UpgradeApproval, type UpgradeDetail } from "./data/approvalWorkflow";
 import Events from "./components/EventsApp";
 import type { ManagedUser } from "./data/userManagement";
+import type { QueryDevice } from "./data/deviceQuery";
 import IoTMobileApp from "./components/IoTMobileApp";
+import { useIsMobile } from "./components/ui/use-mobile";
 
 type CoreTab = "liveData" | "masterData" | "events";
 /** 演示用的 MFA 动态验证码：固定 6 个 0（真实环境由用户手机上的验证 App 生成） */
@@ -35,8 +37,31 @@ function fromMobileTab(tab: "liveData" | "archive" | "events"): CoreTab {
   return tab === "archive" ? "masterData" : tab;
 }
 
+type MobilePage = "search" | "registration";
+const toMobilePage = (item: string | null | undefined): MobilePage => item === "provisioning" ? "registration" : "search";
+const fromMobilePage = (page: MobilePage) => page === "registration" ? "provisioning" : "search";
+
 export default function App() {
   const [coreTab, setCoreTab] = useState<CoreTab>("liveData");
+  const [mobileCoreTab, setMobileCoreTab] = useState<CoreTab>("liveData");
+  const [activeSidebarItem, setActiveSidebarItem] = useState<string | null | undefined>(undefined);
+  const [mobileDetailResetKey, setMobileDetailResetKey] = useState(0);
+  const [selectedDevice, setSelectedDevice] = useState<QueryDevice | null>(null);
+  const isMobile = useIsMobile();
+  const previousMobile = useRef<boolean | undefined>(undefined);
+
+  useEffect(() => {
+    const wasMobile = previousMobile.current;
+    previousMobile.current = isMobile;
+    if (!isMobile || wasMobile === true) return;
+
+    // 进入移动断点时，仅保留两端共有的设备查询 / 设备注册；其他桌面模块统一回到设备查询首页。
+    if (activeSidebarItem !== "search" && activeSidebarItem !== "provisioning") {
+      setActiveSidebarItem("search");
+      setSelectedDevice(null);
+      setMobileDetailResetKey((key) => key + 1);
+    }
+  }, [activeSidebarItem, isMobile]);
   const [language, setLanguage] = useState<Lang>("cn");
   // 默认落地页是登录页：启动时没有登录用户，需要在登录页选择平台和用户后进入。
   const [currentUser, setCurrentUser] = useState<AppAccount | null>(null);
@@ -155,7 +180,13 @@ export default function App() {
       <div className="hidden md:block">
         <Events
           activeTabOverride={coreTab}
-          onCoreTabChange={(tab) => setCoreTab(tab)}
+          onCoreTabChange={(tab) => { setCoreTab(tab); setMobileCoreTab(tab); }}
+          onMobileTabChange={setMobileCoreTab}
+          syncEnabled={!isMobile}
+          activeSidebarItemOverride={activeSidebarItem}
+          onActiveSidebarItemChange={setActiveSidebarItem}
+          selectedQueryDeviceOverride={selectedDevice}
+          onSelectedQueryDeviceChange={setSelectedDevice}
           languageOverride={language}
           onLanguageChange={(lang) => setLanguage(lang)}
           currentUser={currentUser}
@@ -190,12 +221,20 @@ export default function App() {
       {/* Mobile layout (< 768px) */}
       <div className="md:hidden">
           <IoTMobileApp
-            activeTabOverride={toMobileTab(coreTab)}
-            onCoreTabChange={(tab) => setCoreTab(fromMobileTab(tab))}
+            activePageOverride={toMobilePage(activeSidebarItem)}
+            onActivePageChange={(page) => setActiveSidebarItem(fromMobilePage(page))}
+            detailResetKey={mobileDetailResetKey}
+            selectedDeviceOverride={selectedDevice}
+            onSelectedDeviceChange={setSelectedDevice}
+            syncEnabled={isMobile}
+            activeTabOverride={toMobileTab(mobileCoreTab)}
+            onCoreTabChange={(tab) => { setCoreTab(fromMobileTab(tab)); setMobileCoreTab(fromMobileTab(tab)); }}
             languageOverride={language}
             onLanguageChange={(lang) => setLanguage(lang)}
             edition={edition}
             email={currentUser.email}
+            currentUser={currentUser}
+            onLogout={() => setCurrentUser(null)}
           />
       </div>
     </>

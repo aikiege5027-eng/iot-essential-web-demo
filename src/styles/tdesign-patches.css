@@ -621,6 +621,8 @@
  *   · 选中：品牌色 + Medium 字重；指示线 3px 平直、铺满整个页签项
  */
 .device-detail-tabs.t-tabs {
+  overflow: hidden;
+  border-radius: var(--radius-lg, 8px) var(--radius-lg, 8px) 0 0;
   background-color: var(--bg-color-container);
 }
 
@@ -644,6 +646,59 @@
   height: 3px;
   border-radius: 0;
   background-color: var(--brand-color);
+}
+
+/*
+ * Mobile 变体沿用同一个 TDesign Tabs。三项时等宽显示；将来页签溢出时，
+ * TDesign 内置的左右 Operation bar 会自动出现，并按 Figma 规格收口。
+ */
+.device-detail-tabs-mobile .t-tabs__nav {
+  min-height: 42px !important;
+}
+
+.device-detail-tabs-mobile .t-tabs__nav-item {
+  height: 42px;
+  padding: 4px;
+}
+
+.device-detail-tabs-mobile .t-tabs__nav-item-wrapper {
+  height: 34px;
+  margin: 0;
+  padding: 0 6px;
+  border-radius: var(--radius-xs, 3px);
+}
+
+/* 设备详情与注册数据的 2–3 项 Mobile 页签均按容器等分；更多项改走 TDesign 的横向滚动与 Operation bar。 */
+.device-detail-tabs-mobile--equal-width .t-tabs__nav-wrap {
+  width: 100%;
+}
+
+.device-detail-tabs-mobile--equal-width .t-tabs__nav-item {
+  min-width: 0;
+  flex: 1 1 0;
+  justify-content: center;
+}
+
+.device-detail-tabs-mobile .t-tabs__operations {
+  height: 42px;
+  border-color: var(--component-stroke);
+  background-color: var(--bg-color-container);
+}
+
+.device-detail-tabs-mobile .t-tabs__btn.t-size-m {
+  height: 42px;
+  line-height: 42px;
+  border-color: var(--component-stroke);
+  background-color: var(--bg-color-container);
+  color: var(--icon-primary);
+}
+
+.device-detail-tabs-mobile .t-tabs__btn--left {
+  box-shadow: var(--elevation-popover);
+}
+
+.device-detail-tabs-mobile .t-tabs__operations--right .t-tabs__btn:first-child {
+  box-shadow: var(--elevation-popover);
 }
 
 /**
@@ -1055,4 +1110,230 @@
 
 .km-execution-time-panel .t-date-picker__panel-content > .t-date-picker__panel-time {
   flex: 0 0 auto;
+}
+
+/* 设备详情 Mobile 模块卡（7779:20857）：主模块操作为 Medium，子模块操作为 Regular。 */
+.km-mobile-module-button--main.t-button {
+  font-weight: 500;
+}
+
+.km-mobile-module-button--child.t-button {
+  font-weight: 400;
+}
+
+/* 模块详情抽屉（7779:21672）：底部操作为中性组件底色，不沿用页面级主次按钮主题。 */
+.km-mobile-actions .t-button.km-mobile-module-detail-action {
+  border-color: var(--bg-color-component);
+  background-color: var(--bg-color-component);
+  color: var(--text-color-primary);
+}
+
+.km-mobile-actions .t-button.km-mobile-module-detail-action:hover {
+  border-color: var(--bg-color-component-hover);
+  background-color: var(--bg-color-component-hover);
+}
+
+.km-mobile-actions .t-button.km-mobile-module-detail-action:active {
+  border-color: var(--bg-color-component-active);
+  background-color: var(--bg-color-component-active);
+}
+
+/* 设备档案 Mobile 标签筛选（7779:21364 / 7779:21338）：标题栏 tag 触发的紧凑下拉。 */
+.km-mobile-archive-filter-menu .t-dropdown {
+  border: 0;
+  border-radius: var(--radius-lg, 8px);
+  box-shadow: var(--elevation-popover);
+}
+
+.km-mobile-archive-filter-menu .t-dropdown__menu {
+  gap: 7px;
+  padding: 8px;
+}
+
+.km-mobile-archive-filter-menu .t-dropdown__item {
+  min-height: 26px;
+  padding: 2px 8px;
+  border: 1px solid var(--component-border);
+  border-radius: var(--radius-xs, 3px);
+  font-size: var(--text-foot12);
+  line-height: var(--text-foot12--line-height);
+}
+
+.km-mobile-archive-filter-menu .t-dropdown__item.t-dropdown__item--theme-default.t-dropdown__item--active {
+  border-color: var(--brand-color);
+  background-color: var(--brand-color-light);
+  color: var(--text-color-brand);
+  font-weight: 500;
+}
+/**
+ * Mobile device registration validation (IOT Delivery 10291:151311–151577).
+ * The registration form intentionally uses 56px inputs, unlike the shared 40px
+ * mobile controls. Keep every override below the registration-specific classes
+ * so Connection 310/320 and other mobile forms retain their existing layouts.
+ */
+.km-registration-card {
+  overflow: hidden;
+  border-radius: var(--radius-xl, 12px);
+  background-color: var(--bg-color-container);
+}
+
+.km-registration-card__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  margin: 12px 12px 0;
+}
+
+.km-registration-card__marker {
+  width: 6px;
+  height: 24px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-xs, 3px);
+  background-color: var(--brand-color-hover);
+}
+
+.km-registration-field {
+  display: flex;
+  height: 56px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+}
+
+.km-registration-field__input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: var(--text-color-primary);
+  background-color: transparent;
+  caret-color: var(--brand-color);
+  font-size: var(--text-h7);
+  font-weight: 400;
+  line-height: var(--text-h7--line-height);
+}
+
+.km-registration-field__input::placeholder {
+  color: var(--text-color-placeholder);
+  opacity: 1;
+}
+
+/* 设计稿的普通输入态无描边；键盘操作才显示统一焦点环。 */
+
+.km-registration-scan-trigger {
+  display: flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs, 3px);
+  background-color: transparent;
+  color: var(--text-color-brand);
+  cursor: pointer;
+}
+
+.km-registration-scan-trigger:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 2px;
+}
+
+.km-registration-verifying {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  width: 112px;
+  height: 110px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: var(--radius-md, 6px);
+  background-color: color-mix(in srgb, var(--text-color-primary) 90%, transparent);
+  transform: translate(-50%, -50%);
+}
+
+.km-registration-verifying__spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid color-mix(in srgb, var(--text-color-white) 35%, transparent);
+  border-top-color: var(--text-color-white);
+  border-radius: var(--radius_full, 128px);
+  animation: km-registration-spin 0.8s linear infinite;
+}
+
+@keyframes km-registration-spin {
+  to { transform: rotate(360deg); }
+}
+
+.km-registration-actions {
+  display: flex;
+  width: 100%;
+  gap: 10px;
+}
+
+.km-registration-actions .t-button {
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.km-registration-scan-sheet .t-drawer__mask {
+  background-color: color-mix(in srgb, var(--text-color-primary) 60%, transparent);
+}
+
+.km-registration-scan-sheet .t-drawer__content-wrapper {
+  overflow: hidden;
+  border-radius: var(--radius-xl, 12px) var(--radius-xl, 12px) 0 0;
+}
+
+.km-registration-scan-sheet .t-drawer__header,
+.km-registration-scan-sheet .t-drawer__close-btn,
+.km-registration-scan-sheet .t-drawer__footer {
+  display: none;
+}
+
+.km-registration-scan-sheet .t-drawer__body {
+  padding: 0;
+}
+
+.km-registration-scan-sheet__action {
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 0;
+  border-bottom: 1px solid var(--component-stroke);
+  background-color: var(--bg-color-container);
+  color: var(--text-color-primary);
+  font-size: var(--text-h7);
+  font-weight: 400;
+  line-height: var(--text-h7--line-height);
+  cursor: pointer;
+}
+
+.km-registration-scan-sheet__action--primary {
+  color: var(--text-color-brand);
+}
+
+.km-registration-scan-sheet__action:focus-visible {
+  position: relative;
+  outline: 2px solid var(--brand-color);
+  outline-offset: -2px;
+}
+
+.km-registration-scan-sheet__divider {
+  height: 8px;
+  background-color: var(--bg-color-secondarycontainer);
+}
+
+.km-registration-scan-sheet__divider + .km-registration-scan-sheet__action {
+  border-bottom: 0;
 }

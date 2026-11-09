@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode, SVGProps } from "react";
+import type { ReactNode } from "react";
 import { Button, Link, MessagePlugin } from "tdesign-react";
 import { CheckRectangleIcon, UserMaintenanceIcon } from "./icons/device-detail-icons";
 import { NodeIcon } from "./icons/device-icons";
@@ -23,6 +23,7 @@ import {
   WaterDropletsIcon,
 } from "./icons/live-data-icons";
 import { DetailSection } from "./device-detail/DetailSection";
+import { MetricCard, type MetricCardMetric, type MetricCardTone } from "./device-detail/MetricCard";
 import { StatusLabel } from "./StatusLabel";
 
 /**
@@ -37,7 +38,6 @@ import { StatusLabel } from "./StatusLabel";
  */
 
 type Language = "en" | "cn";
-type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
 const T = {
   en: {
@@ -141,56 +141,19 @@ const TIMESTAMP = "2026-04-04 16:49:39";
 // ─── 分区与数据格 ──────────────────────────────────────────────────────────────
 
 /** 分区卡片：通用卡片标题（DetailSection，Figma 7363:30962）+ 12px 内边距的内容区。 */
-function LiveSection({ id, title, timestamp, children }: { id: string; title: string; timestamp?: string; children: ReactNode }) {
+function LiveSection({ id, title, timestamp, extra, children }: { id: string; title: string; timestamp?: string; extra?: ReactNode; children: ReactNode }) {
   return (
-    <DetailSection title={title} titleId={id} timestamp={timestamp}>
+    <DetailSection title={title} titleId={id} timestamp={timestamp} extra={extra}>
       <div className="p-3">{children}</div>
     </DetailSection>
   );
 }
 
-type Tone = "brand" | "sensor" | "neutral";
-
-const TILE_CLASS: Record<Tone, string> = {
-  brand: "bg-metric-tile-brand text-brand",
-  sensor: "bg-metric-tile-sensor text-metric-icon-sensor",
-  neutral: "bg-metric-tile-neutral text-secondary-text",
-};
-
-type Metric = {
-  label: string;
-  value: string;
-  icon: Icon;
-  /** 数值后的附加图标，例如当前楼层的运行方向 */
-  trailing?: ReactNode;
-  /** 异常值（如厅门回路）用错误色 */
-  alert?: boolean;
-};
-
-/** 数据格：灰底 6px 圆角，左侧标签 + 数值，右侧 36px 圆角 12 的图标底。 */
-function MetricCell({ metric, tone }: { metric: Metric; tone: Tone }) {
-  const { label, value, icon: MetricIcon, trailing, alert } = metric;
-  return (
-    <div className="flex min-w-0 items-center justify-between gap-2 rounded-md bg-secondarycontainer px-4 py-2.5">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <dt className="truncate text-foot12 text-secondary-text">{label}</dt>
-        <dd className={`m-0 flex items-end gap-0.5 text-body font-semibold ${alert ? "text-error" : "text-primary-text"}`}>
-          <span className="whitespace-nowrap">{value}</span>
-          {trailing}
-        </dd>
-      </div>
-      <span aria-hidden="true" className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${TILE_CLASS[tone]}`}>
-        <MetricIcon className="size-5" />
-      </span>
-    </div>
-  );
-}
-
-function MetricGrid({ metrics, tone, columns }: { metrics: Metric[]; tone: Tone; columns: string }) {
+function MetricGrid({ metrics, tone, columns }: { metrics: MetricCardMetric[]; tone: MetricCardTone; columns: string }) {
   return (
     <dl className={`m-0 grid gap-3 ${columns}`}>
       {metrics.map((metric) => (
-        <MetricCell key={metric.label} metric={metric} tone={tone} />
+        <MetricCard key={metric.id} metric={metric} tone={tone} layout="web" />
       ))}
     </dl>
   );
@@ -200,7 +163,7 @@ function MetricGrid({ metrics, tone, columns }: { metrics: Metric[]; tone: Tone;
 function GroupDivider({ id, label }: { id: string; label: string }) {
   return (
     <div className="flex items-center gap-2">
-      <span aria-hidden="true" className="w-10 border-t border-dashed border-stroke" />
+      <span aria-hidden="true" className="flex-1 border-t border-dashed border-stroke" />
       <h3 id={id} className="m-0 shrink-0 text-foot12 font-normal text-primary-text">
         {label}
       </h3>
@@ -212,8 +175,9 @@ function GroupDivider({ id, label }: { id: string; label: string }) {
 // ─── 各分区 ────────────────────────────────────────────────────────────────────
 
 function RealtimeDataSection({ t }: { t: Copy }) {
-  const metrics: Metric[] = [
+  const metrics: MetricCardMetric[] = [
     {
+      id: "current-floor",
       label: t.currentFloor,
       value: "1F [5]",
       icon: LayersIcon,
@@ -223,11 +187,11 @@ function RealtimeDataSection({ t }: { t: Copy }) {
         </span>
       ),
     },
-    { label: t.runSpeed, value: "2m/s", icon: DashboardIcon },
-    { label: t.serviceMode, value: t.values.normal, icon: CheckRectangleIcon },
-    { label: t.doorAStat, value: t.values.closed, icon: ElevatorDoorClosedIcon },
-    { label: t.doorBStat, value: t.values.opened, icon: ElevatorDoorOpenIcon },
-    { label: t.doorZoneStat, value: t.values.inZone, icon: WarningTriangleIcon },
+    { id: "run-speed", label: t.runSpeed, value: "2m/s", icon: DashboardIcon },
+    { id: "service-mode", label: t.serviceMode, value: t.values.normal, icon: CheckRectangleIcon },
+    { id: "car-door-a", label: t.doorAStat, value: t.values.closed, icon: ElevatorDoorClosedIcon },
+    { id: "car-door-b", label: t.doorBStat, value: t.values.opened, icon: ElevatorDoorOpenIcon },
+    { id: "door-zone", label: t.doorZoneStat, value: t.values.inZone, icon: WarningTriangleIcon },
   ];
   return (
     <LiveSection id="live-realtime-title" title={t.realtimeData} timestamp={TIMESTAMP}>
@@ -237,22 +201,22 @@ function RealtimeDataSection({ t }: { t: Copy }) {
 }
 
 function SensorDataSection({ t }: { t: Copy }) {
-  const doorSensor: Metric[] = [
-    { label: t.temperature, value: "23.5℃", icon: ThermometerIcon },
-    { label: t.humidity, value: "58.1%", icon: WaterDropletsIcon },
-    { label: t.velocity, value: "2m/s", icon: DashboardIcon },
-    { label: t.leveling, value: t.values.level, icon: LevelingIcon },
-    { label: t.lateralVibration, value: "12mg", icon: VibrationLateralIcon },
-    { label: t.longitudinalVibration, value: "8mg", icon: VibrationLongitudinalIcon },
-    { label: t.verticalVibration, value: "4mg", icon: VibrationVerticalIcon },
-    { label: t.noise, value: "50dB", icon: CurrentIcon },
+  const doorSensor: MetricCardMetric[] = [
+    { id: "temperature", label: t.temperature, value: "23.5℃", icon: ThermometerIcon },
+    { id: "humidity", label: t.humidity, value: "58.1%", icon: WaterDropletsIcon },
+    { id: "velocity", label: t.velocity, value: "2m/s", icon: DashboardIcon },
+    { id: "leveling", label: t.leveling, value: t.values.level, icon: LevelingIcon },
+    { id: "lateral-vibration", label: t.lateralVibration, value: "12mg", icon: VibrationLateralIcon },
+    { id: "longitudinal-vibration", label: t.longitudinalVibration, value: "8mg", icon: VibrationLongitudinalIcon },
+    { id: "vertical-vibration", label: t.verticalVibration, value: "4mg", icon: VibrationVerticalIcon },
+    { id: "noise", label: t.noise, value: "50dB", icon: CurrentIcon },
   ];
-  const machineRoom: Metric[] = [
-    { label: t.temperature, value: "23.5℃", icon: ThermometerIcon },
-    { label: t.humidity, value: "58.1%", icon: WaterDropletsIcon },
-    { label: t.inspectionCircuit, value: "402", icon: UserMaintenanceIcon },
-    { label: t.landingDoorACircuit, value: "302", icon: ElevatorDoorIcon, alert: true },
-    { label: t.landingDoorBCircuit, value: "302", icon: ElevatorDoorIcon, alert: true },
+  const machineRoom: MetricCardMetric[] = [
+    { id: "temperature", label: t.temperature, value: "23.5℃", icon: ThermometerIcon },
+    { id: "humidity", label: t.humidity, value: "58.1%", icon: WaterDropletsIcon },
+    { id: "inspection-circuit", label: t.inspectionCircuit, value: "402", icon: UserMaintenanceIcon },
+    { id: "landing-door-a-circuit", label: t.landingDoorACircuit, value: "302", icon: ElevatorDoorIcon, valueTone: "error" },
+    { id: "landing-door-b-circuit", label: t.landingDoorBCircuit, value: "302", icon: ElevatorDoorIcon, valueTone: "error" },
   ];
   const groups = [
     { id: "live-sensor-door-a", label: t.doorASensor, metrics: doorSensor, columns: "grid-cols-2 xl:grid-cols-4" },
@@ -274,11 +238,11 @@ function SensorDataSection({ t }: { t: Copy }) {
 }
 
 function OperationDataSection({ t }: { t: Copy }) {
-  const metrics: Metric[] = [
-    { label: t.runDuration, value: "30s", icon: ClockIcon },
-    { label: t.startFloor, value: "1F [2]", icon: LayersIcon },
-    { label: t.stopFloor, value: "11F [12]", icon: LayersIcon },
-    { label: t.serviceMode, value: t.values.normal, icon: CheckRectangleIcon },
+  const metrics: MetricCardMetric[] = [
+    { id: "run-duration", label: t.runDuration, value: "30s", icon: ClockIcon },
+    { id: "start-floor", label: t.startFloor, value: "1F [2]", icon: LayersIcon },
+    { id: "stop-floor", label: t.stopFloor, value: "11F [12]", icon: LayersIcon },
+    { id: "service-mode", label: t.serviceMode, value: t.values.normal, icon: CheckRectangleIcon },
   ];
   return (
     <LiveSection id="live-operation-title" title={t.operationData} timestamp={TIMESTAMP}>

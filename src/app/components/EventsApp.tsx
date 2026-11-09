@@ -46,6 +46,9 @@ import { LockOnIcon } from "./icons/lock-on";
 import { Swap1Icon } from "./icons/swap-1";
 import TaskProgressContent from "./TaskProgressContent";
 
+// 1200px 以下仍属于 Web 布局，但完整 232px 侧栏会明显压缩主内容区，因此自动收起。
+const AUTO_COLLAPSE_SIDEBAR_BREAKPOINT = 1200;
+
 const translations = {
   en: {
     // Menu items
@@ -378,7 +381,7 @@ function NotificationCard({ notification, onOpen, variant = "panel" }: { notific
   );
 }
 
-function Frame3({ language, onLanguageChange, user, onLogout, onSwitchAccount, taskBadgeCount, notifications, onOpenApprovalCenter, onOpenTaskList, onOpenMessageCenter, onMarkNotificationsRead }: { language: string; onLanguageChange: () => void; user: AppAccount; onLogout?: () => void; onSwitchAccount?: (account: AppAccount) => void; taskBadgeCount: number; notifications: AppNotification[]; onOpenApprovalCenter: () => void; onOpenTaskList: () => void; onOpenMessageCenter: () => void; onMarkNotificationsRead: () => void }) {
+function Frame3({ language, onLanguageChange, user, onLogout, onSwitchAccount, taskBadgeCount, notifications, onOpenApprovalCenter, onOpenFeedback, onOpenTaskList, onOpenMessageCenter, onMarkNotificationsRead }: { language: string; onLanguageChange: () => void; user: AppAccount; onLogout?: () => void; onSwitchAccount?: (account: AppAccount) => void; taskBadgeCount: number; notifications: AppNotification[]; onOpenApprovalCenter: () => void; onOpenFeedback: () => void; onOpenTaskList: () => void; onOpenMessageCenter: () => void; onMarkNotificationsRead: () => void }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAccountSwitchOpen, setIsAccountSwitchOpen] = useState(false);
   const [isProfileInfoOpen, setIsProfileInfoOpen] = useState(false);
@@ -443,7 +446,7 @@ function Frame3({ language, onLanguageChange, user, onLogout, onSwitchAccount, t
             {/* 仟帆账号是邮箱 + 密码登录，才有「修改密码」；通力走企业账号 SSO，不提供 */}
             {isQianfan && (<button type="button" onClick={() => { setIsProfileOpen(false); setIsAccountSwitchOpen(false); setIsChangePasswordOpen(true); }} className="flex w-full items-center gap-[6px] rounded-[4px] px-[6px] py-[3px] text-left text-[14px] leading-[22px] text-[#141414] hover:bg-[#f5f7fa]"><LockOnIcon className="size-4 shrink-0" /><span>{isChinese ? "修改密码" : "Change Password"}</span></button>)}
             {!isQianfan && (<button type="button" onClick={() => { setIsProfileOpen(false); setIsAccountSwitchOpen(false); onOpenApprovalCenter(); }} className="flex w-full items-center gap-[6px] rounded-[4px] px-[6px] py-[3px] text-left text-[14px] leading-[22px] text-[#141414] hover:bg-[#f5f7fa]"><svg aria-hidden="true" className="size-4 shrink-0" fill="none" viewBox="0 0 16 16"><path d={accountMenuSvgPaths.p1a8a1400} fill="currentColor" transform="translate(2 1.16)" /></svg><span>{isChinese ? "审批中心" : "Approval Center"}</span></button>)}
-            {!isQianfan && (<button type="button" className="flex w-full items-center gap-[6px] rounded-[4px] px-[6px] py-[3px] text-left text-[14px] leading-[22px] text-[#141414] hover:bg-[#f5f7fa]"><svg aria-hidden="true" className="size-4 shrink-0" fill="none" viewBox="0 0 16 16"><path clipRule="evenodd" d={accountMenuSvgPaths.p3f209800} fill="currentColor" fillRule="evenodd" transform="translate(2 2)" /></svg><span>{labels.feedback}</span></button>)}
+            {!isQianfan && (<button type="button" onClick={() => { setIsProfileOpen(false); setIsAccountSwitchOpen(false); onOpenFeedback(); }} className="flex w-full items-center gap-[6px] rounded-[4px] px-[6px] py-[3px] text-left text-[14px] leading-[22px] text-[#141414] hover:bg-[#f5f7fa]"><svg aria-hidden="true" className="size-4 shrink-0" fill="none" viewBox="0 0 16 16"><path clipRule="evenodd" d={accountMenuSvgPaths.p3f209800} fill="currentColor" fillRule="evenodd" transform="translate(2 2)" /></svg><span>{labels.feedback}</span></button>)}
             <div className="relative">
               <button type="button" aria-expanded={isAccountSwitchOpen} onClick={() => setIsAccountSwitchOpen((current) => !current)} className="flex w-full items-center justify-between rounded-[4px] px-[6px] py-[3px] text-left text-[14px] leading-[22px] text-[#141414] hover:bg-[#f5f7fa]"><span className="flex items-center gap-[6px]"><Swap1Icon className="size-4 shrink-0" />{labels.switchAccount}</span><span className={`text-[#8f9195] transition-transform ${isAccountSwitchOpen ? "rotate-180" : ""}`}>›</span></button>
               {isAccountSwitchOpen && <div className="absolute right-[166px] top-[-8px] z-[60] w-[196px] rounded-[8px] bg-white p-[6px] shadow-[0_4px_12px_rgba(0,0,0,0.12)]">{ACCOUNTS.filter((account) => getAccountEdition(account) === getAccountEdition(user)).map((account) => <button key={account.email} type="button" onClick={() => { onSwitchAccount?.(account); setIsAccountSwitchOpen(false); setIsProfileOpen(false); }} className={`flex w-full items-center gap-2 rounded-[4px] px-2 py-2 text-left hover:bg-[#f5f7fa] ${account.email === user.email ? "bg-[#f3f6fe]" : ""}`}><img src={account.avatar} alt="" className="size-7 rounded-full object-cover" /><span className="min-w-0 flex-1"><span className="block text-[14px] leading-[18px] text-[#141414]">{language === "cn" ? account.name : account.nameEn}</span><span className="block truncate text-[12px] leading-[16px] text-[#737380]">{language === "cn" ? account.role : account.roleEn}</span></span>{account.email === user.email && <span className="text-[#1450f5]">✓</span>}</button>)}</div>}
@@ -2465,6 +2468,12 @@ const CORE_TAB_MAP: Record<string, CoreTab> = {
 export default function Events({
   activeTabOverride,
   onCoreTabChange,
+  onMobileTabChange,
+  syncEnabled = true,
+  activeSidebarItemOverride,
+  onActiveSidebarItemChange,
+  selectedQueryDeviceOverride,
+  onSelectedQueryDeviceChange,
   languageOverride,
   onLanguageChange,
   currentUser,
@@ -2481,6 +2490,13 @@ export default function Events({
 }: {
   activeTabOverride?: CoreTab;
   onCoreTabChange?: (tab: CoreTab) => void;
+  onMobileTabChange?: (tab: CoreTab) => void;
+  /** 只有当前可见的桌面布局可将本地状态回传给 App。 */
+  syncEnabled?: boolean;
+  activeSidebarItemOverride?: string | null;
+  onActiveSidebarItemChange?: (item: string | null) => void;
+  selectedQueryDeviceOverride?: QueryDevice | null;
+  onSelectedQueryDeviceChange?: (device: QueryDevice | null) => void;
   languageOverride?: 'en' | 'cn';
   onLanguageChange?: (lang: 'en' | 'cn') => void;
   currentUser?: AppAccount;
@@ -2502,9 +2518,10 @@ export default function Events({
   );
   const [isTabSticky, setIsTabSticky] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isNarrowDesktop, setIsNarrowDesktop] = useState(false);
   // 登录后的落地页：通力 / 仟帆统一进入「设备总览」；账号没有该菜单权限时（如维保员工）退回设备查询（null）
   const getLandingItem = (account?: AppAccount | null) => (account?.sidebarPermissions.includes('overview') ? 'overview' : null);
-  const [activeSidebarItem, setActiveSidebarItem] = useState<string | null>(() => getLandingItem(currentUser));
+  const [activeSidebarItem, setActiveSidebarItem] = useState<string | null>(() => activeSidebarItemOverride ?? getLandingItem(currentUser));
   const [isTaskProgressPage, setIsTaskProgressPage] = useState(false);
   const [progressRefreshKey, setProgressRefreshKey] = useState(0);
   const [batchDispatchRule, setBatchDispatchRule] = useState(DEFAULT_BATCH_DISPATCH_RULE);
@@ -2517,20 +2534,57 @@ export default function Events({
   // 设备查询：选中的设备即进入设备详情；顶栏开启返回 / 前进 / 刷新
   const [selectedQueryDevice, setSelectedQueryDevice] = useState<QueryDevice | null>(null);
   const [detailRefreshKey, setDetailRefreshKey] = useState(0);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(`(max-width: ${AUTO_COLLAPSE_SIDEBAR_BREAKPOINT - 1}px)`);
+    const update = () => setIsNarrowDesktop(mediaQuery.matches);
+    update();
+    mediaQuery.addEventListener("change", update);
+    return () => mediaQuery.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (activeSidebarItemOverride === undefined || activeSidebarItemOverride === activeSidebarItem) return;
+    // 移动端详情同步回 Web 查询页时，不应由隐藏的 Web 树反向清掉 App 持有的当前设备。
+    // 真实的 Web 导航仍在 handleSidebarItemChange 中明确清空选择设备。
+    if (activeSidebarItemOverride !== "search") setSelectedQueryDevice(null);
+    setActiveSidebarItem(activeSidebarItemOverride);
+  }, [activeSidebarItem, activeSidebarItemOverride]);
+
+  useEffect(() => {
+    if (!syncEnabled || (activeSidebarItemOverride !== undefined && activeSidebarItemOverride !== activeSidebarItem)) return;
+    onActiveSidebarItemChange?.(activeSidebarItem);
+  }, [activeSidebarItem, activeSidebarItemOverride, onActiveSidebarItemChange, syncEnabled]);
+
+  useEffect(() => {
+    if (selectedQueryDeviceOverride === undefined || selectedQueryDeviceOverride?.id === selectedQueryDevice?.id) return;
+    setSelectedQueryDevice(selectedQueryDeviceOverride);
+  }, [selectedQueryDevice, selectedQueryDeviceOverride]);
+
+  useEffect(() => {
+    if (!syncEnabled || (selectedQueryDeviceOverride !== undefined && selectedQueryDeviceOverride?.id !== selectedQueryDevice?.id)) return;
+    onSelectedQueryDeviceChange?.(selectedQueryDevice);
+  }, [onSelectedQueryDeviceChange, selectedQueryDevice, selectedQueryDeviceOverride, syncEnabled]);
+
   const tabRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const t = translations[language];
   const displayUser: AppAccount = currentUser ?? { email: "", password: "", name: "访客", nameEn: "Guest", role: "", roleEn: "", avatar: "", sidebarPermissions: [] };
 
-  const sidebarWidth = isCollapsed ? 64 : 232;
+  const sidebarCollapsed = isNarrowDesktop || isCollapsed;
+  const sidebarWidth = sidebarCollapsed ? 64 : 232;
 
   const handleTabChange = (tab: 'liveData' | 'masterData' | 'statistics' | 'events' | 'operationRecords') => {
     setActiveTab(tab);
     const coreTab = CORE_TAB_MAP[tab];
     if (coreTab) onCoreTabChange?.(coreTab);
+    onMobileTabChange?.(coreTab ?? "liveData");
   };
 
   const handleSidebarItemChange = (item: string) => {
+    // 用户点击时同步提交给 App，避免旧的受控值在 effect 回传前将本地导航复原。
+    onActiveSidebarItemChange?.(item);
+    onSelectedQueryDeviceChange?.(null);
     setIsTaskProgressPage(false);
     setDeviceOverviewView("overview");
     setSelectedQueryDevice(null);
@@ -2643,7 +2697,10 @@ export default function Events({
             : { back: '返回设备总览', forward: '前进', refresh: '刷新' },
         } : isDeviceDetailPage ? {
           // 设备详情：返回设备查询（保留搜索现场）；没有下一页，前进为禁用态
-          onBack: () => setSelectedQueryDevice(null),
+          onBack: () => {
+            onSelectedQueryDeviceChange?.(null);
+            setSelectedQueryDevice(null);
+          },
           onRefresh: () => setDetailRefreshKey((current) => current + 1),
           labels: language === 'en'
             ? { back: 'Back to Equipment Search', forward: 'Forward', refresh: 'Refresh' }
@@ -2652,7 +2709,7 @@ export default function Events({
         trailing={<>
           {/* Demo 用：通力 / 仟帆快速切换，直接以各平台的默认账号进入 */}
           <PlatformQuickSwitch user={displayUser} language={language} onSwitchAccount={onSwitchAccount} />
-          <Frame3 language={language} onLanguageChange={toggleLanguage} user={displayUser} onLogout={onLogout} onSwitchAccount={onSwitchAccount} taskBadgeCount={taskBadgeCount ?? 2} notifications={notifications ?? []} onMarkNotificationsRead={() => onMarkNotificationsRead?.()} onOpenApprovalCenter={() => { setIsTaskProgressPage(false); setActiveSidebarItem("approval-center"); setApprovalTab("pending"); }} onOpenTaskList={() => { setIsTaskProgressPage(false); setActiveSidebarItem("task-list"); }} onOpenMessageCenter={() => { setIsTaskProgressPage(false); setActiveSidebarItem("message-center"); }} />
+          <Frame3 language={language} onLanguageChange={toggleLanguage} user={displayUser} onLogout={onLogout} onSwitchAccount={onSwitchAccount} taskBadgeCount={taskBadgeCount ?? 2} notifications={notifications ?? []} onMarkNotificationsRead={() => onMarkNotificationsRead?.()} onOpenApprovalCenter={() => { setIsTaskProgressPage(false); setActiveSidebarItem("approval-center"); setApprovalTab("pending"); }} onOpenFeedback={() => { setIsTaskProgressPage(false); setActiveSidebarItem("feedback"); }} onOpenTaskList={() => { setIsTaskProgressPage(false); setActiveSidebarItem("task-list"); }} onOpenMessageCenter={() => { setIsTaskProgressPage(false); setActiveSidebarItem("message-center"); }} />
         </>}
       >
         <p className="rounded-sm border border-stroke bg-secondarycontainer px-2 py-1 whitespace-nowrap text-foot12 text-disabled">Demo</p>
@@ -2665,8 +2722,10 @@ export default function Events({
         items={buildSideNavItems(t, displayUser.sidebarPermissions)}
         activeId={activeSidebarItem}
         onSelect={handleSidebarItemChange}
-        collapsed={isCollapsed}
-        onToggleCollapsed={() => setIsCollapsed((prev) => !prev)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={() => {
+          if (!isNarrowDesktop) setIsCollapsed((prev) => !prev);
+        }}
         ariaLabel={language === 'en' ? 'Primary navigation' : '主导航'}
         collapseLabels={language === 'en'
           ? { expand: 'Expand sidebar', collapse: 'Collapse sidebar' }
@@ -2738,6 +2797,7 @@ export default function Events({
               edition={currentEdition}
               email={displayUser.email}
               onOpenDevice={(device) => {
+                onSelectedQueryDeviceChange?.(device);
                 setSelectedQueryDevice(device);
                 setActiveTab('liveData');
                 scrollContainerRef.current?.scrollTo({ top: 0 });

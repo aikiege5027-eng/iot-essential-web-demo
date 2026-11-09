@@ -127,33 +127,40 @@ export function MobileDeviceCard({
 export function MobileDeviceDetailCard({ device, language }: { device: QueryDevice; language: MobileLang }) {
   const t = deviceQueryCopy[language];
   const EquipmentIcon = EQUIPMENT_ICON[device.equipment];
+  const detailLabels = language === "cn"
+    ? t.fields
+    : { project: "Customer", address: "Street Address", contract: "Maintenance Contract", agreement: "24/7 Contract" };
   const rows = [
-    { label: t.fields.project, value: device.project?.name ?? "-" },
-    { label: t.fields.address, value: device.project?.address ?? "-" },
-    { label: t.fields.contract, value: device.contractValid ? (device.contractPlan ? `${t.valid} (${device.contractPlan})` : t.valid) : t.invalid },
-    { label: t.fields.agreement, value: device.agreement ? t.valid : t.invalid },
+    { label: detailLabels.project, value: device.project?.name ?? "-" },
+    { label: detailLabels.address, value: device.project?.address ?? "-" },
+    { label: detailLabels.contract, value: device.contractValid ? (device.contractPlan ? `${t.valid} (${device.contractPlan})` : t.valid) : t.invalid },
+    { label: detailLabels.agreement, value: device.agreement ? t.valid : t.invalid },
   ];
 
   return (
-    <article className="flex flex-col gap-3 rounded-lg border border-stroke bg-container p-4">
-      <h2 className="m-0 flex min-w-0 items-center gap-3 text-body font-normal">
-        <EquipmentIcon className="size-7 shrink-0 text-icon-primary" />
-        <span className="min-w-0 truncate text-h6 font-medium text-primary-text">{device.name}</span>
-        <span className="shrink-0 rounded-md border border-stroke bg-container px-1.5 py-0.5 text-body font-medium text-primary-text tabular-nums">
-          #{device.id}
-        </span>
-      </h2>
+    <article className="flex flex-col gap-5 rounded-lg border border-stroke bg-container px-3 py-4">
+      <div className="flex flex-col gap-4">
+        <h2 className="m-0 flex min-w-0 items-center gap-3 text-body font-normal">
+          <EquipmentIcon className="size-7 shrink-0 text-icon-primary" />
+          <span className="min-w-0 truncate text-h6 font-medium text-primary-text">{device.name}</span>
+          <span className="shrink-0 rounded-md border border-stroke bg-secondarycontainer px-1.5 py-0.5 text-body font-medium text-primary-text tabular-nums">
+            #{device.id}
+          </span>
+        </h2>
 
-      <div className="flex flex-wrap gap-1">
-        {device.service247 && <ServiceTag language={language} />}
-        <StewardStatusTag device={device} language={language} />
-        {device.source && <RegistrationSourceTag source={device.source} language={language} />}
-        {device.source && <SimStatusTag sim={device.sim} language={language} />}
+        <div className="flex flex-wrap gap-1">
+          {device.service247 && <ServiceTag language={language} />}
+          <StewardStatusTag device={device} language={language} />
+          {device.source && <RegistrationSourceTag source={device.source} language={language} />}
+          {device.source && <SimStatusTag sim={device.sim} language={language} />}
+        </div>
       </div>
 
-      <dl className="m-0 flex flex-col gap-2.5">
+      <div aria-hidden="true" className="h-px w-full bg-stroke" />
+
+      <dl className="m-0 flex flex-col gap-2 text-body">
         {rows.map((row) => (
-          <div key={row.label} className="flex items-start gap-3 text-body">
+          <div key={row.label} className="flex items-start gap-3">
             <dt className="shrink-0 whitespace-nowrap text-secondary-text">{row.label}</dt>
             <dd className="m-0 min-w-0 flex-1 text-right text-primary-text">{row.value}</dd>
           </div>

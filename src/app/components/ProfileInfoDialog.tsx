@@ -1,5 +1,6 @@
 import { Dialog } from "tdesign-react";
 import type { AppAccount } from "../data/accounts";
+import { getProfileInfoFields, profileInfoCopy, type ProfileInfoLanguage } from "./profile-info";
 
 /**
  * 「个人信息」弹窗（IOT Delivery 7105:14727），通力 / 仟帆共用。
@@ -9,12 +10,7 @@ import type { AppAccount } from "../data/accounts";
  * 字段两列排布，每列 180 宽，行距 16、列距 36。
  */
 
-type Language = "en" | "cn";
-
-const copy = {
-  cn: { title: "个人信息", employeeId: "用户工号", name: "用户姓名", email: "用户邮箱", role: "用户角色" },
-  en: { title: "Profile", employeeId: "Employee ID", name: "Name", email: "Email", role: "Role" },
-};
+type Language = ProfileInfoLanguage;
 
 type ProfileInfoDialogProps = {
   visible: boolean;
@@ -24,14 +20,8 @@ type ProfileInfoDialogProps = {
 };
 
 export default function ProfileInfoDialog({ visible, language, user, onClose }: ProfileInfoDialogProps) {
-  const t = copy[language];
-  const isChinese = language === "cn";
-  const fields = [
-    { label: t.employeeId, value: user.employeeId },
-    { label: t.name, value: isChinese ? user.name : user.nameEn },
-    { label: t.email, value: user.email },
-    { label: t.role, value: isChinese ? user.role : user.roleEn },
-  ];
+  const t = profileInfoCopy[language];
+  const fields = getProfileInfoFields(user, language);
 
   return (
     <Dialog

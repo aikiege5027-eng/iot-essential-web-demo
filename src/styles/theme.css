@@ -60,6 +60,9 @@
   /* --- 灰阶 -------------------------------------------------------------- */
   --grey-400: #c8cad0;
 
+  /* TDesign Mobile / IOT Delivery 的子模块标签文字（Figma mobile color/grey/700）。 */
+  --mobile-grey-700: #43464f;
+
   /* ==========================================================================
    * 第 2 层 · 语义 token —— 业务代码只用这一层
    * ====================================================================== */
@@ -200,6 +203,7 @@
   --metric-tile-sensor: #e3e3ff;
   --metric-icon-sensor: #3c3bc6;
   --metric-tile-neutral: #eaecf1;
+  --metric-icon-neutral: #43464f;
 
   --sidebar: var(--bg-color-container);
   --sidebar-foreground: var(--text-color-primary);
@@ -366,6 +370,7 @@
   --color-metric-tile-sensor: var(--metric-tile-sensor);
   --color-metric-icon-sensor: var(--metric-icon-sensor);
   --color-metric-tile-neutral: var(--metric-tile-neutral);
+  --color-metric-icon-neutral: var(--metric-icon-neutral);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);

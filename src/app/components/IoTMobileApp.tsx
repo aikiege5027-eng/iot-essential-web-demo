@@ -1,11 +1,17 @@
-import { useEffect, useState } from "react";
-import type { AppEdition } from "../data/accounts";
+import { useEffect, useId, useState } from "react";
+import { MessagePlugin } from "tdesign-react";
+import type { AppAccount, AppEdition } from "../data/accounts";
 import type { QueryDevice } from "../data/deviceQuery";
 import { MobileLiveDataContent } from "./MobileLiveDataContent";
 import { MobileDeviceArchiveContent } from "./MobileDeviceArchiveContent";
 import { MobileDeviceEventsContent } from "./MobileDeviceEventsContent";
+import { EventsTabIcon, LiveDataTabIcon, MasterDataTabIcon } from "./icons/device-detail-icons";
+import { MobileDeviceDetailTabs, type MobileDeviceDetailTab } from "./device-detail/DeviceDetailTabs";
 import { MobileElevatorIcon, MobileServerIcon } from "./icons/mobile-icons";
 import { MobileDeviceQuery } from "./mobile/MobileDeviceQuery";
+import { MobileAccountMenu } from "./mobile/MobileAccountMenu";
+import { MobileProfilePage } from "./mobile/MobileProfilePage";
+import { MobileDeviceRegistration } from "./mobile/MobileDeviceRegistration";
 import { MobileDeviceDetailCard } from "./mobile/MobileDeviceCard";
 import { MobilePageTitle, MobileShell, type MobileNavItem } from "./mobile/MobileShell";
 import qianFanLogo from "../../imports/QianFan_Logo.svg";
@@ -14,17 +20,22 @@ import qianFanLogo from "../../imports/QianFan_Logo.svg";
  * 移动端应用（< 768px）。框架见 mobile/MobileShell（Figma IOT Delivery 7103:36620）：
  * 顶栏 + 菜单面板 + 页面标题 + 主体。目前只开放「设备注册 / 设备查询」两个一级页面。
  *   · 设备查询：首页为搜索 + 最近查看（mobile/MobileDeviceQuery），点设备卡片进入设备详情（二级页，标题带返回）
- *   · 设备详情：沿用原有移动端详情内容（实时数据 / 设备档案 / 设备事件），详情样式待后续设计更新
+ *   · 设备详情：设备摘要卡、带图标的页签，以及实时数据 / 设备档案 / 设备事件三类内容。
  */
 
 type PageKey = "registration" | "search";
 type Lang = "cn" | "en";
 type DetailTab = "liveData" | "archive" | "events";
 
-const DETAIL_TABS: { key: DetailTab; cn: string; en: string }[] = [
-  { key: "liveData", cn: "实时数据", en: "Live Data" },
-  { key: "archive",  cn: "设备档案", en: "Device Archive" },
-  { key: "events",   cn: "设备事件", en: "Events" },
+type MobileDetailTabConfig = Omit<MobileDeviceDetailTab<DetailTab>, "label"> & {
+  cn: string;
+  en: string;
+};
+
+const DETAIL_TABS: MobileDetailTabConfig[] = [
+  { key: "liveData", cn: "实时数据", en: "Live Data", Icon: LiveDataTabIcon },
+  { key: "archive", cn: "设备档案", en: "Device Archive", Icon: MasterDataTabIcon },
+  { key: "events", cn: "设备事件", en: "Events", Icon: EventsTabIcon },
 ];
 
 const NAV_LABELS: Record<PageKey, Record<Lang, string>> = {
@@ -38,25 +49,67 @@ const navItems = (language: Lang): MobileNavItem<PageKey>[] => [
 ];
 
 export default function IoTMobileApp({
+  activePageOverride,
+  onActivePageChange,
+  detailResetKey,
+  selectedDeviceOverride,
+  onSelectedDeviceChange,
+  syncEnabled = true,
   activeTabOverride,
   onCoreTabChange,
   languageOverride,
   onLanguageChange,
   edition,
   email,
+  currentUser,
+  onLogout,
 }: {
+  activePageOverride?: PageKey;
+  onActivePageChange?: (page: PageKey) => void;
+  detailResetKey?: number;
+  selectedDeviceOverride?: QueryDevice | null;
+  onSelectedDeviceChange?: (device: QueryDevice | null) => void;
+  /** 只有当前可见的移动布局可将本地状态回传给 App。 */
+  syncEnabled?: boolean;
   activeTabOverride?: DetailTab;
   onCoreTabChange?: (tab: DetailTab) => void;
   languageOverride?: Lang;
   onLanguageChange?: (lang: Lang) => void;
   edition: AppEdition;
   email: string;
+  currentUser: AppAccount;
+  onLogout: () => void;
 }) {
-  const [menuOpen, setMenuOpen]       = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuId = useId();
+  const accountMenuTriggerId = useId();
+  const [profileOpen, setProfileOpen] = useState(false);
   const [activePage, setActivePage]   = useState<PageKey>("search");
   const [language, setLanguage]       = useState<Lang>(languageOverride ?? "cn");
   const [activeDetailTab, setDetailTab] = useState<DetailTab>(activeTabOverride ?? "liveData");
+  const [detailRefreshKey, setDetailRefreshKey] = useState(0);
   const [selectedDevice, setSelectedDevice] = useState<QueryDevice | null>(null);
+
+  useEffect(() => {
+    if (!activePageOverride || activePageOverride === activePage) return;
+    setSelectedDevice(null);
+    setActivePage(activePageOverride);
+  }, [activePage, activePageOverride]);
+
+  useEffect(() => {
+    if (detailResetKey !== undefined) setSelectedDevice(null);
+  }, [detailResetKey]);
+
+  useEffect(() => {
+    if (selectedDeviceOverride === undefined || selectedDeviceOverride?.id === selectedDevice?.id) return;
+    setSelectedDevice(selectedDeviceOverride);
+  }, [selectedDevice, selectedDeviceOverride]);
+
+  useEffect(() => {
+    if (!syncEnabled || (selectedDeviceOverride !== undefined && selectedDeviceOverride?.id !== selectedDevice?.id)) return;
+    onSelectedDeviceChange?.(selectedDevice);
+  }, [onSelectedDeviceChange, selectedDevice, selectedDeviceOverride, syncEnabled]);
 
   // Sync when parent changes the active tab
   useEffect(() => {
@@ -84,25 +137,66 @@ export default function IoTMobileApp({
   };
 
   const handleNavSelect = (key: PageKey) => {
+    setAccountMenuOpen(false);
+    setProfileOpen(false);
     setActivePage(key);
+    onSelectedDeviceChange?.(null);
     setSelectedDevice(null);
+    onActivePageChange?.(key);
+  };
+
+  const handleCloseDevice = () => {
+    onSelectedDeviceChange?.(null);
+    setSelectedDevice(null);
+  };
+
+  const handleOpenDevice = (device: QueryDevice) => {
+    onSelectedDeviceChange?.(device);
+    setSelectedDevice(device);
+    setDetailRefreshKey((key) => key + 1);
+  };
+
+  const refreshDetail = () => {
+    setDetailRefreshKey((key) => key + 1);
+    MessagePlugin.success(language === "cn" ? "设备数据已刷新" : "Device data refreshed", 3000);
   };
 
   const device = selectedDevice;
   return (
-    <MobileShell
+    <>
+      <MobileShell
       language={language}
       onLanguageChange={handleLanguageChange}
       navItems={navItems(language)}
       activeKey={activePage}
       onNavSelect={handleNavSelect}
       menuOpen={menuOpen}
-      onMenuOpenChange={setMenuOpen}
+      onMenuOpenChange={(open) => {
+        setMenuOpen(open);
+        if (open) setAccountMenuOpen(false);
+      }}
       // 点 Logo 回首页：设备查询首页
-      onLogoClick={() => handleNavSelect("search")}
+      onLogoClick={() => {
+        setAccountMenuOpen(false);
+        setProfileOpen(false);
+        handleNavSelect("search");
+      }}
+      onUserClick={() => {
+        setMenuOpen(false);
+        setAccountMenuOpen((open) => !open);
+      }}
+      accountMenuId={accountMenuId}
+      accountMenuOpen={accountMenuOpen}
+      accountMenuTriggerId={accountMenuTriggerId}
+      account={{
+        avatarUrl: currentUser.avatar,
+        label: language === "cn" ? currentUser.name : currentUser.nameEn,
+      }}
       brandLogo={edition === "qianfan" ? <img src={qianFanLogo} alt="" className="h-11 w-32 shrink-0 object-contain object-left" /> : undefined}
     >
-      {activePage === "search" ? (
+      {profileOpen ? (
+        <MobileProfilePage language={language} user={currentUser} onLogout={onLogout} />
+      ) : activePage === "search" ? (
         <>
           {/* 设备查询首页：打开详情时隐藏但保持挂载，返回后搜索条件与结果仍在；按平台 + 账号重挂载 */}
           <div hidden={device !== null} className={device === null ? "flex flex-1 flex-col" : undefined}>
@@ -111,7 +205,7 @@ export default function IoTMobileApp({
               language={language}
               edition={edition}
               email={email}
-              onOpenDevice={setSelectedDevice}
+              onOpenDevice={handleOpenDevice}
             />
           </div>
           {device && (
@@ -119,52 +213,39 @@ export default function IoTMobileApp({
           <MobilePageTitle
             title={language === "cn" ? "设备详情" : "Device Details"}
             language={language}
-            onBack={() => setSelectedDevice(null)}
+            onBack={handleCloseDevice}
             extra={
-              <button type="button" className="flex shrink-0 cursor-pointer items-center gap-1 border-0 bg-transparent p-0 font-normal text-link">
-                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M7 1.5C4.0147 1.5 1.5 4.0147 1.5 7C1.5 9.9853 4.0147 12.5 7 12.5C9.9853 12.5 12.5 9.9853 12.5 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                  <path d="M10 1L12.5 3.5L10 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+              <button
+                type="button"
+                aria-label={language === "cn" ? "刷新设备数据" : "Refresh device data"}
+                onClick={refreshDetail}
+                className="flex shrink-0 cursor-pointer items-center rounded-sm border-0 bg-transparent p-0 font-normal text-link focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-base"
+              >
                 <span className="text-body">{language === "cn" ? "刷新" : "Refresh"}</span>
               </button>
             }
           />
 
-          {/* ── Device card（老版本移动端详情顶部设备卡） ── */}
           <div className="mx-4 mt-4">
             <MobileDeviceDetailCard device={device} language={language} />
           </div>
 
-          {/* ── Detail tab bar ───────────────────────────────────────────── */}
-          <div
-            className="bg-white mx-[16px] mt-[12px] rounded-[6px] flex"
-            style={{ border: "1px solid #dfe1e8" }}
-          >
-            {DETAIL_TABS.map((tab) => {
-              const isActive = activeDetailTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => handleDetailTabChange(tab.key)}
-                  className="flex-1 flex items-center justify-center gap-[6px] px-[8px] py-[10px] border-0 cursor-pointer bg-transparent relative"
-                >
-                  {isActive && (
-                    <span className="absolute bottom-0 left-[16px] right-[16px] h-[2px] bg-[#1450f5] rounded-t-[2px]" />
-                  )}
-                  <span className={`font-['PingFang_SC:${isActive ? "Medium" : "Regular"}',sans-serif] text-[14px] leading-[22px] ${isActive ? "text-[#1450f5]" : "text-[#676a72]"} whitespace-nowrap`}>
-                    {language === "cn" ? tab.cn : tab.en}
-                  </span>
-                </button>
-              );
-            })}
+          <div className="mx-4 mt-4">
+            <MobileDeviceDetailTabs
+              tabs={DETAIL_TABS.map(({ cn, en, ...tab }) => ({
+                ...tab,
+                label: language === "cn" ? cn : en,
+              }))}
+              value={activeDetailTab}
+              onChange={handleDetailTabChange}
+              ariaLabel={language === "cn" ? "设备详情内容" : "Device details content"}
+            />
           </div>
 
-          {/* ── Detail tab content ───────────────────────────────────────── */}
-          <div className="px-[16px] pt-[12px] pb-[24px]">
-            {activeDetailTab === "liveData" && <MobileLiveDataContent language={language} />}
-            {activeDetailTab === "archive" && <MobileDeviceArchiveContent language={language} />}
-            {activeDetailTab === "events" && <MobileDeviceEventsContent language={language} />}
+          <div id={`mobile-device-detail-panel-${activeDetailTab}`} role="tabpanel" aria-labelledby={`mobile-device-detail-tab-${activeDetailTab}`} className="px-4 pt-3 pb-6">
+            {activeDetailTab === "liveData" && <MobileLiveDataContent key={detailRefreshKey} language={language} />}
+            {activeDetailTab === "archive" && <MobileDeviceArchiveContent key={detailRefreshKey} language={language} />}
+            {activeDetailTab === "events" && <MobileDeviceEventsContent key={detailRefreshKey} language={language} />}
           </div>
 
 
@@ -172,13 +253,24 @@ export default function IoTMobileApp({
           )}
         </>
       ) : (
-        <div className="flex flex-1 flex-col">
-          <MobilePageTitle title={NAV_LABELS[activePage][language]} language={language} />
-          <div className="flex flex-1 items-center justify-center px-4 py-12 text-center text-body text-placeholder">
-            {NAV_LABELS[activePage][language]}
-          </div>
-        </div>
+        <MobileDeviceRegistration language={language} onReturnHome={() => handleNavSelect("search")} />
       )}
-    </MobileShell>
+      </MobileShell>
+      <MobileAccountMenu
+        open={accountMenuOpen}
+        id={accountMenuId}
+        triggerId={accountMenuTriggerId}
+        language={language}
+        user={currentUser}
+        onClose={() => setAccountMenuOpen(false)}
+        onOpenProfile={() => setProfileOpen(true)}
+        onLogout={onLogout}
+        onUnavailableAction={(action) => {
+          MessagePlugin.info(language === "cn"
+            ? `${action === "approval" ? "审批中心" : "产品反馈"}暂未在移动端开放`
+            : `${action === "approval" ? "Approval Center" : "Product feedback"} is not available on mobile yet`);
+        }}
+      />
+    </>
   );
 }

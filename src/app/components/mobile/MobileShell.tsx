@@ -29,6 +29,12 @@ const copy = {
   en: { openMenu: "Open menu", closeMenu: "Close menu", account: "Account", home: "Go to home", back: "Back", language: "Language", menu: "Main navigation" },
 };
 
+export interface MobileAccountPresentation {
+  avatarUrl?: string;
+  /** Localized account name used as the avatar button's accessible label. */
+  label?: string;
+}
+
 const ROUND_BUTTON =
   "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-brand-light text-brand transition-colors hover:bg-[var(--brand-color-light-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-base";
 
@@ -39,6 +45,10 @@ export function MobileTopNav({
   onToggleMenu,
   onLogoClick,
   onUserClick,
+  account,
+  accountMenuId,
+  accountMenuOpen,
+  accountMenuTriggerId,
   brandLogo,
 }: {
   language: MobileLang;
@@ -47,6 +57,12 @@ export function MobileTopNav({
   onToggleMenu: () => void;
   onLogoClick?: () => void;
   onUserClick?: () => void;
+  /** Optional user presentation for the account button. */
+  account?: MobileAccountPresentation;
+  /** Optional accessible association with a Mobile account menu. */
+  accountMenuId?: string;
+  accountMenuOpen?: boolean;
+  accountMenuTriggerId?: string;
   /** 可选品牌标识。未传时沿用 KONE 标识。 */
   brandLogo?: ReactNode;
 }) {
@@ -63,8 +79,18 @@ export function MobileTopNav({
         <span className="truncate text-h7 font-semibold text-primary-text">IoT Essential</span>
       </button>
       <div className="flex items-center gap-2">
-        <button type="button" className={ROUND_BUTTON} aria-label={t.account} onClick={onUserClick}>
-          <MobileUserIcon className="size-[18px]" />
+        <button
+          id={accountMenuTriggerId}
+          type="button"
+          data-mobile-account-trigger
+          className={`${ROUND_BUTTON} overflow-hidden`}
+          aria-label={account?.label ?? t.account}
+          aria-haspopup={accountMenuId ? "menu" : undefined}
+          aria-expanded={accountMenuId ? accountMenuOpen : undefined}
+          aria-controls={accountMenuId}
+          onClick={onUserClick}
+        >
+          {account?.avatarUrl ? <img src={account.avatarUrl} alt="" className="size-full object-cover" /> : <MobileUserIcon className="size-[18px]" />}
         </button>
         <button
           type="button"
@@ -210,6 +236,10 @@ export function MobileShell<K extends string>({
   onMenuOpenChange,
   onLogoClick,
   onUserClick,
+  account,
+  accountMenuId,
+  accountMenuOpen,
+  accountMenuTriggerId,
   brandLogo,
   children,
 }: {
@@ -222,6 +252,12 @@ export function MobileShell<K extends string>({
   onMenuOpenChange: (open: boolean) => void;
   onLogoClick?: () => void;
   onUserClick?: () => void;
+  /** Optional user presentation for the account button. */
+  account?: MobileAccountPresentation;
+  /** Optional accessible association with a Mobile account menu. */
+  accountMenuId?: string;
+  accountMenuOpen?: boolean;
+  accountMenuTriggerId?: string;
   /** 可选品牌标识。未传时沿用 KONE 标识。 */
   brandLogo?: ReactNode;
   children: ReactNode;
@@ -239,6 +275,10 @@ export function MobileShell<K extends string>({
           onLogoClick?.();
         }}
         onUserClick={onUserClick}
+        account={account}
+        accountMenuId={accountMenuId}
+        accountMenuOpen={accountMenuOpen}
+        accountMenuTriggerId={accountMenuTriggerId}
         brandLogo={brandLogo}
       />
       <MobileNavMenu

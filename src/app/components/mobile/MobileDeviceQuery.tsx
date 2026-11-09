@@ -64,7 +64,8 @@ export function MobileDeviceQuery({
     [edition, recentIds],
   );
   const list = applied ? results : recent;
-  const filtered = hasAnyFilter(filters);
+  // 筛选按钮反映已提交的查询，而不是抽屉中尚未应用的草稿。
+  const hasAppliedFilters = Boolean(applied && hasAnyFilter(applied.filters));
 
   const submit = (nextKeyword = keyword) => {
     setApplied({ keyword: nextKeyword.trim(), stewardOnly, multi, filters });
@@ -106,7 +107,7 @@ export function MobileDeviceQuery({
             onClick={() => setSheetOpen(true)}
             className={`flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-base ${
               // 有已选筛选项时保持品牌浅底语气，提示筛选生效中
-              filtered ? "bg-brand-light text-brand" : "bg-component text-icon-primary hover:bg-component-hover"
+              hasAppliedFilters ? "bg-brand-light text-brand" : "bg-component text-icon-primary hover:bg-component-hover"
             }`}
           >
             <MobileFilterIcon className="size-5" />

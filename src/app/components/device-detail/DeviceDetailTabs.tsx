@@ -1,3 +1,4 @@
+import type { ComponentType, KeyboardEvent, SVGProps } from "react";
 import { Tabs } from "tdesign-react";
 import {
   EventsTabIcon,
@@ -41,5 +42,71 @@ export function DeviceDetailTabs({ language, value, onChange }: { language: Lang
         ),
       }))}
     />
+  );
+}
+
+/**
+ * 设备详情移动端页签。它仍然直接采用 TDesign Tabs 的滚动与 Operation bar，
+ * 避免手写页签状态与 Web 端的基础交互分叉。
+ */
+type DetailTabIcon = ComponentType<SVGProps<SVGSVGElement>>;
+
+export type MobileDeviceDetailTab<T extends string> = {
+  key: T;
+  label: string;
+  Icon: DetailTabIcon;
+};
+
+export function MobileDeviceDetailTabs<T extends string>({
+  tabs,
+  value,
+  onChange,
+  equalWidth = false,
+  ariaLabel,
+}: {
+  tabs: readonly MobileDeviceDetailTab<T>[];
+  value: T;
+  onChange: (tab: T) => void;
+  equalWidth?: boolean;
+  ariaLabel: string;
+}) {
+  const usesEqualWidthLayout = equalWidth || tabs.length === 3;
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+
+    const currentIndex = tabs.findIndex((tab) => tab.key === value);
+    if (currentIndex < 0) return;
+
+    const nextIndex = event.key === "ArrowRight"
+      ? (currentIndex + 1) % tabs.length
+      : event.key === "ArrowLeft"
+        ? (currentIndex - 1 + tabs.length) % tabs.length
+        : event.key === "Home"
+          ? 0
+          : tabs.length - 1;
+
+    if (nextIndex !== currentIndex) onChange(tabs[nextIndex].key);
+  };
+  return (
+    <div aria-label={ariaLabel} role="tablist" tabIndex={0} onKeyDown={handleKeyDown}>
+      <Tabs
+        className={`device-detail-tabs device-detail-tabs-mobile ${usesEqualWidthLayout ? "device-detail-tabs-mobile--equal-width" : ""}`}
+        theme="normal"
+        size="medium"
+        value={value}
+        scrollPosition="auto"
+        onChange={(next) => onChange(next as T)}
+        list={tabs.map(({ key, label, Icon }) => ({
+          value: key,
+          label: (
+            <span className="inline-flex items-center gap-1.5">
+              <Icon className="size-4" />
+              {label}
+            </span>
+          ),
+        }))}
+      />
+    </div>
   );
 }
