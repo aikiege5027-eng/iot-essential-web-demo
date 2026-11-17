@@ -5,7 +5,7 @@ import type { AppEdition } from "../data/accounts";
 import { EMPTY_DEVICE_FILTERS, type DeviceFilterKey, type DeviceFilters } from "../data/deviceOverview";
 import { getQueryDevice, loadRecentDeviceIds, pushRecentDeviceId, searchDevices, type QueryDevice } from "../data/deviceQuery";
 import { deviceCopy, overviewCopy } from "./device-overview/copy";
-import { FILTER_ORDER, filterOptions } from "./device-overview/DeviceFilterView";
+import { filterOptions, getFilterOrder } from "./device-overview/DeviceFilterView";
 import { deviceQueryCopy, type Language } from "./device-query/copy";
 import { DeviceInfoCard } from "./device-query/DeviceInfoCard";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
@@ -77,7 +77,7 @@ export default function DeviceQueryContent({
   };
 
   // 模板的筛选字段只认字符串值（用于判断筛选按钮是否保持选中语气），多选值以逗号拼接传入，控件自己读数组状态
-  const filterFields: IoTFilterField[] = FILTER_ORDER.map((key: DeviceFilterKey) => ({
+  const filterFields: IoTFilterField[] = getFilterOrder(edition).map((key: DeviceFilterKey) => ({
     id: `device-query-${key}`,
     label: filterCopy.filters[key],
     value: filters[key].join(","),
@@ -117,7 +117,7 @@ export default function DeviceQueryContent({
         value: keyword,
         onChange: setKeyword,
         onSearch: (value) => submit(value),
-        placeholder: multi ? t.multiPlaceholder : t.searchPlaceholder,
+        placeholder: multi ? t.multiPlaceholder : edition === "qianfan" ? t.searchPlaceholderQianfan : t.searchPlaceholder,
         maxWidth: 520,
         // 搜索范围选项紧跟搜索框右侧
         trailing: (
@@ -168,7 +168,7 @@ export default function DeviceQueryContent({
             <ul className="flex flex-col gap-3">
               {list.map((device) => (
                 <li key={device.id}>
-                  <DeviceInfoCard device={device} language={language} showModules={Boolean(applied)} onOpen={() => openDevice(device)} />
+                  <DeviceInfoCard device={device} language={language} edition={edition} showModules={Boolean(applied)} onOpen={() => openDevice(device)} />
                 </li>
               ))}
             </ul>

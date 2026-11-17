@@ -1,0 +1,52 @@
+/**
+ * 数据可视化主题 token（Figma China Data Visualization，file key f4nG73gc9qgxn2vwk0GElY）。
+ *
+ * 图表有自己的一套亮 / 暗主题，与应用的 KONE 界面 token 无关：暗色是固定的深色卡片
+ * （#141414），不随应用的 `.dark` 推导值变化，因此只作用在 `.km-chart` 范围内。
+ *
+ *   · 亮 / 暗由 `data-theme="light" | "dark"` 显式指定；
+ *   · 未指定时跟随祖先的 `.dark`（next-themes），与应用暗色模式一致。
+ *
+ * 变量名取 Figma 变量路径（Theme/Background → --viz-background 等）。
+ * 定性色板 `--categorical-color-1…8` 在 theme.css 中，两个主题取值相同。
+ */
+.km-chart {
+  --viz-background: #ffffff;
+  --viz-title: #141414;
+  --viz-subtitle: #727272;
+  --viz-axis-label: #727272;
+  --viz-legend-text: #727272;
+  --viz-gridline: #dddddd;
+  --viz-axisline: #727272;
+  --viz-tooltip-axis: #a1b9fb;
+  --viz-tooltip-background: #ffffff;
+  --viz-mark-text: #ffffff;
+  /* 带背景条形图的底槽（Figma 条形图 · 带背景基础条形图） */
+  --viz-bar-track: #e5e5e5;
+
+  /* 卡片外阴影：0 0 15px rgba(0,0,0,.04)；悬浮提示：1px 1px 3px rgba(0,0,0,.23) */
+  --viz-card-shadow: 0 0 15px rgba(0, 0, 0, 0.04);
+  --viz-tooltip-shadow: 1px 1px 3px rgba(0, 0, 0, 0.23);
+}
+
+.km-chart[data-theme='dark'],
+.dark .km-chart:not([data-theme='light']) {
+  --viz-background: #141414;
+  --viz-title: #ffffff;
+  --viz-subtitle: #d0d0d0;
+  --viz-axis-label: #d0d0d0;
+  --viz-legend-text: #d0d0d0;
+  --viz-gridline: #4f4f4f;
+  --viz-axisline: #d0d0d0;
+  --viz-tooltip-axis: #a1b9fb;
+  --viz-tooltip-background: #2b2b2b;
+  --viz-mark-text: #ffffff;
+  --viz-bar-track: #2b2b2b;
+}
+
+/* Recharts 的 SVG 焦点环在卡片内没有意义，容器本身不可聚焦 */
+.km-chart svg:focus,
+.km-chart .recharts-wrapper:focus,
+.km-chart .recharts-surface:focus {
+  outline: none;
+}

@@ -5,6 +5,7 @@ export const deviceQueryCopy = {
   cn: {
     title: "设备查询",
     searchPlaceholder: "设备编号/项目编号/项目名称/项目地址",
+    searchPlaceholderQianfan: "设备编号/云管家编号/项目名称/项目地址",
     // 移动端搜索框：与 Web 端同一文案（Figma 8626:40736），放不下时省略
     mobileSearchPlaceholder: "设备编号/项目编号/项目名称/项目地址",
     mobileMultiPlaceholder: "多个设备编号用逗号或空格分隔",
@@ -31,7 +32,7 @@ export const deviceQueryCopy = {
       connection: "连接状态",
     },
     openDevice: (name: string, id: string) => `查看设备 ${name}（#${id}）详情`,
-    fields: { project: "所属项目", address: "项目地址", contract: "保养合同", agreement: "云管家协议" },
+    fields: { project: "所属项目", address: "项目地址", tenant: "所属租户", contract: "保养合同", agreement: "云管家协议" },
     valid: "有效",
     invalid: "无效",
     modulesLabel: (name: string) => `${name} 的模块`,
@@ -41,6 +42,7 @@ export const deviceQueryCopy = {
   en: {
     title: "Equipment Search",
     searchPlaceholder: "Device No./Project No./Project name/Address",
+    searchPlaceholderQianfan: "Device No./Cloud steward No./Project name/Address",
     mobileSearchPlaceholder: "Device No./Project No./Project name/Address",
     mobileMultiPlaceholder: "Device numbers, comma or space separated",
     expandFilter: "Show filters",
@@ -65,7 +67,7 @@ export const deviceQueryCopy = {
       connection: "Connection",
     },
     openDevice: (name: string, id: string) => `Open device ${name} (#${id})`,
-    fields: { project: "Project", address: "Address", contract: "Maintenance contract", agreement: "Cloud steward agreement" },
+    fields: { project: "Project", address: "Address", tenant: "Tenant", contract: "Maintenance contract", agreement: "Cloud steward agreement" },
     valid: "Valid",
     invalid: "Invalid",
     modulesLabel: (name: string) => `Modules of ${name}`,

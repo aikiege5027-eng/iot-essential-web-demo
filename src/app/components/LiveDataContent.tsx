@@ -163,7 +163,7 @@ function MetricGrid({ metrics, tone, columns }: { metrics: MetricCardMetric[]; t
 function GroupDivider({ id, label }: { id: string; label: string }) {
   return (
     <div className="flex items-center gap-2">
-      <span aria-hidden="true" className="flex-1 border-t border-dashed border-stroke" />
+      <span aria-hidden="true" className="w-10 shrink-0 border-t border-dashed border-stroke" />
       <h3 id={id} className="m-0 shrink-0 text-foot12 font-normal text-primary-text">
         {label}
       </h3>

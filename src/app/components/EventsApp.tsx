@@ -30,6 +30,7 @@ import ApprovalCenterContent from "./ApprovalCenterContent";
 import TaskListContent from "./TaskListContent";
 import RuleConfigurationContent from "./RuleConfigurationContent";
 import UserManagementContent, { type AccountControl } from "./UserManagementContent";
+import { FloatingScrollbar, ScrollAreaPrimitive } from "./ui/scroll-area";
 import DeviceOverviewContent, { type DeviceOverviewView } from "./DeviceOverviewContent";
 import DeviceQueryContent from "./DeviceQueryContent";
 import { DeviceInfoCard } from "./device-query/DeviceInfoCard";
@@ -2669,7 +2670,7 @@ export default function Events({
   }, []);
 
   return (
-    <div className="relative flex h-dvh w-full bg-page" data-name="Events">
+    <div className="relative flex h-dvh w-full overflow-hidden bg-page" data-name="Events">
       {/* 高度锁定为视口（h-dvh），让下方主内容区成为唯一滚动容器：
           外层不限高时整页由窗口滚动，主内容区的 overflow-y-auto 反而让其内部的 sticky（设备查询工具栏、设备详情页签）失效 */}
       {/* 顶部导航 —— 设计系统组件，固定定位由外部 className 提供。
@@ -2733,11 +2734,15 @@ export default function Events({
       />
 
       {/* Main Content Area - Scrollable, margin matches sidebar width */}
-      <div
-        ref={scrollContainerRef}
-        className="mt-[56px] flex-1 overflow-y-auto bg-[#f5f7fa] custom-scrollbar transition-[margin-left] duration-300 ease-in-out"
+      {/* 主内容区只有这一根滚动条：悬浮层（Radix ScrollArea type="hover"），不占页面宽度，鼠标移入才出现；
+          各页签 / 页面的内容宽度因此不会随「有无滚动条」变化 */}
+      <ScrollAreaPrimitive.Root
+        type="hover"
+        scrollHideDelay={600}
+        className="relative mt-[56px] flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f5f7fa] transition-[margin-left] duration-300 ease-in-out"
         style={{ marginLeft: sidebarWidth }}
       >
+        <ScrollAreaPrimitive.Viewport ref={scrollContainerRef} className="min-h-0 w-full flex-1 [&>div]:!block">
         <div className="flex min-h-[calc(100vh-56px)] flex-col bg-[#f5f7fa]">
           {isTaskProgressPage ? (
             <TaskProgressContent key={progressRefreshKey} language={language} batchRule={batchDispatchRule} />
@@ -2808,7 +2813,7 @@ export default function Events({
             <>
           {/* 设备详情顶部信息卡：与查询结果同一个组件（白底描边变体） */}
           <div className="mx-6 mt-5">
-            <DeviceInfoCard device={selectedQueryDevice} language={language} variant="detail" />
+            <DeviceInfoCard device={selectedQueryDevice} language={language} variant="detail" edition={currentEdition} />
           </div>
 
           {/* 页签（Figma 5813:34058）：吸顶后铺满宽度，未吸顶时与上方面板同宽 */}
@@ -2821,7 +2826,7 @@ export default function Events({
             {activeTab === 'liveData' && <LiveDataContent language={language} />}
             {activeTab === 'masterData' && <DeviceArchiveContent language={language} />}
             {activeTab === 'events' && <DeviceEventsTab device={selectedQueryDevice} language={language} />}
-            {activeTab === 'statistics' && <DeviceStatisticsTab device={selectedQueryDevice} language={language} />}
+            {activeTab === 'statistics' && <DeviceStatisticsTab device={selectedQueryDevice} language={language} edition={currentEdition} />}
             {activeTab === 'operationRecords' && <OperationRecordsContent t={t} />}
           </div>
             </>
@@ -2834,7 +2839,9 @@ export default function Events({
             <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] not-italic relative shrink-0 text-[#959595] text-[12px] text-center whitespace-nowrap">Copyright @ 2019-2022 KONE. All Rights Reserved</p>
           </div>
         </div>
-      </div>
+        </ScrollAreaPrimitive.Viewport>
+        <FloatingScrollbar orientation="vertical" />
+      </ScrollAreaPrimitive.Root>
     </div>
   );
 }

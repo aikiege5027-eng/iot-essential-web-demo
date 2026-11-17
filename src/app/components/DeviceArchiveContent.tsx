@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { DetailSection } from "./device-detail/DetailSection";
+import { TagFilterButton } from "./TagFilterButton";
 
 function FieldCard({ label, value }: { label: string; value: string }) {
   return (
@@ -17,22 +18,6 @@ function FieldGrid({ fields }: { fields: { label: string; value: string }[] }) {
         <FieldCard key={i} label={f.label} value={f.value} />
       ))}
     </div>
-  );
-}
-
-function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center px-[8px] py-[2px] rounded-[3px] text-[12px] border cursor-pointer ${
-        active
-          ? "bg-[#f3f6fe] border-[#1450f5] text-[#1450f5] font-['PingFang_SC:Medium',sans-serif]"
-          : "bg-white border-[#c8cad0] text-[#141414] font-['PingFang_SC:Regular',sans-serif]"
-      }`}
-      style={{ lineHeight: "20px" }}
-    >
-      {label}
-    </button>
   );
 }
 
@@ -125,8 +110,8 @@ export function DeviceArchiveContent({ language }: { language: 'en' | 'cn' }) {
         titleId="archive-contract-title"
         extra={
           <div className="flex gap-[7px]">
-          <TabButton label={language === 'cn' ? "合同主体" : "Main Contract"} active={contractTab === '主体'} onClick={() => setContractTab('主体')} />
-          <TabButton label={language === 'cn' ? "数字化服务" : "Digital Services"} active={contractTab === '数字化服务'} onClick={() => setContractTab('数字化服务')} />
+          <TagFilterButton label={language === 'cn' ? "合同主体" : "Main Contract"} active={contractTab === '主体'} onClick={() => setContractTab('主体')} />
+          <TagFilterButton label={language === 'cn' ? "数字化服务" : "Digital Services"} active={contractTab === '数字化服务'} onClick={() => setContractTab('数字化服务')} />
           </div>
         }
       >
@@ -141,9 +126,9 @@ export function DeviceArchiveContent({ language }: { language: 'en' | 'cn' }) {
         titleId="archive-config-title"
         extra={
           <div className="flex gap-[7px]">
-          <TabButton label={language === 'cn' ? "主体" : "Main"} active={configTab === '主体'} onClick={() => setConfigTab('主体')} />
-          <TabButton label={language === 'cn' ? "井道和悬吊" : "Hoistway"} active={configTab === '井道和悬吊'} onClick={() => setConfigTab('井道和悬吊')} />
-          <TabButton label={language === 'cn' ? "门" : "Door"} active={configTab === '门'} onClick={() => setConfigTab('门')} />
+          <TagFilterButton label={language === 'cn' ? "主体" : "Main"} active={configTab === '主体'} onClick={() => setConfigTab('主体')} />
+          <TagFilterButton label={language === 'cn' ? "井道和悬吊" : "Hoistway"} active={configTab === '井道和悬吊'} onClick={() => setConfigTab('井道和悬吊')} />
+          <TagFilterButton label={language === 'cn' ? "门" : "Door"} active={configTab === '门'} onClick={() => setConfigTab('门')} />
           </div>
         }
       >

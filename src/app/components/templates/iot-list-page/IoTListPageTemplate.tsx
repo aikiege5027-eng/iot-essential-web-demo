@@ -547,8 +547,9 @@ function DataTable<Row>({
   }, [captionId, hideTableWhenEmpty, loading, rows.length, tableCaption]);
 
   if (hideTableWhenEmpty && !loading && rows.length === 0) {
+    // flex-1：卡片撑满高度（fillHeight）时，空态占满标题以下的剩余区域并在其中水平 / 垂直居中
     return (
-      <div className="mx-5 flex min-h-[324px] items-center justify-center">
+      <div className="mx-5 flex min-h-[324px] flex-1 items-center justify-center">
         {emptyContent ?? emptyText}
       </div>
     );

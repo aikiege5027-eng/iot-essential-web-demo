@@ -20,6 +20,8 @@ export type ContractType = "LIS" | "LIFS";
 export type OverviewDevice = {
   id: string;
   name: string;
+  /** 云管家编号；非云管家设备为 null（表格显示「-」） */
+  stewardCode: string | null;
   projectId: string;
   kind: DeviceKind;
   controller: ControllerType;
@@ -61,8 +63,10 @@ export type OverviewDataset = {
   devices: OverviewDevice[];
 };
 
-/** 数据范围筛选：每一级为空表示「不限」，工作组可多选。 */
+/** 数据范围筛选：每一级为空表示「不限」，仟帆租户可多选。 */
 export type DataScope = {
+  /** `null` 表示租户范围不适用；空数组表示明确不选择任何仟帆租户。 */
+  tenants: string[] | null;
   company: string;
   region: string;
   branch: string;
@@ -71,7 +75,7 @@ export type DataScope = {
   workgroups: string[];
 };
 
-export const EMPTY_SCOPE: DataScope = { company: "", region: "", branch: "", office: "", pg: "", workgroups: [] };
+export const EMPTY_SCOPE: DataScope = { tenants: null, company: "", region: "", branch: "", office: "", pg: "", workgroups: [] };
 
 // ---------------------------------------------------------------------------
 // 生成
@@ -209,9 +213,11 @@ function buildDataset(edition: AppEdition): OverviewDataset {
       }
       const contractValid = chance(0.9);
       const deviceNumber = kind === "elevator" ? `DT${d + 1}` : `FT${d + 1}`;
+      const serial = deviceSerial++;
       devices.push({
-        id: String(deviceSerial++),
+        id: String(serial),
         name: `${project.name}${deviceNumber}`,
+        stewardCode: steward ? `YGJ${String(serial).padStart(8, "0")}` : null,
         projectId: project.id,
         kind,
         controller: kind === "escalator" ? "ESC" : pick(CONTROLLERS),
@@ -270,6 +276,22 @@ export function getScopeOptions(org: OrgNode[], scope: DataScope) {
 /** 数据范围覆盖的工作组 id；返回 null 表示不限。 */
 function resolveScopeWorkgroups(org: OrgNode[], scope: DataScope): Set<string> | null {
   if (scope.workgroups.length > 0) return new Set(scope.workgroups);
+
+  // 仟帆的租户范围：null 表示不使用租户维度；空数组表示明确未选租户。
+  if (scope.tenants !== null) {
+    const selectedTenants = new Set(scope.tenants);
+    const result = new Set<string>();
+    const walk = (nodes: OrgNode[], insideTenant: boolean) => {
+      for (const node of nodes) {
+        const inside = insideTenant || selectedTenants.has(node.id);
+        if (node.children?.length) walk(node.children, inside);
+        else if (inside) result.add(node.id);
+      }
+    };
+    walk(org, false);
+    return result;
+  }
+
   const deepest = scope.pg || scope.office || scope.branch || scope.region || scope.company;
   if (!deepest) return null;
   const result = new Set<string>();
@@ -282,6 +304,25 @@ function resolveScopeWorkgroups(org: OrgNode[], scope: DataScope): Set<string> |
   };
   walk(org, false);
   return result;
+}
+
+/** 仟帆「租户数量」：组织树第一级（租户）下至少有一个项目的租户个数。 */
+export function countTenantsWithProjects(org: OrgNode[], projects: OverviewProject[]) {
+  const workgroupIds = new Set(projects.map((project) => project.workgroupId));
+  const hasProject = (node: OrgNode): boolean =>
+    node.children?.length ? node.children.some(hasProject) : workgroupIds.has(node.id);
+  return org.filter(hasProject).length;
+}
+
+/** 工作组 id → 所属租户名称（组织树第一级节点的 label）。 */
+export function buildTenantLookup(org: OrgNode[]) {
+  const lookup = new Map<string, string>();
+  const walk = (node: OrgNode, tenant: string) => {
+    if (node.children?.length) node.children.forEach((child) => walk(child, tenant));
+    else lookup.set(node.id, tenant);
+  };
+  org.forEach((tenant) => walk(tenant, tenant.label));
+  return lookup;
 }
 
 export function filterByScope(dataset: OverviewDataset, scope: DataScope) {
@@ -349,15 +390,17 @@ export function computeOverviewStats(projects: OverviewProject[], devices: Overv
 
 export type OverviewStats = ReturnType<typeof computeOverviewStats>;
 
-/** 近 7 天的注册率 / 在线率走势；最后一天等于当前统计值，前几天在其附近按固定种子浮动。 */
-export function buildTrend(registrationRate: number, onlineRate: number, today = new Date()) {
+/** 近 15 天（半个月）的注册率 / 在线率走势；最后一天等于当前统计值，前面几天在其附近按固定种子浮动。 */
+export const TREND_DAYS = 15;
+export function buildTrend(registrationRate: number, onlineRate: number, today = new Date(), days = TREND_DAYS) {
   const random = createRandom(Math.round(registrationRate * 1000) * 31 + Math.round(onlineRate * 1000));
   const clamp = (value: number) => Math.min(1, Math.max(0, value));
-  return Array.from({ length: 7 }, (_, index) => {
+  return Array.from({ length: days }, (_, index) => {
     const date = new Date(today);
-    date.setDate(today.getDate() - (6 - index));
-    const isToday = index === 6;
-    const drift = (6 - index) * 0.012;
+    date.setDate(today.getDate() - (days - 1 - index));
+    const isToday = index === days - 1;
+    // 越早的日子离当前值越远，整段漂移幅度与原来 7 天的走势相当
+    const drift = (days - 1 - index) * 0.005;
     return {
       date,
       registration: isToday ? registrationRate : clamp(registrationRate - drift + (random() - 0.5) * 0.06),

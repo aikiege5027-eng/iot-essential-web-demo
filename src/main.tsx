@@ -5,6 +5,7 @@ import "./styles/index.css";
 
 const ButtonShowcase = lazy(() => import("./app/design-system/ButtonShowcase.tsx"));
 const DialogMessageShowcase = lazy(() => import("./app/design-system/DialogMessageShowcase.tsx"));
+const ChartsShowcase = lazy(() => import("./app/design-system/ChartsShowcase.tsx"));
 const IoTPageTemplateShowcase = lazy(
   () => import("./app/design-system/IoTPageTemplateShowcase.tsx"),
 );
@@ -16,6 +17,7 @@ const IoTPageTemplateShowcase = lazy(
  *   #/design-system/button             → Button 验证页
  *   #/design-system/dialog             → Dialog / Message 验证页
  *   #/design-system/iot-page-template  → IoT 页面模板验证页
+ *   #/design-system/charts             → 数据可视化图表验证页（饼图 / 折线图）
  *   其他                                → 原 Demo
  *
  * 用 hash 而不是 history 路由，是因为本项目部署在子路径
@@ -41,6 +43,13 @@ function Root() {
     return (
       <Suspense fallback={<div className="min-h-screen bg-page p-8 text-body text-secondary-text">正在加载验证页…</div>}>
         <DialogMessageShowcase />
+      </Suspense>
+    );
+  }
+  if (hash.startsWith("#/design-system/charts")) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-page p-8 text-body text-secondary-text">正在加载验证页…</div>}>
+        <ChartsShowcase />
       </Suspense>
     );
   }

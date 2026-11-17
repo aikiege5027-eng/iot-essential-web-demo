@@ -55,4 +55,17 @@ function ScrollBar({
   );
 }
 
-export { ScrollArea, ScrollBar };
+/** 悬浮滚动条：叠在内容上、不占布局宽度，配合 type="hover" 的 Root，鼠标移入才出现。 */
+function FloatingScrollbar({ orientation = "vertical", className }: { orientation?: "vertical" | "horizontal"; className?: string }) {
+  return (
+    <ScrollAreaPrimitive.Scrollbar
+      orientation={orientation}
+      className={cn("z-[2] flex touch-none select-none p-[2px]", orientation === "vertical" ? "w-2.5" : "h-2.5 flex-col", className)}
+    >
+      <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-[var(--component-border)]" />
+    </ScrollAreaPrimitive.Scrollbar>
+  );
+}
+
+export { ScrollArea, ScrollBar, FloatingScrollbar };
+export { ScrollAreaPrimitive };

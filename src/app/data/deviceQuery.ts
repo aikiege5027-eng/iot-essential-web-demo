@@ -1,5 +1,6 @@
 import type { AppEdition } from "./accounts";
 import {
+  buildTenantLookup,
   getOverviewDataset,
   matchesDeviceFilters,
   type DeviceFilters,
@@ -33,10 +34,14 @@ export type DeviceModule = {
 
 export type QueryDevice = OverviewDevice & {
   project?: OverviewProject;
+  /** 所属租户（仅仟帆有租户维度） */
+  tenant?: string;
   /** 设备形态，对应项目面板 5532:18192 的 property1：直梯 / 扶梯 / 步道梯（自动人行道） */
   equipment: "elevator" | "escalator" | "walkway";
   /** 保养合同产品名，合同有效时显示为「有效 (KONE Care Plus)」 */
   contractPlan: string | null;
+  /** 设备状态：正常 / 已禁用 / 已删除（仟帆卡片标签区展示后两者） */
+  accountState: "active" | "disabled" | "deleted";
   /** 24/7 服务 */
   service247: boolean;
   /** 注册来源；未注册的设备没有 */
@@ -127,6 +132,11 @@ function toQueryDevice(device: OverviewDevice, project?: OverviewProject): Query
     equipment: device.kind === "elevator" ? "elevator" : pick(id, 16, 3) === 0 ? "walkway" : "escalator",
     contractPlan: device.contractValid ? CONTRACT_PLANS[pick(id, 17, CONTRACT_PLANS.length)] : null,
     service247: pick(id, 15, 4) !== 0,
+    // 演示数据：约 5% 已禁用、4% 已删除，其余正常
+    accountState: (() => {
+      const roll = pick(id, 18, 100);
+      return roll < 5 ? "disabled" : roll < 9 ? "deleted" : "active";
+    })(),
     source,
     sim,
     modules,
@@ -140,7 +150,11 @@ function getQueryDataset(edition: AppEdition) {
   if (!entry) {
     const dataset = getOverviewDataset(edition);
     const projects = new Map(dataset.projects.map((project) => [project.id, project]));
-    const devices = dataset.devices.map((device) => toQueryDevice(device, projects.get(device.projectId)));
+    const tenantByWorkgroup = buildTenantLookup(dataset.org);
+    const devices = dataset.devices.map((device) => {
+      const project = projects.get(device.projectId);
+      return { ...toQueryDevice(device, project), tenant: project ? tenantByWorkgroup.get(project.workgroupId) : undefined };
+    });
     entry = { devices, byId: new Map(devices.map((device) => [device.id, device])) };
     cache.set(edition, entry);
   }
@@ -150,7 +164,7 @@ function getQueryDataset(edition: AppEdition) {
 export const getQueryDevice = (edition: AppEdition, id: string) => getQueryDataset(edition).byId.get(id);
 
 /**
- * 匹配设备编号、设备名称、项目编号、项目名称、项目地址。
+ * 通力匹配设备编号、设备名称、项目编号、项目名称、项目地址；仟帆把项目编号换成云管家编号（模糊匹配）。
  * 「多设备查询」开启时关键词可用中英文逗号或空格分隔多个，任一命中即可；关闭时整串作为一个关键词。
  */
 export function searchDevices(
@@ -164,9 +178,12 @@ export function searchDevices(
     if (stewardOnly && !device.steward) return false;
     if (!matchesDeviceFilters(device, filters)) return false;
     if (keywords.length === 0) return true;
-    const haystack = [device.id, device.name, device.project?.code ?? "", device.project?.name ?? "", device.project?.address ?? ""].map((value) =>
-      value.toLowerCase(),
-    );
+    // 仟帆：支持按云管家编号模糊匹配，不再按项目编号搜索；通力保持设备编号 / 项目编号
+    const fields =
+      edition === "qianfan"
+        ? [device.id, device.name, device.stewardCode ?? "", device.project?.name ?? "", device.project?.address ?? ""]
+        : [device.id, device.name, device.project?.code ?? "", device.project?.name ?? "", device.project?.address ?? ""];
+    const haystack = fields.map((value) => value.toLowerCase());
     return keywords.some((item) => haystack.some((value) => value.includes(item)));
   });
 }

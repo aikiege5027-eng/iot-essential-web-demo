@@ -466,6 +466,11 @@
 .t-radio-group.t-radio-group--filled .t-radio-group__bg-block {
   display: none;
 }
+/* 容器底色取 component-stroke #dfe1e8（TDesign 默认是 bg-component #f2f4f7，偏浅），按钮之间 gap 4 */
+.t-radio-group.t-radio-group--filled {
+  gap: 4px;
+  background-color: var(--component-stroke);
+}
 
 .t-radio-group.t-radio-group--filled .t-radio-button {
   border-radius: 2px;
@@ -605,6 +610,70 @@
 .device-overview-project-table .t-table__body > tr.t-table__expanded-row:hover > td {
   padding: 0;
   background-color: var(--bg-color-secondarycontainer);
+}
+
+/* 展开行里的设备子表格（Figma 4497:14809）：12/20、单元格内边距 8、行高 36、行间 1px 分割线。
+ * 选择器带上 .device-overview-project-table 以压过 TDesign 的 `.t-table td` 内边距 / 边框。 */
+.device-overview-project-table .device-overview-subtable {
+  width: 100%;
+  /* 容器窄于此值时不再压缩列宽，改为横向滚动 */
+  min-width: 1000px;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: left;
+}
+
+.device-overview-project-table .device-overview-subtable th,
+.device-overview-project-table .device-overview-subtable td {
+  height: 36px;
+  padding: 0 8px;
+  overflow: hidden;
+  border: 0;
+  border-bottom: 1px solid var(--component-stroke);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 两侧留白与外层表格同一套边距：首列左 24、末列右 40 */
+.device-overview-project-table .device-overview-subtable th:first-child,
+.device-overview-project-table .device-overview-subtable td:first-child {
+  padding-left: var(--iot-table-edge-start);
+}
+
+/* 均分列（仟帆）：每列左内边距都取左边距，各列文字起点间距相等，首列左 24 不变 */
+.device-overview-project-table .device-overview-subtable--even th,
+.device-overview-project-table .device-overview-subtable--even td {
+  padding-left: var(--iot-table-edge-start);
+}
+
+.device-overview-project-table .device-overview-subtable th:last-child,
+.device-overview-project-table .device-overview-subtable td:last-child {
+  /* 末列左内边距同主表格（24），与主表格末列文字左对齐 */
+  padding-left: var(--iot-table-edge-start);
+  padding-right: var(--iot-table-edge-end);
+}
+
+.device-overview-project-table .device-overview-subtable th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: var(--bg-color-secondarycontainer);
+  color: var(--text-color-placeholder);
+}
+
+.device-overview-project-table .device-overview-subtable td {
+  background-color: transparent;
+  color: var(--text-color-primary);
+}
+
+.device-overview-project-table .t-table__body .device-overview-subtable tbody > tr:hover > td {
+  background-color: transparent;
 }
 
 .device-overview-project-table .t-table__expanded-row-inner,
@@ -1336,4 +1405,43 @@
 
 .km-registration-scan-sheet__divider + .km-registration-scan-sheet__action {
   border-bottom: 0;
+}
+
+/**
+ * 仟帆设备总览 · 租户名称下拉。
+ * TDesign Select 的弹层挂到 body（z-index: 5500）。打开时只把对应触发器提升一级，
+ * 让输入框完整绘制自身 2px focus 环，尤其是会被弹层覆盖的底边。
+ * 全选行使用受控 Checkbox，而非 Select 内建 checkAll，避免内建全选状态未随子项同步。
+ */
+.qianfan-tenant-selector--open {
+  z-index: 5501 !important;
+}
+
+/**
+ * 「全选」行放在 Select 面板顶部（panelTopContent），位于 .t-select__list 之外，
+ * 不会继承列表的 6px 内边距和选项间 2px 间距。这里补齐，使它与下面的租户项左右对齐、
+ * 圆角和间距一致：外侧留 6px（同 TDesign 列表内边距），与首个租户项之间留 2px（同选项间距）。
+ */
+.qianfan-tenant-selector-popup .qianfan-tenant-selector__select-all {
+  margin: var(--td-pop-padding-m) var(--td-pop-padding-m) 0;
+}
+
+.qianfan-tenant-selector-popup .qianfan-tenant-selector__select-all + .t-select__dropdown-inner .t-select__list {
+  padding-top: var(--td-comp-paddingTB-xxs);
+}
+
+/**
+ * Select 多选结果的 Tag（Figma China Design system for web 30661:107773，Select multiple + filled）。
+ * TDesign 默认标签是 #f2f4f7 底 + 4px 圆角；设计稿是 component-stroke #dfe1e8 底、
+ * 裸值 3px 圆角（承接为 radius-xs）、Foot 12 Regular（12/20）、左右内边距 8、上下 2，
+ * 因此高度 24。折叠标签「+N」使用同一套样式。
+ */
+.t-select-input--multiple .t-tag {
+  padding: 2px 8px;
+  border-radius: var(--radius-xs, 3px);
+  background-color: var(--component-stroke);
+  color: var(--text-color-primary);
+  font-size: var(--text-foot12);
+  font-weight: 400;
+  line-height: var(--text-foot12--line-height);
 }

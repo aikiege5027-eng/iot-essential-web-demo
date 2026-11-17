@@ -1,4 +1,5 @@
-import { CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from "recharts";
+import { Cell, Pie, PieChart, Tooltip as ChartTooltip } from "recharts";
+import { ChartLegend, LineChart as VizLineChart } from "../charts";
 import { cn } from "../ui/utils";
 import { formatCount, formatPercent } from "./shared";
 
@@ -15,16 +16,6 @@ import { formatCount, formatPercent } from "./shared";
 // 图例标记
 // ---------------------------------------------------------------------------
 
-/** 折线图例：一段线 + 空心圆点（设计稿 9×9 图例）。 */
-export function LineMarker({ color }: { color: string }) {
-  return (
-    <svg aria-hidden="true" focusable="false" width="14" height="9" viewBox="0 0 14 9" className="shrink-0">
-      <line x1="0" y1="4.5" x2="14" y2="4.5" stroke={color} strokeWidth="1.5" />
-      <circle cx="7" cy="4.5" r="3" fill="var(--bg-color-container)" stroke={color} strokeWidth="1.5" />
-    </svg>
-  );
-}
-
 /** 6px 图例圆点。颜色用工具类传入（bg-brand-base 等）。 */
 export function LegendDot({ className }: { className: string }) {
   return <span aria-hidden="true" className={cn("size-1.5 shrink-0 rounded-full", className)} />;
@@ -38,110 +29,74 @@ export type TrendPoint = { date: Date; registration: number; online: number };
 
 type TrendSeries = { key: "registration" | "online"; label: string; color: string };
 
-function TrendTooltip({
-  active,
-  payload,
-  series,
-}: {
-  active?: boolean;
-  payload?: { payload: TrendPoint & { fullLabel: string } }[];
-  series: TrendSeries[];
-}) {
-  if (!active || !payload?.length) return null;
-  const point = payload[0].payload;
-  return (
-    <div className="min-w-[160px] rounded-lg bg-container p-3 shadow-popover">
-      <p className="text-foot12 text-secondary-text tabular-nums">{point.fullLabel}</p>
-      <ul className="mt-2 flex flex-col gap-2">
-        {series.map((item) => (
-          <li key={item.key} className="flex items-center justify-between gap-6 text-foot12">
-            <span className="inline-flex items-center gap-1 text-secondary-text">
-              <span aria-hidden="true" className="size-1.5 rounded-full" style={{ backgroundColor: item.color }} />
-              {item.label}
-            </span>
-            <span className="font-medium text-primary-text tabular-nums">{formatPercent(point[item.key])}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
+/**
+ * 趋势折线：组件库 LineChart（Figma China Data Visualization 202:2）——贴满两端、空心白点、点划网格线、
+ * 悬浮提示卡片；`area` 打开折线下方的渐隐色块（同色 10% → 0）。
+ */
 export function TrendChart({
   points,
   registrationLabel,
   onlineLabel,
   caption,
   language,
+  showLegend = true,
+  area = false,
 }: {
   points: TrendPoint[];
-  registrationLabel: string;
+  /** true：折线下方铺一层自上而下渐隐的色块（同色 10% → 0） */
+  area?: boolean;
+  /** false：图例由外层卡片头部承载（与标题同一行靠右），图内不再画 */
+  showLegend?: boolean;
+  registrationLabel?: string;
   onlineLabel: string;
   caption: string;
   language: "en" | "cn";
 }) {
+  // 未传 registrationLabel 时（仟帆）不显示设备注册率折线
   const series: TrendSeries[] = [
-    { key: "registration", label: registrationLabel, color: "var(--brand-2nd-green)" },
+    ...(registrationLabel ? [{ key: "registration" as const, label: registrationLabel, color: "var(--brand-2nd-green)" }] : []),
     { key: "online", label: onlineLabel, color: "var(--brand-color)" },
   ];
   const pad = (value: number) => String(value).padStart(2, "0");
   const data = points.map((point) => ({
-    ...point,
     label: `${point.date.getMonth() + 1}.${pad(point.date.getDate())}`,
-    fullLabel: `${point.date.getFullYear()}.${pad(point.date.getMonth() + 1)}.${pad(point.date.getDate())}`,
+    registration: point.registration,
+    online: point.online,
   }));
-  const axisTick = { fill: "var(--text-color-secondary)", fontSize: 12 };
-
+  const fullLabel = (point: TrendPoint) => `${point.date.getFullYear()}.${pad(point.date.getMonth() + 1)}.${pad(point.date.getDate())}`;
   return (
-    <figure className="flex min-h-[360px] flex-1 flex-col gap-2">
-      <ul className="flex items-center gap-3" aria-hidden="true">
-        {series.map((item) => (
-          <li key={item.key} className="inline-flex items-center gap-1 text-foot12 text-primary-text">
-            <LineMarker color={item.color} />
-            {item.label}
-          </li>
-        ))}
-      </ul>
-      <div className="min-h-0 flex-1" aria-hidden="true">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 12, right: 16, bottom: 0, left: 0 }}>
-            <CartesianGrid vertical={false} stroke="var(--component-stroke)" strokeDasharray="4 4" />
-            <XAxis
-              dataKey="label"
-              tick={axisTick}
-              tickLine={false}
-              axisLine={{ stroke: "var(--component-border)" }}
-              tickMargin={8}
-              padding={{ left: 24, right: 24 }}
-            />
-            <YAxis
-              domain={[0, 1]}
-              ticks={[0, 0.2, 0.4, 0.6, 0.8, 1]}
-              tickFormatter={(value: number) => (value === 0 ? "0" : `${Math.round(value * 100)}%`)}
-              tick={axisTick}
-              tickLine={false}
-              axisLine={false}
-              width={44}
-            />
-            <ChartTooltip
-              cursor={{ stroke: "var(--brand-color)", strokeDasharray: "3 3" }}
-              content={<TrendTooltip series={series} />}
-              isAnimationActive={false}
-            />
-            {series.map((item) => (
-              <Line
-                key={item.key}
-                type="linear"
-                dataKey={item.key}
-                stroke={item.color}
-                strokeWidth={2}
-                dot={{ r: 3, fill: "var(--bg-color-container)", stroke: item.color, strokeWidth: 1.5 }}
-                activeDot={{ r: 4, fill: "var(--bg-color-container)", stroke: item.color, strokeWidth: 2 }}
-                isAnimationActive={false}
-              />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
+    <figure className="flex min-h-[360px] flex-1 flex-col gap-0">
+      {/* 与设备详情「数据分析」同一版式：左侧单位、右侧图例，水平对齐、两侧分布。图例沿用组件库的折线图例（线 + 空心圆点）；
+          图表变量只在 .km-chart 范围内有定义，所以单位与图例外面都套一层 */}
+      <div className="mb-1.5 flex min-h-6 items-center justify-between gap-4">
+        <span className="km-chart text-foot12" style={{ color: "var(--viz-subtitle)" }}>
+          {language === "cn" ? "单位（%）" : "Unit (%)"}
+        </span>
+        {showLegend && (
+          <div className="km-chart" aria-hidden="true">
+            <ChartLegend marker="line" items={series.map((item) => ({ key: item.key, name: item.label, color: item.color }))} />
+          </div>
+        )}
+      </div>
+      <div className="min-h-0 flex-1">
+        <VizLineChart
+          surface="page"
+          className="!border-0 !p-0"
+          height="100%"
+          data={data}
+          xKey="label"
+          series={series.map((item) => ({ key: item.key, name: item.label, color: item.color }))}
+          legend={false}
+          compactTop
+          gradient={area}
+          area={false}
+          yTicks={[0, 0.2, 0.4, 0.6, 0.8, 1]}
+          formatTick={(value) => (value === 0 ? "0" : `${Math.round(value * 100)}%`)}
+          formatValue={formatPercent}
+          // 15 个点时每隔一个显示一个日期（首尾都显示），避免相邻日期互相压住
+          xInterval={data.length > 10 ? 1 : 0}
+          flushEdges
+        />
       </div>
       {/* 读屏用的数据表：折线本身对读屏隐藏 */}
       <table className="sr-only">
@@ -149,15 +104,15 @@ export function TrendChart({
         <thead>
           <tr>
             <th scope="col">{language === "cn" ? "日期" : "Date"}</th>
-            <th scope="col">{registrationLabel}</th>
+            {registrationLabel && <th scope="col">{registrationLabel}</th>}
             <th scope="col">{onlineLabel}</th>
           </tr>
         </thead>
         <tbody>
-          {data.map((point) => (
-            <tr key={point.fullLabel}>
-              <th scope="row">{point.fullLabel}</th>
-              <td>{formatPercent(point.registration)}</td>
+          {points.map((point) => (
+            <tr key={fullLabel(point)}>
+              <th scope="row">{fullLabel(point)}</th>
+              {registrationLabel && <td>{formatPercent(point.registration)}</td>}
               <td>{formatPercent(point.online)}</td>
             </tr>
           ))}

@@ -1,4 +1,6 @@
-import { Button, Select } from "tdesign-react";
+import { useState } from "react";
+import type { AppEdition } from "../../data/accounts";
+import { Button, Checkbox, Select, Tag } from "tdesign-react";
 import { getScopeOptions, type DataScope, type OrgNode } from "../../data/deviceOverview";
 import { EmbeddedFilterIcon } from "../icons/iot-list-page-icons";
 import type { Language } from "./copy";
@@ -13,30 +15,40 @@ const MATCH_TRIGGER_WIDTH = {
 /**
  * 「数据范围」级联筛选条（Figma 7105:17083 + 全局范围筛选 4497:16000）。
  *
- * 公司 → 区域 → 分公司 → 办事处 → PG → 工作组 六个 Select 首尾相接；上一级未选时下一级置灰，
- * 改动上一级会清空所有下级。工作组可多选。点「查询」才把范围应用到总览。
+ * 通力保留公司 → 区域 → 分公司 → 办事处 → PG → 工作组级联范围。
+ * 仟帆按租户名称多选，默认全选且触发器显示「所有租户」；点「查询」才把范围应用到总览。
  */
 export function DataScopeBar({
   language,
+  edition,
   org,
   scope,
   onChange,
   onQuery,
+  onReset,
   onOpenFilter,
 }: {
   language: Language;
+  edition: AppEdition;
   org: OrgNode[];
   scope: DataScope;
   onChange: (scope: DataScope) => void;
   onQuery: () => void;
+  onReset: () => void;
   onOpenFilter: () => void;
 }) {
   const t = overviewCopy[language];
   const options = getScopeOptions(org, scope);
+  const isQianfan = edition === "qianfan";
+  const [tenantPopupVisible, setTenantPopupVisible] = useState(false);
   const toOptions = (nodes: OrgNode[]) => nodes.map((node) => ({ label: node.label, value: node.id }));
+  const tenantIds = org.map((tenant) => tenant.id);
+  const selectedTenants = scope.tenants ?? [];
+  const allTenantsSelected = tenantIds.length > 0 && tenantIds.every((tenantId) => selectedTenants.includes(tenantId));
+  const tenantOptions = toOptions(org);
 
   // 每一级改动时清空它之后的所有级
-  const levels: { key: Exclude<keyof DataScope, "workgroups">; placeholder: string; nodes: OrgNode[]; reset: Partial<DataScope> }[] = [
+  const levels: { key: Exclude<keyof DataScope, "workgroups" | "tenants">; placeholder: string; nodes: OrgNode[]; reset: Partial<DataScope> }[] = [
     { key: "company", placeholder: t.scope.company, nodes: options.companies, reset: { region: "", branch: "", office: "", pg: "", workgroups: [] } },
     { key: "region", placeholder: t.scope.region, nodes: options.regions, reset: { branch: "", office: "", pg: "", workgroups: [] } },
     { key: "branch", placeholder: t.scope.branch, nodes: options.branches, reset: { office: "", pg: "", workgroups: [] } },
@@ -53,42 +65,106 @@ export function DataScopeBar({
           {t.scopeLabel}
         </span>
         <div className="device-scope-group flex min-w-0 flex-1 items-center">
-          {levels.map((level) => (
-            <LabelledControl key={level.key} label={level.placeholder} className="min-w-[88px] flex-[1_1_120px]">
+          {isQianfan ? (
+            <LabelledControl
+              label={t.scope.tenant}
+              className={`min-w-[240px] max-w-[400px] flex-1 ${tenantPopupVisible ? "qianfan-tenant-selector--open" : ""}`}
+            >
               <Select
                 size="medium"
-                value={scope[level.key] || undefined}
-                placeholder={level.placeholder}
-                options={toOptions(level.nodes)}
-                disabled={level.nodes.length === 0}
+                multiple
+                // 全选时只显示「所有租户」文案；折叠会额外追加 +N 标签
+                minCollapsedNum={allTenantsSelected ? 0 : 1}
+                tagProps={{ maxWidth: "100%" }}
+                value={selectedTenants}
+                valueDisplay={allTenantsSelected ? () => (
+                  // 与单个租户标签同一套 Tag 样式，文案带租户总数；关闭等同清空全部勾选
+                  <Tag
+                    size="medium"
+                    closable
+                    maxWidth="100%"
+                    onClose={({ e }) => {
+                      e.stopPropagation();
+                      onChange({ ...scope, tenants: [], company: "", region: "", branch: "", office: "", pg: "", workgroups: [] });
+                    }}
+                  >
+                    {t.scope.allTenants(tenantIds.length)}
+                  </Tag>
+                ) : undefined}
+                placeholder={t.scope.tenantPlaceholder}
+                options={tenantOptions}
+                panelTopContent={(
+                  <div className={`t-select-option qianfan-tenant-selector__select-all ${allTenantsSelected ? "t-is-selected" : ""}`}>
+                    <Checkbox
+                      checked={allTenantsSelected}
+                      indeterminate={selectedTenants.length > 0 && !allTenantsSelected}
+                      onChange={(checked) => onChange({
+                        ...scope,
+                        tenants: checked ? tenantIds : [],
+                        company: "",
+                        region: "",
+                        branch: "",
+                        office: "",
+                        pg: "",
+                        workgroups: [],
+                      })}
+                    >
+                      {t.scope.selectAll}
+                    </Checkbox>
+                  </div>
+                )}
                 clearable
-                popupProps={MATCH_TRIGGER_WIDTH}
-                onChange={(next) => onChange({ ...scope, [level.key]: next ? String(next) : "", ...level.reset })}
+                popupProps={{ ...MATCH_TRIGGER_WIDTH, overlayClassName: "qianfan-tenant-selector-popup" }}
+                onPopupVisibleChange={setTenantPopupVisible}
+                onChange={(next) => {
+                  const tenants = (Array.isArray(next) ? next : []).map(String).filter((value) => tenantIds.includes(value));
+                  onChange({ ...scope, tenants, company: "", region: "", branch: "", office: "", pg: "", workgroups: [] });
+                }}
               />
             </LabelledControl>
-          ))}
-          <LabelledControl label={t.scope.workgroup} className="min-w-[120px] flex-[2_1_200px]">
-            <Select
-              size="medium"
-              multiple
-              minCollapsedNum={1}
-              // 已选标签不换行，超出框宽时省略；完整文字见标签 title
-              tagProps={{ maxWidth: "100%" }}
-              value={scope.workgroups}
-              placeholder={t.scope.workgroup}
-              options={toOptions(options.workgroups)}
-              disabled={options.workgroups.length === 0}
-              clearable
-              popupProps={MATCH_TRIGGER_WIDTH}
-              onChange={(next) => onChange({ ...scope, workgroups: (Array.isArray(next) ? next : []).map(String) })}
-            />
-          </LabelledControl>
+          ) : (
+            <>
+              {levels.map((level) => (
+                <LabelledControl key={level.key} label={level.placeholder} className="min-w-[88px] flex-[1_1_120px]">
+                  <Select
+                    size="medium"
+                    value={scope[level.key] || undefined}
+                    placeholder={level.placeholder}
+                    options={toOptions(level.nodes)}
+                    disabled={level.nodes.length === 0}
+                    clearable
+                    popupProps={MATCH_TRIGGER_WIDTH}
+                    onChange={(next) => onChange({ ...scope, [level.key]: next ? String(next) : "", ...level.reset })}
+                  />
+                </LabelledControl>
+              ))}
+              <LabelledControl label={t.scope.workgroup} className="min-w-[120px] flex-[2_1_200px]">
+                <Select
+                  size="medium"
+                  multiple
+                  minCollapsedNum={1}
+                  // 已选标签不换行，超出框宽时省略；完整文字见标签 title
+                  tagProps={{ maxWidth: "100%" }}
+                  value={scope.workgroups}
+                  placeholder={t.scope.workgroup}
+                  options={toOptions(options.workgroups)}
+                  disabled={options.workgroups.length === 0}
+                  clearable
+                  popupProps={MATCH_TRIGGER_WIDTH}
+                  onChange={(next) => onChange({ ...scope, workgroups: (Array.isArray(next) ? next : []).map(String) })}
+                />
+              </LabelledControl>
+            </>
+          )}
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {/* 次要按钮在左、主按钮在右 */}
         <Button theme="default" variant="base" size="medium" icon={<EmbeddedFilterIcon className="size-4" />} onClick={onOpenFilter}>
           {t.deviceFilter}
+        </Button>
+        <Button theme="default" variant="base" size="medium" onClick={onReset}>
+          {t.reset}
         </Button>
         <Button theme="primary" size="medium" onClick={onQuery}>
           {t.query}

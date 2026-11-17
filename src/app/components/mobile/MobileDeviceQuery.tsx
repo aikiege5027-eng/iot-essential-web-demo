@@ -5,7 +5,7 @@ import type { AppEdition } from "../../data/accounts";
 import { EMPTY_DEVICE_FILTERS, type DeviceFilterKey, type DeviceFilters } from "../../data/deviceOverview";
 import { getQueryDevice, loadRecentDeviceIds, pushRecentDeviceId, searchDevices, type QueryDevice } from "../../data/deviceQuery";
 import { deviceCopy, overviewCopy } from "../device-overview/copy";
-import { FILTER_ORDER, filterOptions } from "../device-overview/DeviceFilterView";
+import { filterOptions, getFilterOrder } from "../device-overview/DeviceFilterView";
 import { LabelledControl } from "../device-overview/shared";
 import { deviceQueryCopy } from "../device-query/copy";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
@@ -31,7 +31,7 @@ const PAGE_SIZE = 10;
 
 type Applied = { keyword: string; stewardOnly: boolean; multi: boolean; filters: DeviceFilters };
 
-const hasAnyFilter = (filters: DeviceFilters) => FILTER_ORDER.some((key) => filters[key].length > 0);
+const hasAnyFilter = (filters: DeviceFilters, order: DeviceFilterKey[]) => order.some((key) => filters[key].length > 0);
 
 export function MobileDeviceQuery({
   language,
@@ -65,7 +65,7 @@ export function MobileDeviceQuery({
   );
   const list = applied ? results : recent;
   // 筛选按钮反映已提交的查询，而不是抽屉中尚未应用的草稿。
-  const hasAppliedFilters = Boolean(applied && hasAnyFilter(applied.filters));
+  const hasAppliedFilters = Boolean(applied && hasAnyFilter(applied.filters, getFilterOrder(edition)));
 
   const submit = (nextKeyword = keyword) => {
     setApplied({ keyword: nextKeyword.trim(), stewardOnly, multi, filters });
@@ -166,6 +166,7 @@ export function MobileDeviceQuery({
         onChange={setFilters}
         options={options}
         labels={filterCopy.filters}
+        order={getFilterOrder(edition)}
         onClose={() => setSheetOpen(false)}
         onReset={() => setFilters(EMPTY_DEVICE_FILTERS)}
         onSubmit={() => {
@@ -190,6 +191,7 @@ function FilterSheet({
   onChange,
   options,
   labels,
+  order,
   onClose,
   onReset,
   onSubmit,
@@ -201,6 +203,8 @@ function FilterSheet({
   onChange: (next: DeviceFilters) => void;
   options: Record<DeviceFilterKey, { label: string; value: string }[]>;
   labels: Record<DeviceFilterKey, string>;
+  /** 展示哪些筛选条件、按什么顺序（仟帆 4 个，通力 12 个） */
+  order: DeviceFilterKey[];
   onClose: () => void;
   onReset: () => void;
   onSubmit: () => void;
@@ -227,7 +231,7 @@ function FilterSheet({
       }
     >
       <div role="group" aria-label={title} className="flex flex-col">
-        {FILTER_ORDER.map((key) => (
+        {order.map((key) => (
           <div key={key} className="flex flex-col pb-6">
             <span className="pb-2 text-body text-primary-text">{labels[key]}</span>
             <LabelledControl label={labels[key]}>

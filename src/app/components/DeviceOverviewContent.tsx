@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppEdition } from "../data/accounts";
 import {
+  buildTenantLookup,
   EMPTY_DEVICE_FILTERS,
   EMPTY_SCOPE,
   filterByScope,
@@ -42,8 +43,12 @@ export default function DeviceOverviewContent({
   const rootRef = useRef<HTMLDivElement>(null);
 
   // 数据范围：草稿（下拉当前值）与已应用（点「查询」后）分开
-  const [scopeDraft, setScopeDraft] = useState<DataScope>(EMPTY_SCOPE);
-  const [scope, setScope] = useState<DataScope>(EMPTY_SCOPE);
+  // 仟帆首次进入时选中所有真实租户；通力不启用租户范围（null）。
+  const initialScope = () => edition === "qianfan"
+    ? { ...EMPTY_SCOPE, tenants: dataset.org.map((tenant) => tenant.id) }
+    : EMPTY_SCOPE;
+  const [scopeDraft, setScopeDraft] = useState<DataScope>(initialScope);
+  const [scope, setScope] = useState<DataScope>(initialScope);
   const scoped = useMemo(() => filterByScope(dataset, scope), [dataset, scope]);
 
   // 设备筛选：同样分草稿与已应用；未查询前不出结果
@@ -53,10 +58,14 @@ export default function DeviceOverviewContent({
   const results = useMemo<DeviceResultRow[]>(() => {
     if (!appliedFilters) return [];
     const projectById = new Map(scoped.projects.map((project) => [project.id, project]));
+    const tenantByWorkgroup = buildTenantLookup(dataset.org);
     return scoped.devices
       .filter((device) => matchesDeviceFilters(device, appliedFilters))
-      .map((device) => ({ ...device, project: projectById.get(device.projectId) }));
-  }, [appliedFilters, scoped]);
+      .map((device) => {
+        const project = projectById.get(device.projectId);
+        return { ...device, project, tenant: project ? tenantByWorkgroup.get(project.workgroupId) : undefined };
+      });
+  }, [appliedFilters, scoped, dataset.org]);
 
   // 顶栏「刷新」：演示数据是静态的，用一段短暂的加载态表示「按当前条件重新拉取」
   const [refreshing, setRefreshing] = useState(false);
@@ -77,16 +86,22 @@ export default function DeviceOverviewContent({
   }, [view]);
 
   return (
-    <div ref={rootRef} className="min-h-full">
+    <div ref={rootRef} className="flex min-h-full flex-1 flex-col">
       {view === "overview" ? (
         <OverviewView
           language={language}
+          edition={edition}
           dataset={dataset}
           scope={scopeDraft}
           scoped={scoped}
           scopeKey={JSON.stringify(scope)}
           onScopeChange={setScopeDraft}
           onQuery={() => setScope(scopeDraft)}
+          onReset={() => {
+            // 恢复默认范围（仟帆：所有租户；通力：不限）并立即应用到总览
+            setScopeDraft(initialScope());
+            setScope(initialScope());
+          }}
           onOpenFilter={() => {
             // 带着当前选中的数据范围进入设备筛选
             setScope(scopeDraft);
@@ -96,6 +111,7 @@ export default function DeviceOverviewContent({
       ) : (
         <DeviceFilterView
           language={language}
+          edition={edition}
           filters={filterDraft}
           onFiltersChange={setFilterDraft}
           results={results}

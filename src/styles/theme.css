@@ -175,6 +175,15 @@
   --categorical-color-1: #4373f7;
   --categorical-color-4: #43e7c0;
 
+  /* 数据可视化定性色板的其余色阶（Figma China Data Visualization，Theme/Categorical/color-2…8）。
+   * 1–5 用于饼图 / 折线图的主系列，6–8 仅用于嵌套环形图的内圈。亮 / 暗主题取值相同。 */
+  --categorical-color-2: #0dd2e1;
+  --categorical-color-3: #ffcb49;
+  --categorical-color-5: #706eff;
+  --categorical-color-6: #ffe141;
+  --categorical-color-7: #3252aa;
+  --categorical-color-8: #c4a5ff;
+
   /* 设备详情 · 统计数据「楼层统计」三组柱（Figma 6178:20424）：上行 / 下行 / 总运行 */
   --chart-floor-up: #4373f7;
   --chart-floor-down: #0dd2e1;
@@ -365,6 +374,12 @@
   --color-brand-2nd-pink: var(--brand-2nd-pink);
   --color-categorical-1: var(--categorical-color-1);
   --color-categorical-4: var(--categorical-color-4);
+  --color-categorical-2: var(--categorical-color-2);
+  --color-categorical-3: var(--categorical-color-3);
+  --color-categorical-5: var(--categorical-color-5);
+  --color-categorical-6: var(--categorical-color-6);
+  --color-categorical-7: var(--categorical-color-7);
+  --color-categorical-8: var(--categorical-color-8);
   --color-section-header: var(--section-header-bg);
   --color-metric-tile-brand: var(--metric-tile-brand);
   --color-metric-tile-sensor: var(--metric-tile-sensor);

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { AppEdition } from "../../data/accounts";
 import { MessagePlugin, Select } from "tdesign-react";
 import emptyIllustration from "../../../imports/MainContent/a61db6f0d80700688e3c9c49f1c3d1437e8f0bd9.png";
 import {
@@ -19,11 +20,11 @@ import { DeviceStatus, deviceKindLabel, LabelledControl, yesNo } from "./shared"
  * 由设备总览的「设备筛选」按钮进入，结果限定在总览已应用的数据范围内；
  * 返回总览走顶栏的页面导航控件（返回 / 前进 / 刷新），页面内不放面包屑。
  * 骨架用 IoT 列表页模板：标题行右侧「导出设备数据 / 重置 / 查询」，
- * 12 个下拉筛选放在 beforeTable 插槽（设计稿只有占位符、无字段标签，所以不用模板的带标签筛选栅格），
+ * 下拉筛选（通力 12 个，仟帆 4 个）放在 beforeTable 插槽（设计稿只有占位符、无字段标签，所以不用模板的带标签筛选栅格），
  * 查询前展示「暂无设备，请在上方搜索」空态。
  */
 
-export type DeviceResultRow = OverviewDevice & { project?: OverviewProject };
+export type DeviceResultRow = OverviewDevice & { project?: OverviewProject; /** 所属租户（仅仟帆） */ tenant?: string };
 
 const PAGE_SIZE = 10;
 
@@ -96,22 +97,46 @@ export const FILTER_ORDER: DeviceFilterKey[] = [
   "agreement",
 ];
 
+/** 仟帆只保留 4 个筛选条件：设备类型、控制器类型、云管家设备（云管家设备 / 非云管家设备）、在线状态。 */
+export const QIANFAN_FILTER_ORDER: DeviceFilterKey[] = ["kind", "controller", "steward", "status"];
+
+/** 设备筛选页与设备查询共用同一套筛选条件：仟帆 4 个，通力 12 个。 */
+export const getFilterOrder = (edition: AppEdition): DeviceFilterKey[] => (edition === "qianfan" ? QIANFAN_FILTER_ORDER : FILTER_ORDER);
+
 /** 导出 CSV：带 BOM，Excel 直接打开中文不乱码。 */
-function exportCsv(rows: DeviceResultRow[], t: DeviceCopy) {
-  const header = [t.columns.id, t.columns.name, t.columns.project, t.columns.address, t.columns.kind, t.columns.controller, t.columns.steward, t.columns.status, t.columns.dispatch, t.columns.contract, t.columns.agreement];
-  const body = rows.map((row) => [
-    row.id,
-    row.name,
-    row.project?.name ?? "",
-    row.project?.address ?? "",
-    deviceKindLabel(row, t),
-    row.controller,
-    yesNo(row.steward, t),
-    t.options[row.status],
-    yesNo(row.isnDispatch, t),
-    row.contractValid ? t.valid : t.invalid,
-    yesNo(row.agreement, t),
-  ]);
+function exportCsv(rows: DeviceResultRow[], t: DeviceCopy, edition: AppEdition) {
+  // 导出列与页面表格一致：仟帆多「云管家编号 / 所属租户」，少「云管家设备 / 派单 / 维保合同 / 协议」
+  const header =
+    edition === "qianfan"
+      ? [t.columns.id, t.columns.stewardCode, t.columns.name, t.columns.project, t.columns.address, t.columns.tenant, t.columns.kind, t.columns.controller, t.columns.status]
+      : [t.columns.id, t.columns.name, t.columns.project, t.columns.address, t.columns.kind, t.columns.controller, t.columns.steward, t.columns.status, t.columns.dispatch, t.columns.contract, t.columns.agreement];
+  const body = rows.map((row) =>
+    edition === "qianfan"
+      ? [
+          row.id,
+          row.stewardCode ?? "-",
+          row.name,
+          row.project?.name ?? "",
+          row.project?.address ?? "",
+          row.tenant ?? "",
+          deviceKindLabel(row, t),
+          row.controller,
+          t.options[row.status],
+        ]
+      : [
+          row.id,
+          row.name,
+          row.project?.name ?? "",
+          row.project?.address ?? "",
+          deviceKindLabel(row, t),
+          row.controller,
+          yesNo(row.steward, t),
+          t.options[row.status],
+          yesNo(row.isnDispatch, t),
+          row.contractValid ? t.valid : t.invalid,
+          yesNo(row.agreement, t),
+        ],
+  );
   const escape = (value: string) => (/[",\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value);
   const csv = [header, ...body].map((line) => line.map(escape).join(",")).join("\n");
   const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
@@ -127,6 +152,7 @@ function exportCsv(rows: DeviceResultRow[], t: DeviceCopy) {
 
 export function DeviceFilterView({
   language,
+  edition,
   filters,
   onFiltersChange,
   results,
@@ -136,6 +162,7 @@ export function DeviceFilterView({
   onReset,
 }: {
   language: Language;
+  edition: AppEdition;
   filters: DeviceFilters;
   onFiltersChange: (filters: DeviceFilters) => void;
   results: DeviceResultRow[];
@@ -151,19 +178,41 @@ export function DeviceFilterView({
   const [page, setPage] = useState(1);
   const pageRows = results.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const columns: IoTTableColumn<DeviceResultRow>[] = [
-    { id: "id", title: t.columns.id, width: 112, render: (row) => <span className="tabular-nums">{row.id}</span> },
-    { id: "name", title: t.columns.name, width: 168, render: (row) => row.name },
-    { id: "project", title: t.columns.project, width: 156, render: (row) => row.project?.name ?? "-" },
-    { id: "address", title: t.columns.address, width: 196, render: (row) => row.project?.address ?? "-" },
-    { id: "kind", title: t.columns.kind, width: 96, render: (row) => deviceKindLabel(row, t) },
-    { id: "controller", title: t.columns.controller, width: 112, render: (row) => row.controller },
-    { id: "steward", title: t.columns.steward, width: 112, render: (row) => yesNo(row.steward, t) },
-    { id: "status", title: t.columns.status, width: 112, ellipsis: false, render: (row) => <DeviceStatus device={row} t={t} /> },
-    { id: "dispatch", title: t.columns.dispatch, width: 112, render: (row) => yesNo(row.isnDispatch, t) },
-    { id: "contract", title: t.columns.contract, width: 96, render: (row) => (row.contractValid ? t.valid : t.invalid) },
-    { id: "agreement", title: t.columns.agreement, width: 112, render: (row) => yesNo(row.agreement, t) },
-  ];
+  const isQianfan = edition === "qianfan";
+  const idColumn: IoTTableColumn<DeviceResultRow> = { id: "id", title: t.columns.id, width: 112, render: (row) => <span className="tabular-nums">{row.id}</span> };
+  const nameColumn: IoTTableColumn<DeviceResultRow> = { id: "name", title: t.columns.name, width: 168, render: (row) => row.name };
+  const projectColumn: IoTTableColumn<DeviceResultRow> = { id: "project", title: t.columns.project, width: 156, render: (row) => row.project?.name ?? "-" };
+  const addressColumn: IoTTableColumn<DeviceResultRow> = { id: "address", title: t.columns.address, width: 196, render: (row) => row.project?.address ?? "-" };
+  const kindColumn: IoTTableColumn<DeviceResultRow> = { id: "kind", title: t.columns.kind, width: 96, render: (row) => deviceKindLabel(row, t) };
+  const controllerColumn: IoTTableColumn<DeviceResultRow> = { id: "controller", title: t.columns.controller, width: 112, render: (row) => row.controller };
+  const statusColumn: IoTTableColumn<DeviceResultRow> = { id: "status", title: t.columns.status, width: 112, ellipsis: false, render: (row) => <DeviceStatus device={row} t={t} /> };
+  // 仟帆：设备编号 → 云管家编号 → 设备名称 → 项目名称 → 项目地址 → 所属租户 → 设备类型 → 控制器类型 → 云管家状态
+  // （去掉云管家设备 / 云管家派单 / 维保合同 / 云管家协议）
+  const columns: IoTTableColumn<DeviceResultRow>[] = isQianfan
+    ? [
+        idColumn,
+        { id: "stewardCode", title: t.columns.stewardCode, width: 152, render: (row) => <span className="tabular-nums">{row.stewardCode ?? "-"}</span> },
+        nameColumn,
+        projectColumn,
+        addressColumn,
+        { id: "tenant", title: t.columns.tenant, width: 140, render: (row) => row.tenant ?? "-" },
+        kindColumn,
+        controllerColumn,
+        statusColumn,
+      ]
+    : [
+        idColumn,
+        nameColumn,
+        projectColumn,
+        addressColumn,
+        kindColumn,
+        controllerColumn,
+        { id: "steward", title: t.columns.steward, width: 112, render: (row) => yesNo(row.steward, t) },
+        statusColumn,
+        { id: "dispatch", title: t.columns.dispatch, width: 112, render: (row) => yesNo(row.isnDispatch, t) },
+        { id: "contract", title: t.columns.contract, width: 96, render: (row) => (row.contractValid ? t.valid : t.invalid) },
+        { id: "agreement", title: t.columns.agreement, width: 112, render: (row) => yesNo(row.agreement, t) },
+      ];
 
   const emptyState = (
     <div className="flex flex-col items-center justify-center py-16">
@@ -178,7 +227,7 @@ export function DeviceFilterView({
   const filterGrid = (
     <>
       <div className="grid grid-cols-1 gap-x-5 gap-y-5 px-5 min-[768px]:grid-cols-2 min-[1180px]:grid-cols-4">
-        {FILTER_ORDER.map((key) => (
+        {getFilterOrder(edition).map((key) => (
           <LabelledControl key={key} label={t.filters[key]} className="min-w-0">
             {/* 多选：选中项折叠成「首项 +N」，保持 32px 单行高度，与同行其他下拉对齐 */}
             <Select
@@ -199,11 +248,14 @@ export function DeviceFilterView({
   );
 
   return (
-    <div className="flex min-h-full w-full min-w-0 flex-col">
+    <div className="flex min-h-full w-full min-w-0 flex-1 flex-col">
       <IoTListPageTemplate<DeviceResultRow>
         title={t.title}
         loading={loading}
         loadingMode="overlay"
+        // 没有筛选结果时白色卡片撑满剩余高度（底边落在页面底部、版权信息之上）；有结果时随内容变高，
+        // 分页下方只留标准底部间距，通力 / 仟帆一致
+        fillHeight={pageRows.length === 0}
         filterMode="none"
         actions={[
           {
@@ -214,7 +266,7 @@ export function DeviceFilterView({
                 MessagePlugin.warning(t.exportEmpty, 3000);
                 return;
               }
-              exportCsv(results, t);
+              exportCsv(results, t, edition);
               MessagePlugin.success(t.exported(results.length), 3000);
             },
           },
@@ -243,7 +295,7 @@ export function DeviceFilterView({
         hideTableWhenEmpty
         emptyContent={emptyState}
         tableCaption={t.caption}
-        minTableWidth={1384}
+        minTableWidth={isQianfan ? 1252 : 1384}
         compactCells
         pagination={
           results.length > 0

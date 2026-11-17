@@ -1,3 +1,4 @@
+import type { AppEdition } from "../../data/accounts";
 import type { QueryDevice } from "../../data/deviceQuery";
 import { EscalatorIcon, WalkwayIcon } from "../icons/device-detail-icons";
 import { ElevatorIcon, NodeIcon } from "../icons/device-icons";
@@ -5,7 +6,7 @@ import { StatusLabel } from "../StatusLabel";
 // 这里不用 cn()：tailwind-merge 会把自定义字号类 text-foot12 / text-body 当成颜色类，与 text-brand 等冲突后丢掉
 import cn from "clsx";
 import { deviceQueryCopy, type Language } from "./copy";
-import { RegistrationSourceTag, ServiceTag, SimStatusTag, StewardStatusTag } from "./DeviceTags";
+import { LifecycleTag, RegistrationSourceTag, ServiceTag, SimStatusTag, StewardStatusTag } from "./DeviceTags";
 
 /**
  * 设备信息卡（Figma IOT Delivery 组件「Component 08 - 搜索项目卡片」8602:34833）。
@@ -72,18 +73,23 @@ export function DeviceInfoCard({
   device,
   language,
   variant = "list",
+  edition,
   showModules = false,
   onOpen,
 }: {
   device: QueryDevice;
   language: Language;
   variant?: "list" | "detail";
+  /** 仟帆的卡片（列表与详情页顶部）：去掉保养合同 / 云管家协议、24/7 与注册平台标签，增加所属租户；不传则保持通力的完整展示 */
+  edition?: AppEdition;
   showModules?: boolean;
   onOpen?: () => void;
 }) {
   const t = deviceQueryCopy[language];
   const clickable = variant === "list" && Boolean(onOpen);
   const isDetail = variant === "detail";
+  // 仟帆：列表卡片与详情页顶部卡片内容一致（字段：所属项目 / 项目地址 / 所属租户；标签：云管家状态 / 物联卡 / 已禁用·已删除）
+  const isQianfanList = edition === "qianfan";
   const EquipmentIcon = EQUIPMENT_ICON[device.equipment];
   const title = (
     <>
@@ -126,10 +132,11 @@ export function DeviceInfoCard({
 
         {/* 标签顺序与 Figma 卡片 8602:34833 一致：24/7 → 云管家状态 → 注册来源 → 物联卡；未注册设备没有后两项 */}
         <div className="flex flex-wrap items-center gap-2">
-          {device.service247 && <ServiceTag language={language} />}
+          {!isQianfanList && device.service247 && <ServiceTag language={language} />}
           <StewardStatusTag device={device} language={language} />
-          {device.source && <RegistrationSourceTag source={device.source} language={language} />}
+          {!isQianfanList && device.source && <RegistrationSourceTag source={device.source} language={language} />}
           {device.source && <SimStatusTag sim={device.sim} language={language} />}
+          {isQianfanList && device.accountState !== "active" && <LifecycleTag state={device.accountState} language={language} />}
         </div>
       </header>
 
@@ -138,12 +145,22 @@ export function DeviceInfoCard({
         <span aria-hidden="true" className="h-5 w-px shrink-0 bg-stroke" />
         <Field label={t.fields.address} value={device.project?.address ?? "-"} />
         <span aria-hidden="true" className="h-5 w-px shrink-0 bg-stroke" />
-        <Field
-          label={t.fields.contract}
-          value={device.contractValid ? (isDetail && device.contractPlan ? `${t.valid} (${device.contractPlan})` : t.valid) : t.invalid}
-        />
-        <span aria-hidden="true" className="h-5 w-px shrink-0 bg-stroke" />
-        <Field label={t.fields.agreement} value={device.agreement ? t.valid : t.invalid} />
+        {isQianfanList ? (
+          <>
+            <Field label={t.fields.tenant} value={device.tenant ?? "-"} />
+            {/* 第四列留空：保持四列等分的版式，不放分割线 */}
+            <div aria-hidden="true" className="min-w-0 flex-1" />
+          </>
+        ) : (
+          <>
+            <Field
+              label={t.fields.contract}
+              value={device.contractValid ? (isDetail && device.contractPlan ? `${t.valid} (${device.contractPlan})` : t.valid) : t.invalid}
+            />
+            <span aria-hidden="true" className="h-5 w-px shrink-0 bg-stroke" />
+            <Field label={t.fields.agreement} value={device.agreement ? t.valid : t.invalid} />
+          </>
+        )}
       </dl>
 
       {showModules && device.modules.length > 0 && <ModuleList device={device} language={language} />}
