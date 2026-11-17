@@ -1,12 +1,13 @@
 import { useState } from "react";
+import type { AppEdition } from "../data/accounts";
 import { DetailSection } from "./device-detail/DetailSection";
 import { TagFilterButton } from "./TagFilterButton";
 
 function FieldCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-[#f5f7fa] rounded-[6px] px-[12px] py-[6px] flex flex-col gap-[2px]" style={{ flex: "1 0 0", minWidth: 0 }}>
-      <span className="font-['PingFang_SC:Medium',sans-serif] text-[12px] leading-[20px] text-[#141414] overflow-hidden text-ellipsis whitespace-nowrap">{label}</span>
-      <span className="font-['PingFang_SC:Regular',sans-serif] text-[14px] leading-[22px] text-[#676a72] overflow-hidden text-ellipsis whitespace-nowrap">{value}</span>
+    <div className="bg-secondarycontainer rounded-[6px] px-[12px] py-[6px] flex flex-col gap-[2px]" style={{ flex: "1 0 0", minWidth: 0 }}>
+      <span className="font-medium text-foot12 text-primary-text overflow-hidden text-ellipsis whitespace-nowrap">{label}</span>
+      <span className="font-normal text-body text-secondary-text overflow-hidden text-ellipsis whitespace-nowrap">{value}</span>
     </div>
   );
 }
@@ -87,11 +88,13 @@ const floorLearning = [
 
 function DashedDivider() {
   return (
-    <div className="w-full h-px my-[4px]" style={{ background: "repeating-linear-gradient(to right, #DFE1E8 0, #DFE1E8 4px, transparent 4px, transparent 8px)" }} />
+    <div className="w-full h-px my-[4px]" style={{ background: "repeating-linear-gradient(to right, var(--component-stroke) 0, var(--component-stroke) 4px, transparent 4px, transparent 8px)" }} />
   );
 }
 
-export function DeviceArchiveContent({ language }: { language: 'en' | 'cn' }) {
+export function DeviceArchiveContent({ language, edition = "iot" }: { language: 'en' | 'cn'; edition?: AppEdition }) {
+  // 仟帆版本没有合同信息卡片
+  const showContract = edition !== "qianfan";
   const [contractTab, setContractTab] = useState<'主体' | '数字化服务'>('主体');
   const [configTab, setConfigTab] = useState<'主体' | '井道和悬吊' | '门'>('主体');
 
@@ -104,22 +107,23 @@ export function DeviceArchiveContent({ language }: { language: 'en' | 'cn' }) {
         </div>
       </DetailSection>
 
-      {/* 合同信息 */}
-      <DetailSection
-        title={language === 'cn' ? "合同信息" : "Contract Information"}
-        titleId="archive-contract-title"
-        extra={
-          <div className="flex gap-[7px]">
-          <TagFilterButton label={language === 'cn' ? "合同主体" : "Main Contract"} active={contractTab === '主体'} onClick={() => setContractTab('主体')} />
-          <TagFilterButton label={language === 'cn' ? "数字化服务" : "Digital Services"} active={contractTab === '数字化服务'} onClick={() => setContractTab('数字化服务')} />
+      {/* 合同信息（仅通力） */}
+      {showContract && (
+        <DetailSection
+          title={language === 'cn' ? "合同信息" : "Contract Information"}
+          titleId="archive-contract-title"
+          extra={
+            <div className="flex gap-[7px]">
+            <TagFilterButton label={language === 'cn' ? "合同主体" : "Main Contract"} active={contractTab === '主体'} onClick={() => setContractTab('主体')} />
+            <TagFilterButton label={language === 'cn' ? "数字化服务" : "Digital Services"} active={contractTab === '数字化服务'} onClick={() => setContractTab('数字化服务')} />
+            </div>
+          }
+        >
+          <div className="p-3">
+            <FieldGrid fields={contractInfoFields} />
           </div>
-        }
-      >
-        <div className="p-3">
-          <FieldGrid fields={contractInfoFields} />
-        </div>
-      </DetailSection>
-
+        </DetailSection>
+      )}
       {/* 配置参数 */}
       <DetailSection
         title={language === 'cn' ? "配置参数" : "Configuration"}
@@ -142,27 +146,27 @@ export function DeviceArchiveContent({ language }: { language: 'en' | 'cn' }) {
         <div className="p-3">
           <div className="grid grid-cols-3 gap-[12px] items-stretch">
             {/* 总楼层数 */}
-            <div className="bg-[#f5f7fa] rounded-[6px] flex items-center justify-center px-[28px] py-[20px]">
+            <div className="bg-secondarycontainer rounded-[6px] flex items-center justify-center px-[28px] py-[20px]">
               <div className="flex flex-col items-center gap-[8px]">
-                <span className="font-['PingFang_SC:Semibold',sans-serif] text-[40px] leading-[48px] text-[#141414]">6</span>
-                <span className="font-['PingFang_SC:Regular',sans-serif] text-[14px] leading-[22px] text-[#676a72]">{language === 'cn' ? "总楼层数" : "Total Floors"}</span>
+                <span className="font-semibold text-[40px] leading-[48px] text-primary-text">6</span>
+                <span className="font-normal text-body text-secondary-text">{language === 'cn' ? "总楼层数" : "Total Floors"}</span>
               </div>
             </div>
 
             {/* 楼层标签 */}
             <div className="flex flex-col gap-[2px] rounded-[6px] overflow-hidden">
-              <div className="bg-[#f5f7fa] flex items-center justify-between px-[12px] py-[8px]">
-                <span className="font-['PingFang_SC:Medium',sans-serif] text-[14px] leading-[22px] text-[#141414]">{language === 'cn' ? "楼层标签" : "Floor Labels"}</span>
-                <div className="bg-[#1450f5] flex items-center justify-center px-[8px] py-[2px] rounded-[4px] h-[24px]">
-                  <span className="font-['PingFang_SC:Regular',sans-serif] text-[12px] leading-[20px] text-white">{language === 'cn' ? "编辑" : "Edit"}</span>
+              <div className="bg-secondarycontainer flex items-center justify-between px-[12px] py-[8px]">
+                <span className="font-medium text-body text-primary-text">{language === 'cn' ? "楼层标签" : "Floor Labels"}</span>
+                <div className="bg-brand-base flex items-center justify-center px-[8px] py-[2px] rounded-[4px] h-[24px]">
+                  <span className="font-normal text-foot12 text-white">{language === 'cn' ? "编辑" : "Edit"}</span>
                 </div>
               </div>
-              <div className="bg-[#f5f7fa] flex-1 px-[16px] py-[12px] flex flex-col gap-[6px]">
+              <div className="bg-secondarycontainer flex-1 px-[16px] py-[12px] flex flex-col gap-[6px]">
                 {floorLabels.map((item, i) => (
                   <div key={i}>
                     <div className="flex items-center justify-between">
-                      <span className="font-['PingFang_SC:Regular',sans-serif] text-[14px] leading-[22px] text-[#141414] w-[72px]">{item.floor}</span>
-                      <span className="font-['PingFang_SC:Medium',sans-serif] text-[14px] leading-[22px] text-[#141414]">{item.label}</span>
+                      <span className="font-normal text-body text-primary-text w-[72px]">{item.floor}</span>
+                      <span className="font-medium text-body text-primary-text">{item.label}</span>
                     </div>
                     {i < floorLabels.length - 1 && <DashedDivider />}
                   </div>
@@ -172,18 +176,18 @@ export function DeviceArchiveContent({ language }: { language: 'en' | 'cn' }) {
 
             {/* 楼层学习结果 */}
             <div className="flex flex-col gap-[2px] rounded-[6px] overflow-hidden">
-              <div className="bg-[#f5f7fa] px-[12px] py-[8px]">
-                <span className="font-['PingFang_SC:Medium',sans-serif] text-[14px] leading-[22px] text-[#141414]">{language === 'cn' ? "楼层学习结果" : "Floor Learning"}</span>
+              <div className="bg-secondarycontainer px-[12px] py-[8px]">
+                <span className="font-medium text-body text-primary-text">{language === 'cn' ? "楼层学习结果" : "Floor Learning"}</span>
               </div>
-              <div className="bg-[#f5f7fa] flex-1 px-[16px] py-[12px] flex flex-col gap-[8px]">
+              <div className="bg-secondarycontainer flex-1 px-[16px] py-[12px] flex flex-col gap-[8px]">
                 <div className="flex justify-end mb-[4px]">
-                  <span className="font-['PingFang_SC:Regular',sans-serif] text-[12px] leading-[20px] text-[#8f9195]">{language === 'cn' ? "楼层间距" : "Floor Spacing"}</span>
+                  <span className="font-normal text-foot12 text-placeholder">{language === 'cn' ? "楼层间距" : "Floor Spacing"}</span>
                 </div>
                 {floorLearning.map((item, i) => (
                   <div key={i}>
                     <div className="flex items-center justify-between">
-                      <span className="font-['PingFang_SC:Regular',sans-serif] text-[14px] leading-[22px] text-[#141414] w-[72px]">{item.range}</span>
-                      <span className="font-['PingFang_SC:Medium',sans-serif] text-[14px] leading-[22px] text-[#141414]">{item.distance}</span>
+                      <span className="font-normal text-body text-primary-text w-[72px]">{item.range}</span>
+                      <span className="font-medium text-body text-primary-text">{item.distance}</span>
                     </div>
                     {i < floorLearning.length - 1 && <DashedDivider />}
                   </div>

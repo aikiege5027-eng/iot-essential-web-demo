@@ -2824,7 +2824,7 @@ export default function Events({
           {/* Tab Content —— 顶栏「刷新」通过 key 重挂载当前选项卡内容 */}
           <div key={detailRefreshKey} className="flex-1 mx-[24px] mt-[16px]">
             {activeTab === 'liveData' && <LiveDataContent language={language} />}
-            {activeTab === 'masterData' && <DeviceArchiveContent language={language} />}
+            {activeTab === 'masterData' && <DeviceArchiveContent language={language} edition={currentEdition} />}
             {activeTab === 'events' && <DeviceEventsTab device={selectedQueryDevice} language={language} />}
             {activeTab === 'statistics' && <DeviceStatisticsTab device={selectedQueryDevice} language={language} edition={currentEdition} />}
             {activeTab === 'operationRecords' && <OperationRecordsContent t={t} />}

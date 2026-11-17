@@ -48,6 +48,8 @@ export const overviewCopy = {
     offline: "离线",
     registrationCompareTitle: "设备注册分布",
     onlineCompareTitle: "设备在线分布",
+    ringTotalLabel: "总设备数",
+    ringRegisteredLabel: "注册设备数",
     companyOwned: "通力物权",
     customerOwned: "客户物权",
     tips: {
@@ -127,6 +129,8 @@ export const overviewCopy = {
     offline: "Offline",
     registrationCompareTitle: "Device registration distribution",
     onlineCompareTitle: "Device online distribution",
+    ringTotalLabel: "Total devices",
+    ringRegisteredLabel: "Registered devices",
     companyOwned: "KONE owned",
     customerOwned: "Customer owned",
     tips: {

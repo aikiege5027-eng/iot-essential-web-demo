@@ -324,7 +324,7 @@ function DeviceStatusCards({ devices, language }: { devices: OverviewDevice[]; l
         title={t.registrationCompareTitle}
         height="auto"
         className="min-h-[220px] flex-1"
-        center={<RingCenter total={stewards.length} label={t.kpi.stewards} />}
+        center={<RingCenter total={stewards.length} label={t.ringTotalLabel} />}
         data={[
           { name: t.registered, value: registered, color: COLORS.registered },
           { name: t.unregistered, value: stewards.length - registered, color: COLORS.unregistered },
@@ -339,7 +339,7 @@ function DeviceStatusCards({ devices, language }: { devices: OverviewDevice[]; l
         title={t.onlineCompareTitle}
         height="auto"
         className="min-h-[220px] flex-1"
-        center={<RingCenter total={registered} label={t.registered} />}
+        center={<RingCenter total={registered} label={t.ringRegisteredLabel} />}
         data={[
           { name: t.online, value: online, color: COLORS.online },
           { name: t.abnormal, value: registered - online, color: COLORS.abnormal },
