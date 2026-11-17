@@ -10,9 +10,9 @@ import {
   type OverviewProject,
 } from "../../data/deviceOverview";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
-import { IoTListPageTemplate, type IoTTableColumn } from "../templates/iot-list-page";
+import { IoTListPageTemplate, type IoTFilterField, type IoTTableColumn } from "../templates/iot-list-page";
 import { deviceCopy, type DeviceCopy, type Language } from "./copy";
-import { DeviceStatus, deviceKindLabel, LabelledControl, yesNo } from "./shared";
+import { DeviceStatus, deviceKindLabel, yesNo } from "./shared";
 
 /**
  * 设备筛选（Figma IOT Delivery 8463:34559「设备筛选增加设备导出按钮」）。
@@ -20,8 +20,8 @@ import { DeviceStatus, deviceKindLabel, LabelledControl, yesNo } from "./shared"
  * 由设备总览的「设备筛选」按钮进入，结果限定在总览已应用的数据范围内；
  * 返回总览走顶栏的页面导航控件（返回 / 前进 / 刷新），页面内不放面包屑。
  * 骨架用 IoT 列表页模板：标题行右侧「导出设备数据 / 重置 / 查询」，
- * 下拉筛选（通力 12 个，仟帆 4 个）放在 beforeTable 插槽（设计稿只有占位符、无字段标签，所以不用模板的带标签筛选栅格），
- * 查询前展示「暂无设备，请在上方搜索」空态。
+ * 下拉筛选（通力 12 个，仟帆 4 个）用模板的 normal 筛选模式：每项带名称，超过 4 项默认只显示前 4 项，点「展开筛选」显示其余。
+ * 进入时直接列出数据范围内的所有设备，点「查询」按条件筛选；无结果时展示空态。
  */
 
 export type DeviceResultRow = OverviewDevice & { project?: OverviewProject; /** 所属租户（仅仟帆） */ tenant?: string };
@@ -156,7 +156,6 @@ export function DeviceFilterView({
   filters,
   onFiltersChange,
   results,
-  hasQueried,
   loading = false,
   onQuery,
   onReset,
@@ -166,8 +165,6 @@ export function DeviceFilterView({
   filters: DeviceFilters;
   onFiltersChange: (filters: DeviceFilters) => void;
   results: DeviceResultRow[];
-  /** 是否已点过「查询」：决定空态文案是「请在上方搜索」还是「暂无符合条件的设备」 */
-  hasQueried: boolean;
   /** 顶栏「刷新」时的短暂加载态，保留当前结果并覆盖表格 */
   loading?: boolean;
   onQuery: () => void;
@@ -218,35 +215,34 @@ export function DeviceFilterView({
     <div className="flex flex-col items-center justify-center py-16">
       <ImageWithFallback src={emptyIllustration} alt="" className="mb-[-8px] size-[200px] object-cover" />
       <div className="flex flex-col items-center gap-2 whitespace-nowrap">
-        <p className="text-h7 font-semibold text-primary-text">{hasQueried ? t.noResultTitle : t.emptyTitle}</p>
-        <p className="text-foot12 text-secondary-text">{hasQueried ? t.noResultHint : t.emptyHint}</p>
+        <p className="text-h7 font-semibold text-primary-text">{t.noResultTitle}</p>
+        <p className="text-foot12 text-secondary-text">{t.noResultHint}</p>
       </div>
     </div>
   );
 
-  const filterGrid = (
-    <>
-      <div className="grid grid-cols-1 gap-x-5 gap-y-5 px-5 min-[768px]:grid-cols-2 min-[1180px]:grid-cols-4">
-        {getFilterOrder(edition).map((key) => (
-          <LabelledControl key={key} label={t.filters[key]} className="min-w-0">
-            {/* 多选：选中项折叠成「首项 +N」，保持 32px 单行高度，与同行其他下拉对齐 */}
-            <Select
-              size="medium"
-              multiple
-              minCollapsedNum={1}
-              clearable
-              value={filters[key]}
-              placeholder={t.filters[key]}
-              options={options[key]}
-              onChange={(next) => onFiltersChange({ ...filters, [key]: (Array.isArray(next) ? next : []).map(String) })}
-            />
-          </LabelledControl>
-        ))}
-      </div>
-      <h2 className="px-5 pb-4 pt-7 text-h5 font-semibold text-primary-text">{t.recent}</h2>
-    </>
-  );
-
+  // 筛选字段交给模板的 normal 模式：每项带标签；超过 4 项时默认只显示前 4 项，点「展开筛选」显示其余（通力 12 项，仟帆 4 项无展开）。
+  // 模板的字段值是单个字符串，这里是多选，所以 render 里自己接 filters，value / onChange 只是占位。
+  const filterFields: IoTFilterField[] = getFilterOrder(edition).map((key) => ({
+    id: key,
+    label: t.filters[key],
+    value: filters[key].join(","),
+    onChange: () => {},
+    render: ({ id }) => (
+      // 多选：选中项折叠成「首项 +N」，保持 32px 单行高度，与同行其他下拉对齐
+      <Select
+        id={id}
+        size="medium"
+        multiple
+        minCollapsedNum={1}
+        clearable
+        value={filters[key]}
+        placeholder={t.filters[key]}
+        options={options[key]}
+        onChange={(next) => onFiltersChange({ ...filters, [key]: (Array.isArray(next) ? next : []).map(String) })}
+      />
+    ),
+  }));
   return (
     <div className="flex min-h-full w-full min-w-0 flex-1 flex-col">
       <IoTListPageTemplate<DeviceResultRow>
@@ -256,7 +252,9 @@ export function DeviceFilterView({
         // 没有筛选结果时白色卡片撑满剩余高度（底边落在页面底部、版权信息之上）；有结果时随内容变高，
         // 分页下方只留标准底部间距，通力 / 仟帆一致
         fillHeight={pageRows.length === 0}
-        filterMode="none"
+        filterMode="normal"
+        filters={filterFields}
+        embeddedFilterLabels={{ expand: t.expandFilter, collapse: t.collapseFilter }}
         actions={[
           {
             id: "export",
@@ -288,7 +286,6 @@ export function DeviceFilterView({
             },
           },
         ]}
-        beforeTable={filterGrid}
         columns={columns}
         rows={pageRows}
         getRowKey={(row) => row.id}

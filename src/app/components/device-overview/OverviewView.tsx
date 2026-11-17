@@ -385,11 +385,12 @@ function ProjectDevices({ project, language, isQianfan }: { project: ProjectRow;
   const kindColumn: SubColumn = { key: "kind", title: t.columns.kind, cell: (device) => deviceKindLabel(device, t) };
   const controllerColumn: SubColumn = { key: "controller", title: t.columns.controller, cell: (device) => device.controller };
   const statusColumn: SubColumn = { key: "status", title: t.columns.onlineStatus, cell: statusCell };
-  // 仟帆：设备编号 / 云管家编号 / 设备类型 / 控制器类型 / 在线状态；通力：完整九列
+  // 仟帆：设备编号 / 云管家编号 / 设备名称 / 设备类型 / 控制器类型 / 在线状态；通力：完整九列
   const columns: SubColumn[] = isQianfan
     ? [
         idColumn,
         { key: "stewardCode", title: t.columns.stewardCode, width: 240, className: "tabular-nums", cell: (device) => device.stewardCode ?? "-" },
+        { key: "name", title: t.columns.name, cell: (device) => device.name },
         kindColumn,
         controllerColumn,
         statusColumn,
@@ -412,9 +413,9 @@ function ProjectDevices({ project, language, isQianfan }: { project: ProjectRow;
       {/* 滚动条为悬浮层（不占列宽）：默认隐藏，鼠标移入子表格区域才出现；内容溢出时纵向 / 横向滚动查看 */}
       <ScrollAreaPrimitive.Root type="hover" scrollHideDelay={400} className="relative min-w-0 flex-1 overflow-hidden bg-container">
         <ScrollAreaPrimitive.Viewport className="max-h-[396px] w-full [&>div]:!block">
-          <table className={cn("device-overview-subtable", isQianfan && "device-overview-subtable--even")} style={{ minWidth: isQianfan ? 640 : undefined }}>
+          <table className={cn("device-overview-subtable", isQianfan && "device-overview-subtable--even")} style={{ minWidth: isQianfan ? 760 : undefined }}>
             <caption className="sr-only">{overviewCopy[language].devicesOf(project.name)}</caption>
-            {/* 仟帆：五列均分；通力：编号 / 名称类的长字段定宽，末列按右边距定宽（表头文字 60 + 左内边距 8 + 右边距），其余列均分剩余宽度 */}
+            {/* 仟帆：六列均分；通力：编号 / 名称类的长字段定宽，末列按右边距定宽（表头文字 60 + 左内边距 8 + 右边距），其余列均分剩余宽度 */}
             <colgroup>
               {columns.map((column, index) => (
                 <col

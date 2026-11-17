@@ -51,12 +51,11 @@ export default function DeviceOverviewContent({
   const [scope, setScope] = useState<DataScope>(initialScope);
   const scoped = useMemo(() => filterByScope(dataset, scope), [dataset, scope]);
 
-  // 设备筛选：同样分草稿与已应用；未查询前不出结果
+  // 设备筛选：同样分草稿与已应用；进入时条件为空，直接列出当前数据范围内的所有设备
   const [filterDraft, setFilterDraft] = useState<DeviceFilters>(EMPTY_DEVICE_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState<DeviceFilters | null>(null);
+  const [appliedFilters, setAppliedFilters] = useState<DeviceFilters>(EMPTY_DEVICE_FILTERS);
 
   const results = useMemo<DeviceResultRow[]>(() => {
-    if (!appliedFilters) return [];
     const projectById = new Map(scoped.projects.map((project) => [project.id, project]));
     const tenantByWorkgroup = buildTenantLookup(dataset.org);
     return scoped.devices
@@ -115,12 +114,11 @@ export default function DeviceOverviewContent({
           filters={filterDraft}
           onFiltersChange={setFilterDraft}
           results={results}
-          hasQueried={appliedFilters !== null}
           loading={refreshing && results.length > 0}
           onQuery={() => setAppliedFilters(filterDraft)}
           onReset={() => {
             setFilterDraft(EMPTY_DEVICE_FILTERS);
-            setAppliedFilters(null);
+            setAppliedFilters(EMPTY_DEVICE_FILTERS);
           }}
         />
       )}
