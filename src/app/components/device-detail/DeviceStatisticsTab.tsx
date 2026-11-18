@@ -11,16 +11,18 @@ import { DetailSection } from "./DetailSection";
 /**
  * 统计数据页签（Figma IOT Delivery 6178:20424）。
  *
- *   · 统计总览：近7天 / 近30天 / 近90天（TDesign RadioGroup default-filled）；通力 10 个指标（上排运行类蓝点、下排故障类红点），仟帆 5 个指标一排
- *   · 数据分析（通力 / 仟帆一致）：一张卡片三张图（日在线率趋势 / 分时段统计 / 楼层统计），用标签切换，共用统计维度——
- *     累计 / 90天 / 30天 / 24小时 标签 + 自选日期区间；图表取自组件库的 LineChart / BarChart
+ *   · 统计总览：仟帆用标签筛选「近7天 / 近30天 / 近90天 / 累计」+ 自定义日期区间（与数据分析同一套筛选样式）；
+ *     通力用 TDesign RadioGroup（default-filled）只有「近7天 / 近30天 / 近90天」，默认近30天，没有累计和日期区间；
+ *     通力 10 个指标（上排运行类蓝点、下排故障类红点），仟帆 5 个指标一排
+ *   · 日在线率趋势：独立卡片，不带筛选，固定展示近 30 天
+ *   · 数据分析（通力 / 仟帆一致）：一张卡片两张图（分时段统计 / 楼层统计），用标签切换，共用统计维度——
+ *     90天 / 30天 / 24小时 标签 + 自选日期区间；图表取自组件库的 LineChart / BarChart
  * 数据按设备编号 + 时间粒度用固定种子生成，同一台设备每次一致。
  */
-
-type OverviewRange = "7d" | "30d" | "90d";
-type AnalysisRange = "90d" | "30d" | "24h" | "all";
+type OverviewRange = "7d" | "30d" | "90d" | "all";
+type AnalysisRange = "90d" | "30d" | "24h";
 type Metric = "total" | "up" | "down" | "door";
-type AnalysisTab = "online" | "period" | "floor";
+type AnalysisTab = "period" | "floor";
 
 function createRandom(seed: number) {
   let state = seed >>> 0;
@@ -36,12 +38,17 @@ const seedOf = (text: string) => [...text].reduce((value, char) => Math.imul(val
 const fmt = (value: number) => value.toLocaleString("en-US");
 const pad = (value: number) => String(value).padStart(2, "0");
 
-const RANGE_DAYS: Record<OverviewRange, number> = { "7d": 7, "30d": 30, "90d": 90 };
+/** 「累计」按自上线以来约 12 个月折算天数（演示数据）。 */
+const RANGE_DAYS: Record<OverviewRange, number> = { "7d": 7, "30d": 30, "90d": 90, all: 365 };
+/** 自定义日期区间包含的天数（含首尾两天）。 */
+const daysBetween = (start: string, end: string) => Math.max(1, Math.round((new Date(`${end}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()) / 86_400_000) + 1);
 
-function useOverview(device: QueryDevice, range: OverviewRange) {
+function useOverview(device: QueryDevice, range: OverviewRange, dateRange: string[]) {
   return useMemo(() => {
-    const random = createRandom(seedOf(`${device.id}:overview:${range}`));
-    const days = RANGE_DAYS[range];
+    // 选了自定义日期区间时以区间天数为准
+    const custom = dateRange[0] && dateRange[1];
+    const random = createRandom(seedOf(`${device.id}:overview:${custom ? dateRange.join("-") : range}`));
+    const days = custom ? daysBetween(dateRange[0], dateRange[1]) : RANGE_DAYS[range];
     const runsPerDay = 600 + Math.floor(random() * 900);
     const floors = Math.max(...device.modules.map(() => 12), 12);
     const peakStart = 7 + Math.floor(random() * 11);
@@ -60,13 +67,13 @@ function useOverview(device: QueryDevice, range: OverviewRange) {
       avgDoor: 1 + Math.floor(random() * 5),
       doorFloor: `${1 + Math.floor(random() * floors)}F`,
     };
-  }, [device, range]);
+  }, [device, range, dateRange]);
 }
 
 const isoDate = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
 /** 日期区间面板页脚的快捷选项：近 7 / 30 / 90 天（含今天）。 */
-const QIANFAN_DATE_PRESETS = (labels: Record<"7d" | "30d" | "90d", string>) =>
+const QIANFAN_DATE_PRESETS = (labels: Record<"7d" | "30d" | "90d" | "all", string>) =>
   Object.fromEntries(
     (["7d", "30d", "90d"] as const).map((key) => [
       labels[key],
@@ -113,17 +120,63 @@ function KpiCard({ value, unit, label, tone }: { value: string; unit?: string; l
   );
 }
 
+/**
+ * 统计维度筛选（统计总览与数据分析共用）：标签按钮 + 自选日期区间。
+ * 选了日期区间后所有标签回到未选中；点标签则清空日期区间。样式同设备档案卡片的标签切换。
+ */
+function RangeFilter<Key extends string>({
+  label,
+  keys,
+  labels,
+  active,
+  dateRange,
+  onSelect,
+  onDateChange,
+  presetLabels,
+  placeholder,
+}: {
+  label: string;
+  keys: Key[];
+  labels: Record<Key, string>;
+  active: Key;
+  dateRange: string[];
+  onSelect: (key: Key) => void;
+  onDateChange: (value: string[]) => void;
+  presetLabels: Record<"7d" | "30d" | "90d" | "all", string>;
+  placeholder: [string, string];
+}) {
+  return (
+    <>
+      <div role="group" aria-label={label} className="flex items-center gap-2">
+        {keys.map((key) => (
+          <TagFilterButton key={key} label={labels[key]} active={!dateRange.length && active === key} onClick={() => onSelect(key)} />
+        ))}
+      </div>
+      <div className="w-[240px]">
+        <DateRangePicker
+          size="small"
+          clearable
+          value={dateRange}
+          placeholder={placeholder}
+          onChange={(value) => onDateChange((value as string[]).filter(Boolean))}
+          // 按 DatePicker 设计稿（Figma 37379:309578）：输入框显示 YYYY/MM/DD、双月面板、
+          // 页脚左侧快捷选项（蓝色文字）+ 右侧「确定」；值仍是 YYYY-MM-DD，不影响图表取数
+          suffixIcon={<CalendarIcon className="t-icon size-4" />}
+          format="YYYY/MM/DD"
+          valueType="YYYY-MM-DD"
+          needConfirm
+          presets={QIANFAN_DATE_PRESETS(presetLabels)}
+          disableDate={{ after: isoDate(new Date()) }}
+        />
+      </div>
+    </>
+  );
+}
 /** 横轴标签：90/30 天按日，24 小时按小时，60 分钟按分钟。 */
 function periodLabels(range: AnalysisRange, end: Date) {
   const labels: string[] = [];
   if (range === "24h") {
     for (let index = 23; index >= 0; index--) labels.push(`${pad(new Date(end.getTime() - index * 3600_000).getHours())}:00`);
-  } else if (range === "all") {
-    // 累计：自上线以来按月汇总，取最近 12 个月
-    for (let index = 11; index >= 0; index--) {
-      const date = new Date(end.getFullYear(), end.getMonth() - index, 1);
-      labels.push(`${date.getFullYear()}.${date.getMonth() + 1}`);
-    }
   } else {
     const days = range === "90d" ? 90 : 30;
     for (let index = days - 1; index >= 0; index--) {
@@ -137,10 +190,14 @@ function periodLabels(range: AnalysisRange, end: Date) {
 export function DeviceStatisticsTab({ device, language, edition }: { device: QueryDevice; language: Language; edition?: AppEdition }) {
   const t = detailCopy[language];
   const [overviewRange, setOverviewRange] = useState<OverviewRange>("30d");
+  const [overviewDateRange, setOverviewDateRange] = useState<string[]>([]);
   const [analysisRange, setAnalysisRange] = useState<AnalysisRange>("30d");
   const [dateRange, setDateRange] = useState<string[]>([]);
   const [metric, setMetric] = useState<Metric>("total");
-  const overview = useOverview(device, overviewRange);
+  const isQianfan = edition === "qianfan";
+  // 通力的统计总览只有 近7天 / 近30天 / 近90天 三个单选项：没有「累计」和日期区间（从仟帆切过来时 state 里可能残留这两项，按默认近30天处理）
+  const effectiveOverviewRange: OverviewRange = !isQianfan && overviewRange === "all" ? "30d" : overviewRange;
+  const overview = useOverview(device, effectiveOverviewRange, isQianfan ? overviewDateRange : []);
 
   // 统计维度（时间粒度 / 自定义日期）决定横轴标签；三张图表共用
   const axisLabels = useMemo(() => {
@@ -160,7 +217,7 @@ export function DeviceStatisticsTab({ device, language, edition }: { device: Que
 
   const period = useMemo(() => {
     const labels = axisLabels;
-    const scale = analysisRange === "all" ? 25 : analysisRange === "24h" ? 0.6 : 1;
+    const scale = analysisRange === "24h" ? 0.6 : 1;
     const random = createRandom(seedOf(`${device.id}:period:${analysisRange}:${dateRange.join("-")}:${metric}`));
     const base = (metric === "door" ? 520 : metric === "total" ? 320 : 170) * scale;
     let value = base;
@@ -170,21 +227,19 @@ export function DeviceStatisticsTab({ device, language, edition }: { device: Que
     });
   }, [analysisRange, dateRange, device.id, metric, axisLabels]);
 
-  // 日在线率：按设备编号 + 统计维度生成固定种子的数据（55%–100% 之间小幅波动），同一台设备每次一致
+  // 日在线率趋势是独立卡片、不带筛选：固定近 30 天，按设备编号用固定种子生成（55%–100% 之间小幅波动），同一台设备每次一致
   const onlineRates = useMemo(() => {
-    const random = createRandom(seedOf(`${device.id}:online-rate:${analysisRange}:${dateRange.join("-")}`));
+    const random = createRandom(seedOf(`${device.id}:online-rate:30d`));
     let value = 0.8 + random() * 0.15;
-    return axisLabels.map((label) => {
+    return periodLabels("30d", new Date()).map((label) => {
       value = Math.max(0.55, Math.min(1, value + (random() - 0.5) * 0.12));
       return { date: label, rate: Math.round(value * 1000) / 1000 };
     });
-  }, [axisLabels, analysisRange, dateRange, device.id]);
-
-  const [analysisTab, setAnalysisTab] = useState<AnalysisTab>("online");
-
+  }, [device.id]);
+  const [analysisTab, setAnalysisTab] = useState<AnalysisTab>("period");
   const floors = useMemo(() => {
     const random = createRandom(seedOf(`${device.id}:floors:${analysisRange}:${dateRange.join("-")}`));
-    const scale = analysisRange === "all" ? 8 : analysisRange === "24h" ? 0.3 : analysisRange === "90d" ? 2.4 : 1;
+    const scale = analysisRange === "24h" ? 0.3 : analysisRange === "90d" ? 2.4 : 1;
     return Array.from({ length: 12 }, (_, index) => {
       const up = index === 11 ? 0 : Math.round((40 + random() * 160) * scale);
       const down = index === 0 ? 0 : Math.round((20 + random() * 180) * scale);
@@ -195,7 +250,6 @@ export function DeviceStatisticsTab({ device, language, edition }: { device: Que
   const metricOptions = (Object.keys(t.metrics) as Metric[]).map((key) => ({ label: t.metrics[key], value: key }));
 
   const analysisTabs: { key: AnalysisTab; label: string }[] = [
-    { key: "online", label: t.onlineTrend },
     { key: "period", label: t.periodStats },
     { key: "floor", label: t.floorStats },
   ];
@@ -276,14 +330,31 @@ export function DeviceStatisticsTab({ device, language, edition }: { device: Que
         title={t.overview}
         titleId="device-stats-overview"
         extra={
-          <Radio.Group
+          isQianfan ? (
+            <RangeFilter<OverviewRange>
+              label={t.overview}
+              keys={["7d", "30d", "90d", "all"]}
+              labels={t.overviewRanges}
+              active={overviewRange}
+              dateRange={overviewDateRange}
+              onSelect={(key) => {
+                setOverviewRange(key);
+                setOverviewDateRange([]);
+              }}
+              onDateChange={setOverviewDateRange}
+              presetLabels={t.overviewRanges}
+              placeholder={[t.startDateShort, t.endDateShort]}
+            />
+          ) : (
+            <Radio.Group
               theme="button"
-            variant="default-filled"
-            size="small"
-            value={overviewRange}
-            onChange={(next) => setOverviewRange(next as OverviewRange)}
-            options={(Object.keys(t.overviewRanges) as OverviewRange[]).map((key) => ({ label: t.overviewRanges[key], value: key }))}
-          />
+              variant="default-filled"
+              size="small"
+              value={effectiveOverviewRange}
+              onChange={(next) => setOverviewRange(next as OverviewRange)}
+              options={(["7d", "30d", "90d"] as const).map((key) => ({ label: t.overviewRanges[key], value: key }))}
+            />
+          )
         }
       >
         {edition === "qianfan" ? (
@@ -311,46 +382,31 @@ export function DeviceStatisticsTab({ device, language, edition }: { device: Que
         )}
       </DetailSection>
 
+      {/* 日在线率趋势：独立卡片，不带筛选 */}
+      <DetailSection title={t.onlineTrend} titleId="device-stats-online-trend">
+        <div className="p-4">{onlineFigure}</div>
+      </DetailSection>
       <DetailSection
         title={t.analysis}
         titleId="device-stats-analysis"
         extra={
-          <>
-            {/* 时间粒度用独立的标签筛选（累计 / 90天 / 30天 / 24小时），与设备档案卡片的标签样式一致；自选日期区间保留 */}
-            <div role="group" aria-label={t.analysis} className="flex items-center gap-2">
-              {(["all", "90d", "30d", "24h"] as AnalysisRange[]).map((key) => (
-                <TagFilterButton
-                  key={key}
-                  label={t.analysisRanges[key]}
-                  active={!dateRange.length && analysisRange === key}
-                  onClick={() => {
-                    setAnalysisRange(key);
-                    setDateRange([]);
-                  }}
-                />
-              ))}
-            </div>
-            <div className="w-[240px]">
-              <DateRangePicker
-                size="small"
-                clearable
-                value={dateRange}
-                placeholder={[t.startDateShort, t.endDateShort]}
-                onChange={(value) => setDateRange((value as string[]).filter(Boolean))}
-                // 按 DatePicker 设计稿（Figma 37379:309578）：输入框显示 YYYY/MM/DD、双月面板、
-                // 页脚左侧快捷选项（蓝色文字）+ 右侧「确定」；值仍是 YYYY-MM-DD，不影响图表取数
-                suffixIcon={<CalendarIcon className="t-icon size-4" />}
-                format="YYYY/MM/DD"
-                valueType="YYYY-MM-DD"
-                needConfirm
-                presets={QIANFAN_DATE_PRESETS(t.overviewRanges)}
-                disableDate={{ after: isoDate(new Date()) }}
-              />
-            </div>
-          </>
+          <RangeFilter<AnalysisRange>
+            label={t.analysis}
+            keys={["90d", "30d", "24h"]}
+            labels={t.analysisRanges}
+            active={analysisRange}
+            dateRange={dateRange}
+            onSelect={(key) => {
+              setAnalysisRange(key);
+              setDateRange([]);
+            }}
+            onDateChange={setDateRange}
+            presetLabels={t.overviewRanges}
+            placeholder={[t.startDateShort, t.endDateShort]}
+          />
         }
       >
-        {/* 三张图表合在一张「数据分析」卡片里，共用上方的统计维度（时间粒度 / 自定义日期），用标签切换 */}
+        {/* 两张图表（分时段统计 / 楼层统计）合在一张「数据分析」卡片里，共用上方的统计维度（时间粒度 / 自定义日期），用标签切换 */}
         <div className="flex flex-col gap-4 p-4">
           <div role="tablist" aria-label={t.analysis} className="flex flex-wrap gap-2">
             {analysisTabs.map((tab) => {
@@ -371,7 +427,7 @@ export function DeviceStatisticsTab({ device, language, edition }: { device: Que
               );
             })}
           </div>
-          <div role="tabpanel">{analysisTab === "online" ? onlineFigure : analysisTab === "period" ? periodFigure : floorFigure}</div>
+          <div role="tabpanel">{analysisTab === "period" ? periodFigure : floorFigure}</div>
         </div>
       </DetailSection>
     </div>

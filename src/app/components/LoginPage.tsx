@@ -1,15 +1,16 @@
 import { FormEvent, useState } from "react";
-import { Button, Checkbox, Input, Link, MessagePlugin, Select } from "tdesign-react";
+import { Button, Checkbox, Dropdown, Input, Link, MessagePlugin, Select } from "tdesign-react";
 // 背景图与设计系统登录页模板同源（2880×1800，16:10），按 cover + 居中铺满；旧图是 3:2 的另一种裁切，视野范围不同。
 import loginBackground from "../../imports/LoginDesktop/login-bg.jpg";
 import koneLogo from "../../imports/KONE_Logo_Primary_RGB.svg";
 import qianFanLogo from "../../imports/QianFan_Logo.svg";
 import { ACCOUNTS, EDITION_DEFAULT_EMAILS, EDITION_TITLES, getAccountEdition, QIANFAN_ADMIN_EMAIL, QIANFAN_RESET_DEMO_EMAIL, QIANFAN_TENANT_ADMIN_EMAIL, type AppEdition, type PendingInvite } from "../data/accounts";
 import ForgotPasswordDialog from "./ForgotPasswordDialog";
+import MfaBindPromptDialog from "./MfaBindPromptDialog";
 import MfaCodeDialog from "./MfaCodeDialog";
 import ResetLinkPasswordDialog from "./ResetLinkPasswordDialog";
 import { EyeClosedIcon, EyeOpenIcon } from "./icons/login-icons";
-import { LanguageCnIcon, LanguageIcon } from "./icons/nav-icons";
+import { ChevronUpIcon, LanguageCnIcon, LanguageIcon } from "./icons/nav-icons";
 import { cn } from "./ui/utils";
 
 /**
@@ -33,12 +34,13 @@ type LoginPageProps = {
   onLanguageChange: (language: "cn" | "en") => void;
   /**
    * "frozen"：账号被管理员冻结，不能登录；
-   * "mfa"：账号密码正确，但该账号已绑定 MFA，还需要动态验证码（带上 mfaCode 再调一次）；"mfa-invalid"：动态验证码不对。
+   * "mfa"：账号密码正确，但该账号已绑定 MFA，还需要动态验证码（带上 mfaCode 再调一次）；
+   * "mfa-bind"：账号密码正确，但 MFA 还没绑定，先弹「绑定 MFA」提示，绑定时同样带上 mfaCode 再调一次；"mfa-invalid"：动态验证码不对。
    */
-  onLogin: (email: string, password: string, edition: AppEdition, mfaCode?: string) => "ok" | "invalid" | "frozen" | "mfa" | "mfa-invalid";
+  onLogin: (email: string, password: string, edition: AppEdition, mfaCode?: string) => "ok" | "invalid" | "frozen" | "mfa" | "mfa-bind" | "mfa-invalid";
   /** 管理员创建、还没设置过密码的用户（按创建先后）：登录页左下角的「首次登录设置链接」模拟他们邮件里的链接 */
   invites: PendingInvite[];
-  /** 首次登录：设置好密码后直接登录系统 */
+  /** 首次登录：设置好密码并登记账号（不登录），之后进入「绑定 MFA」流程 */
   onFirstLogin: (invite: PendingInvite, password: string) => "ok" | "frozen";
   /** 账号当前的密码（忘记密码修改后为新密码），演示快捷登录用它自动填入 */
   getPassword: (email: string) => string;
@@ -110,6 +112,10 @@ function getDefaultCredentials(edition: AppEdition, getPassword: (email: string)
   return { email: account?.email ?? "", password: account ? getPassword(account.email) : "" };
 }
 
+const LANGUAGE_OPTIONS: { value: "cn" | "en"; label: string }[] = [
+  { value: "cn", label: "简体中文" },
+  { value: "en", label: "English" },
+];
 const PLATFORM_OPTIONS = (Object.keys(EDITION_TITLES) as AppEdition[]).map((edition) => ({ value: edition, label: EDITION_TITLES[edition] }));
 
 function BrandLogo({ edition }: { edition: AppEdition }) {
@@ -133,6 +139,10 @@ export default function LoginPage({ language, onLanguageChange, onLogin, invites
   const [isResetLinkOpen, setIsResetLinkOpen] = useState(false);
   const [isFirstLoginOpen, setIsFirstLoginOpen] = useState(false);
   const [isMfaOpen, setIsMfaOpen] = useState(false);
+  // 「绑定 MFA」流程：prompt = 绑定提示（输入验证码 / 下次再说），later = 「无法绑定则无法进入系统」的提醒
+  const [mfaBindStep, setMfaBindStep] = useState<"" | "prompt" | "later">("");
+  // 动态验证码窗口是绑定流程里打开的（取消时回到绑定提示，而不是登录卡片）
+  const [isMfaBinding, setIsMfaBinding] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   // 错误提示记成「哪一类」而不是文本，这样切换语言后提示会跟着变
@@ -166,6 +176,12 @@ export default function LoginPage({ language, onLanguageChange, onLogin, invites
       setIsMfaOpen(true);
       return;
     }
+    if (result === "mfa-bind") {
+      // 还没绑定 MFA：先弹「绑定 MFA」提示（和首次设置密码后的第一步相同）
+      setError("");
+      setMfaBindStep("prompt");
+      return;
+    }
     if (result !== "ok") {
       setError(isSso ? "sso" : "credential");
     }
@@ -178,6 +194,7 @@ export default function LoginPage({ language, onLanguageChange, onLogin, invites
     if (result === "mfa-invalid") return "验证码错误，请重新输入";
     // 验证码阶段账号被冻结 / 注销等：回到登录卡片
     setIsMfaOpen(false);
+    setIsMfaBinding(false);
     if (result === "frozen") MessagePlugin.error(t.frozen, 4000);
     else setError(isSso ? "sso" : "credential");
     return "";
@@ -186,13 +203,44 @@ export default function LoginPage({ language, onLanguageChange, onLogin, invites
   // 最近一次创建的待首次登录用户（模拟他收到的"账号创建完成"邮件里的链接）
   const firstLoginInvite = invites[invites.length - 1];
 
-  /** 首次登录设置好密码：直接登录系统；账号刚好被冻结则提示并回到登录卡片 */
+  /**
+   * 首次登录设置好密码：账号登记完成后不直接进系统，把账号密码填进登录表单，弹出「绑定 MFA」提示；
+   * 账号刚好被冻结则提示并回到登录卡片
+   */
   const handleFirstLoginSubmit = (newPassword: string) => {
     if (!firstLoginInvite) return;
-    if (onFirstLogin(firstLoginInvite, newPassword) === "frozen") {
-      setIsFirstLoginOpen(false);
+    const invite = firstLoginInvite;
+    setIsFirstLoginOpen(false);
+    if (onFirstLogin(invite, newPassword) === "frozen") {
       MessagePlugin.error(t.frozen, 4000);
+      return;
     }
+    setPlatform("qianfan");
+    setEmail(invite.email);
+    setPassword(newPassword);
+    setIsPasswordVisible(false);
+    setError("");
+    setMfaBindStep("prompt");
+  };
+  /** 绑定提示点「输入验证码」：进入动态验证码窗口，输对后登录（并记为已绑定） */
+  const startMfaBinding = () => {
+    setMfaBindStep("");
+    setIsMfaBinding(true);
+    setIsMfaOpen(true);
+  };
+  /** 动态验证码窗口点「取消」：绑定流程里回到绑定提示，普通登录回到登录卡片 */
+  const cancelMfa = () => {
+    setIsMfaOpen(false);
+    if (isMfaBinding) {
+      setIsMfaBinding(false);
+      setMfaBindStep("prompt");
+    }
+  };
+  /** 提醒窗口点「我知道了」：回到登录卡片，保留账号、清空密码；下次输完密码仍从绑定提示开始 */
+  const acknowledgeMfaLater = () => {
+    setMfaBindStep("");
+    setPassword("");
+    setIsPasswordVisible(false);
   };
 
   const changePlatform = (value: unknown) => {
@@ -244,25 +292,35 @@ export default function LoginPage({ language, onLanguageChange, onLogin, invites
     <main className="relative min-h-screen overflow-hidden bg-container">
       <img src={loginBackground} alt="" aria-hidden="true" className="fixed inset-0 size-full object-cover object-center" />
 
-      {/* 右上角语言切换：32×32 圆角 4px、图标 16×16，配色与顶栏操作按钮一致（品牌蓝，hover 浅蓝底）。默认语言为中文（App 的 language 初始值 "cn"） */}
-      <button
-        type="button"
-        onClick={() => onLanguageChange(language === "cn" ? "en" : "cn")}
-        aria-label={t.switchLanguage}
-        title={t.switchLanguage}
-        className="absolute right-6 top-2 z-20 flex size-8 items-center justify-center rounded-sm border-0 bg-transparent text-link transition-colors hover:bg-brand-light/50 focus-visible:outline-2 focus-visible:outline-brand-base"
-      >
-        {/* 图标显示当前语言（中文显示「中」，英文显示「EN」），取自 Design Token China 图标库 623:1817 */}
-        {language === "cn" ? <LanguageCnIcon className="size-4" /> : <LanguageIcon className="size-4" />}
-      </button>
-
+      {/* 右上角语言切换：图标 + 当前语言名 + 下拉箭头，点击展开 TDesign Dropdown 选择语言。
+          触发按钮高 32、圆角 4px、图标 16×16，配色与顶栏操作按钮一致（品牌蓝，没有 hover 底色）。默认语言为中文（App 的 language 初始值 "cn"）。
+          语言名按各自语言书写，不随界面语言变化；图标显示当前语言（中文「中」，英文「EN」），取自 Design Token China 图标库 623:1817 */}
+      <div className="absolute right-6 top-2 z-20">
+        <Dropdown
+          trigger="click"
+          placement="bottom-right"
+                    options={LANGUAGE_OPTIONS.map((option) => ({ content: option.label, value: option.value, active: option.value === language }))}
+          onClick={(option) => onLanguageChange(option.value as "cn" | "en")}
+        >
+          <button
+            type="button"
+            aria-label={t.switchLanguage}
+            aria-haspopup="menu"
+            className="flex h-8 cursor-pointer items-center gap-2 rounded-sm border-0 bg-transparent px-2 text-body font-normal text-link focus-visible:outline-2 focus-visible:outline-brand-base"
+          >
+            {language === "cn" ? <LanguageCnIcon className="size-4" /> : <LanguageIcon className="size-4" />}
+            <span>{LANGUAGE_OPTIONS.find((option) => option.value === language)?.label}</span>
+            <ChevronUpIcon className="size-4 rotate-180" />
+          </button>
+        </Dropdown>
+      </div>
       <section className="relative z-10 flex min-h-screen items-center justify-center p-6">
         <form
           onSubmit={submit}
           className={cn(
             "flex w-full max-w-[440px] flex-col gap-8 rounded-[24px] bg-container p-10 shadow-[0_8px_40px_rgba(0,0,0,0.12)]",
             // 重置密码弹窗出现时，它代替登录卡片；关闭后登录卡片恢复，已填内容保留
-            (isResetOpen || isResetLinkOpen || isFirstLoginOpen || isMfaOpen) && "hidden",
+            (isResetOpen || isResetLinkOpen || isFirstLoginOpen || isMfaOpen || mfaBindStep !== "") && "hidden",
           )}
         >
           <div className={cn("flex flex-col", platform === "qianfan" ? "gap-3" : "gap-6")}>
@@ -379,7 +437,8 @@ export default function LoginPage({ language, onLanguageChange, onLogin, invites
         onClose={() => setIsFirstLoginOpen(false)}
         onSubmit={handleFirstLoginSubmit}
       />
-      <MfaCodeDialog visible={isMfaOpen} onSubmit={submitMfa} onCancel={() => setIsMfaOpen(false)} />
+      <MfaBindPromptDialog step={mfaBindStep} onBind={startMfaBinding} onLater={() => setMfaBindStep("later")} onAcknowledge={acknowledgeMfaLater} />
+      <MfaCodeDialog visible={isMfaOpen} onSubmit={submitMfa} onCancel={cancelMfa} />
       {/* 演示用快捷登录：先选平台，再选用户，自动填入邮箱和密码 */}
       <div className="absolute bottom-5 left-6 z-20 flex flex-wrap items-center gap-6 pr-6">
         {/* 文字标签已去掉，用 group 的名称给读屏用户说明这两个下拉框的用途 */}

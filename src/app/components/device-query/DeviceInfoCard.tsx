@@ -132,11 +132,12 @@ export function DeviceInfoCard({
 
         {/* 标签顺序与 Figma 卡片 8602:34833 一致：24/7 → 云管家状态 → 注册来源 → 物联卡；未注册设备没有后两项 */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* 仟帆：已删除的设备在标签群最左侧多一个「已删除」标签（已禁用不再显示标签） */}
+          {isQianfanList && device.accountState === "deleted" && <LifecycleTag state="deleted" language={language} />}
           {!isQianfanList && device.service247 && <ServiceTag language={language} />}
           <StewardStatusTag device={device} language={language} />
           {!isQianfanList && device.source && <RegistrationSourceTag source={device.source} language={language} />}
           {device.source && <SimStatusTag sim={device.sim} language={language} />}
-          {isQianfanList && device.accountState !== "active" && <LifecycleTag state={device.accountState} language={language} />}
         </div>
       </header>
 

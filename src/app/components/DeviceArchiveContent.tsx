@@ -92,9 +92,10 @@ function DashedDivider() {
   );
 }
 
-export function DeviceArchiveContent({ language, edition = "iot" }: { language: 'en' | 'cn'; edition?: AppEdition }) {
-  // 仟帆版本没有合同信息卡片
+export function DeviceArchiveContent({ language, edition = "iot", tenant }: { language: 'en' | 'cn'; edition?: AppEdition; /** 设备所属租户（仅仟帆展示） */ tenant?: string }) {
+  // 仟帆版本没有合同信息卡片，设备信息多一个「所属租户」字段
   const showContract = edition !== "qianfan";
+  const deviceFields = edition === "qianfan" ? [...deviceInfoFields, { label: language === 'cn' ? "所属租户" : "Tenant", value: tenant ?? "-" }] : deviceInfoFields;
   const [contractTab, setContractTab] = useState<'主体' | '数字化服务'>('主体');
   const [configTab, setConfigTab] = useState<'主体' | '井道和悬吊' | '门'>('主体');
 
@@ -103,7 +104,7 @@ export function DeviceArchiveContent({ language, edition = "iot" }: { language: 
       {/* 设备信息 */}
       <DetailSection title={language === 'cn' ? "设备信息" : "Device Information"} titleId="archive-device-title">
         <div className="p-3">
-          <FieldGrid fields={deviceInfoFields} />
+          <FieldGrid fields={deviceFields} />
         </div>
       </DetailSection>
 

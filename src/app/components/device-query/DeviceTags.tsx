@@ -120,7 +120,7 @@ const LIFECYCLE_COPY: Record<Language, Record<"disabled" | "deleted", string>> =
   en: { disabled: "Disabled", deleted: "Deleted" },
 };
 
-/** 设备状态标签（仟帆）：已禁用 / 已删除，样式同「物联卡未安装」（灰底描边、禁用灰文字），不带图标。 */
+/** 设备状态标签（仟帆）：目前只用于「已删除」（已禁用不显示标签），样式同「物联卡未安装」（灰底描边、禁用灰文字），不带图标。 */
 export function LifecycleTag({ state, language }: { state: "disabled" | "deleted"; language: Language }) {
   return <TagShell className="justify-center rounded-sm border-stroke bg-secondarycontainer text-disabled">{LIFECYCLE_COPY[language][state]}</TagShell>;
 }

@@ -935,6 +935,11 @@
   padding-right: var(--iot-table-edge-end);
 }
 
+/* 操作记录表（device-detail/OperationRecordsTab）沿用设备事件表规格；首列是文字列而不是图标列，左内边距直接取表格左边距 */
+.device-events-table .t-table__header th.device-records-table__edge-start,
+.device-events-table .t-table__body > tr:not(.t-table__empty-row) > td.device-records-table__edge-start {
+  padding-left: var(--iot-table-edge-start);
+}
 .device-events-table .t-table__body > tr.device-events-table__anchor > td,
 .device-events-table .t-table__body > tr.device-events-table__anchor:hover > td {
   background-color: var(--brand-color-light);
@@ -1444,4 +1449,39 @@
   font-size: var(--text-foot12);
   font-weight: 400;
   line-height: var(--text-foot12--line-height);
+}
+
+/**
+ * 全局下拉面板（Dropdown 24901:36226；Select 面板规格相同）。
+ *
+ * 1. TDesign 的 `.t-popup` 外层自带白底，而真正的面板（`.t-popup__content`）是圆角的，
+ *    外层又比面板大一圈（为箭头 / 间距留的位置），结果面板上方出现一条白色间距、四角露出直角白底。
+ *    外层改为透明，只让面板自己画底色。
+ * 2. 面板：圆角 6、0.5px component-border 描边、shadow-popover。
+ * 3. Dropdown 菜单：宽 ≥160、内边距 6、项间距 2；菜单项高 28、内边距 3×8、圆角 4、14/22。
+ *    颜色与 hover / 选中态沿用 TDesign（已由 tdesign-bridge.css 桥接）。
+ */
+.t-popup {
+  background-color: transparent;
+}
+.t-popup__content.t-dropdown,
+.t-popup__content.t-select__dropdown {
+  border: 0.5px solid var(--component-border);
+  border-radius: var(--radius-md, 6px);
+  box-shadow: var(--elevation-popover);
+}
+.t-dropdown__menu {
+  min-width: 160px;
+  padding: 6px;
+  gap: 2px;
+}
+.t-dropdown__item {
+  /* TDesign 用行内样式把项宽限制在 maxColumnWidth（默认 100px），设计稿里菜单项铺满面板 */
+  width: 100%;
+  max-width: none !important;
+  min-height: 28px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm, 4px);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
 }
