@@ -107,6 +107,8 @@ const IOT_ORG: OrgSeed = {
   ],
 };
 
+/** 通力版本的全部总公司（组织树第一级），与用户数据权限无关；故障屏蔽管理的「生效范围」选项来自这里。 */
+export const IOT_COMPANIES: readonly string[] = IOT_ORG.companies;
 const QIANFAN_ORG: OrgSeed = {
   companies: ["申城电梯维保", "鼎力机电维保", "恒安电梯服务"],
   regions: [

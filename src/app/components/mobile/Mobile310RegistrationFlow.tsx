@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { StickyTabBar } from "./StickyTabBar";
 import { Button } from "tdesign-react";
 import MobileDialog from "tdesign-mobile-react/es/dialog/Dialog";
 import MobileMessage from "tdesign-mobile-react/es/message/Message";
@@ -37,7 +38,7 @@ const copy = {
     loadWaiting: "当前模块信息暂未加载完，实时数据暂无获取。", loadFailed: "当前未能获取到实时数据，加载失败。", offlineRealtime: "DTU尚未上线，暂无实时数据。",
     checkNetwork: "请检查网络和控制器连接是否正常...", timestamp: "2026-04-04 16:49:39",
     currentFloor: "当前楼层", serviceMode: "服务模式", doorStatus: "门状态", doorZone: "门区状态", speed: "运行速度", load: "实时负载", carCall: "轿厢召唤", hallCall: "厅外召唤",
-    normal: "正常", doorClosed: "已关门", inZone: "在门区", pendingTitle: "设备注册尚未完成", pendingBody: "系统正在同步设备模块信息与实时数据，请留在当前页面，等待数据加载完成。", restart: "重新注册", stay: "留在当页",
+    normal: "正常", doorClosed: "已关门", inZone: "在门区", pendingTitle: "设备注册尚未完成", pendingBody: "系统正在同步设备模块信息与实时数据，请留在当前页面，等待数据加载完毕后注册流程才能正常完成。", restart: "重新注册", stay: "留在当页",
     doneTitle: "设备注册完成", doneBody: "所有数据已加载，本设备已成功完成注册。", home: "返回首页",
   },
   en: {
@@ -49,7 +50,7 @@ const copy = {
     loadWaiting: "Module information is still loading. Live data is unavailable.", loadFailed: "Live data could not be retrieved. Loading failed.", offlineRealtime: "The DTU is offline. Live data is unavailable.",
     checkNetwork: "Check that the network and controller connection are working...", timestamp: "2026-04-04 16:49:39",
     currentFloor: "Current floor", serviceMode: "Service mode", doorStatus: "Door status", doorZone: "Door zone", speed: "Speed", load: "Live load", carCall: "Last car call", hallCall: "Last hall call",
-    normal: "Normal", doorClosed: "Closed", inZone: "In zone", pendingTitle: "Registration incomplete", pendingBody: "The system is synchronising module information and live data. Stay on this page until loading completes.", restart: "Restart", stay: "Stay here",
+    normal: "Normal", doorClosed: "Closed", inZone: "In zone", pendingTitle: "Registration incomplete", pendingBody: "The system is synchronising module information and live data. Stay on this page until loading finishes, otherwise registration cannot complete.", restart: "Restart", stay: "Stay here",
     doneTitle: "Registration complete", doneBody: "All data is loaded and this device has been registered.", home: "Return home",
   },
 } as const;
@@ -96,7 +97,7 @@ export function Mobile310RegistrationFlow({ language, onRestart, onReturnHome }:
         onBack={() => ready ? setCompleteOpen(true) : setPendingOpen(true)}
         extra={<button type="button" onClick={refresh} className="cursor-pointer rounded-sm border-0 bg-transparent p-1 text-body font-normal text-link focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-base">{t.refresh}</button>}
       />
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
+      <div className="flex-1 px-4 pb-4">
         {!ready && <RegistrationNotice message={notice} />}
         <DeviceSummary language={language} />
         <RegistrationTabs language={language} value={tab} onChange={setTab} />
@@ -133,7 +134,7 @@ export function Mobile310RegistrationFlow({ language, onRestart, onReturnHome }:
   );
 }
 
-function RegistrationNotice({ message }: { message: string }) {
+export function RegistrationNotice({ message }: { message: string }) {
   return (
     <div className="mt-4">
       <MobileMessage
@@ -147,7 +148,7 @@ function RegistrationNotice({ message }: { message: string }) {
   );
 }
 
-function DeviceSummary({ language }: { language: MobileLang }) {
+export function DeviceSummary({ language }: { language: MobileLang }) {
   const t = copy[language];
   const data = CONNECTION_310_REGISTRATION_DATA;
 
@@ -179,7 +180,7 @@ function RegistrationTabs({ language, value, onChange }: { language: MobileLang;
   const t = copy[language];
 
   return (
-    <div className="mt-4">
+    <StickyTabBar>
       <MobileDeviceDetailTabs
         tabs={[
           { key: "module", label: t.module, Icon: RegistrationModuleTabIcon },
@@ -190,7 +191,7 @@ function RegistrationTabs({ language, value, onChange }: { language: MobileLang;
         equalWidth
         ariaLabel={language === "cn" ? "设备数据内容" : "Device data content"}
       />
-    </div>
+    </StickyTabBar>
   );
 }
 
@@ -238,14 +239,14 @@ function RegistrationCard({ title, titleId, headerTag, timestampClassName, statu
   );
 }
 
-function RegistrationStatus({ online, offlineLabel, onlineLabel }: { online: boolean; offlineLabel: string; onlineLabel: string }) {
+export function RegistrationStatus({ online, offlineLabel, onlineLabel }: { online: boolean; offlineLabel: string; onlineLabel: string }) {
   return <span className={`inline-flex items-center gap-1 text-body ${online ? "text-success" : "text-placeholder"}`}>
     <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-current" />
     {online ? onlineLabel : offlineLabel}
   </span>;
 }
 
-function SubmoduleTag({ label }: { label: string }) {
+export function SubmoduleTag({ label }: { label: string }) {
   return (
     <span className="km-mobile-submodule-tag">
       <NodeIcon aria-hidden="true" className="size-3.5" />
@@ -254,7 +255,7 @@ function SubmoduleTag({ label }: { label: string }) {
   );
 }
 
-function ModuleDetails({ rows }: { rows: readonly (readonly [string, string])[] }) {
+export function ModuleDetails({ rows }: { rows: readonly (readonly [string, string])[] }) {
   return <dl className="m-0 flex flex-col gap-2 text-body">{rows.map(([label, value]) => <div key={label} className="flex min-w-0 items-center gap-3"><dt className="shrink-0 text-secondary-text">{label}</dt><dd className="m-0 min-w-0 flex-1 truncate text-right text-primary-text tabular-nums">{value}</dd></div>)}</dl>;
 }
 
@@ -299,5 +300,5 @@ function RealtimePanel({ language, state }: { language: MobileLang; state: Conne
     { id: "last-hall-call", label: t.hallCall, value: t.zeroSeconds, icon: ClockIcon },
     { id: "updated", label: t.updated, value: "16:49:39", icon: ClockIcon },
   ];
-  return <div id="connection-310-realtime-panel" role="tabpanel" aria-labelledby="connection-310-realtime-tab"><RegistrationCard title={t.realtime} titleId="connection-310-realtime-title" headerTag={t.timestamp} className="h-[397px]"><div className="grid grid-cols-[repeat(3,100px)] gap-2">{metrics.map((metric) => <MetricCard key={metric.id} metric={metric} tone="brand" layout="mobile" />)}</div></RegistrationCard></div>;
+  return <div id="connection-310-realtime-panel" role="tabpanel" aria-labelledby="connection-310-realtime-tab"><RegistrationCard title={t.realtime} titleId="connection-310-realtime-title" headerTag={t.timestamp} className="h-[397px]"><div className="grid grid-cols-3 gap-2">{metrics.map((metric) => <MetricCard key={metric.id} metric={metric} tone="brand" layout="mobile" fluid />)}</div></RegistrationCard></div>;
 }

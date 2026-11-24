@@ -29,6 +29,7 @@ import BatchOperationsContent from "./BatchOperationsContent";
 import ApprovalCenterContent from "./ApprovalCenterContent";
 import TaskListContent from "./TaskListContent";
 import RuleConfigurationContent from "./RuleConfigurationContent";
+import FaultMaskingContent from "./FaultMaskingContent";
 import UserManagementContent, { type AccountControl } from "./UserManagementContent";
 import { FloatingScrollbar, ScrollAreaPrimitive } from "./ui/scroll-area";
 import DeviceOverviewContent, { type DeviceOverviewView } from "./DeviceOverviewContent";
@@ -73,6 +74,7 @@ const translations = {
     softwareVersionManagement: "Software Version Management",
     softwarePackageManagement: "Software Package Management",
     profileManagement: "Profile Management",
+    faultMaskManagement: "Fault Mask Mgmt",
     // Tabs
     liveData: "Live Data",
     masterData: "Master Data",
@@ -217,6 +219,7 @@ const translations = {
     softwareVersionManagement: "软件版本管理",
     softwarePackageManagement: "软件更新包管理",
     profileManagement: "Profile管理",
+    faultMaskManagement: "故障屏蔽管理",
     // Tabs
     liveData: "实时数据",
     masterData: "设备档案",
@@ -519,6 +522,7 @@ export function buildSideNavItems(t: typeof translations.en, visibleItems: strin
         // 同样是迁移前的硬编码中文，保持不变
         { id: 'fault-management', label: 'Fault信息管理' },
         { id: 'rule-configuration', label: '规则配置' },
+        { id: 'fault-masking', label: t.faultMaskManagement },
       ],
     },
   ];
@@ -2187,6 +2191,7 @@ export default function Events({
   const isApprovalCenterPage = activeSidebarItem === 'approval-center';
   const isTaskListPage = activeSidebarItem === 'task-list';
   const isRuleConfigurationPage = activeSidebarItem === 'rule-configuration';
+  const isFaultMaskingPage = activeSidebarItem === 'fault-masking';
   const isUserManagementPage = activeSidebarItem === 'user-management';
   const isRoleManagementPage = activeSidebarItem === 'role-management';
   const isDeviceOverviewPage = activeSidebarItem === 'overview';
@@ -2213,7 +2218,7 @@ export default function Events({
   }, [currentEmail]);
   const isDeviceQueryPage = activeSidebarItem === null || activeSidebarItem === 'search';
   const isDeviceDetailPage = !isTaskProgressPage && isDeviceQueryPage && selectedQueryDevice !== null;
-  const isDevelopmentPage = !isTaskProgressPage && !isDeviceQueryPage && activeSidebarItem !== 'overview' && activeSidebarItem !== 'batch-operations' && activeSidebarItem !== 'approval-center' && activeSidebarItem !== 'task-list' && activeSidebarItem !== 'rule-configuration' && activeSidebarItem !== 'user-management' && activeSidebarItem !== 'role-management';
+  const isDevelopmentPage = !isTaskProgressPage && !isDeviceQueryPage && activeSidebarItem !== 'overview' && activeSidebarItem !== 'batch-operations' && activeSidebarItem !== 'approval-center' && activeSidebarItem !== 'task-list' && activeSidebarItem !== 'rule-configuration' && activeSidebarItem !== 'user-management' && activeSidebarItem !== 'role-management' && activeSidebarItem !== 'fault-masking';
 
   // Sync when parent changes the active tab
   useEffect(() => {
@@ -2364,6 +2369,8 @@ export default function Events({
             />
           ) : isRoleManagementPage ? (
             <RoleManagementContent key={getAccountEdition(displayUser)} language={language} edition={getAccountEdition(displayUser)} />
+          ) : isFaultMaskingPage ? (
+            <FaultMaskingContent language={language} />
           ) : isRuleConfigurationPage ? (
             <div className="mx-[16px] mt-[20px] md:mx-[24px]">
               <RuleConfigurationContent

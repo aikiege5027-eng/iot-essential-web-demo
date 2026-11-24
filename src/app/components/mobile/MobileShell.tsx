@@ -1,6 +1,7 @@
 import { useEffect, useId } from "react";
 import type { ReactNode } from "react";
 import { KoneLogo } from "../icons/nav-icons";
+import { MobileOverlayScrollbar } from "./MobileOverlayScrollbar";
 import { CloseMIcon, MobileChevronLeftIcon, MobileMenuIcon, MobileUserIcon } from "../icons/mobile-icons";
 
 /**
@@ -295,6 +296,7 @@ export function MobileShell<K extends string>({
         onClose={() => onMenuOpenChange(false)}
       />
       <main className="flex min-h-0 flex-1 flex-col">{children}</main>
+      <MobileOverlayScrollbar />
     </div>
   );
 }

@@ -85,6 +85,7 @@ const IA: RawEntry[] = [
       { id: "profile-management", cn: "Profile管理", en: "Profile Mgmt" },
       { id: "fault-management", cn: "Fault信息管理", en: "Fault Mgmt" },
       { id: "rule-configuration", cn: "规则配置", en: "Rule Setting" },
+      { id: "fault-masking", cn: "故障屏蔽管理", en: "Fault Mask Mgmt" },
     ],
   },
 ];

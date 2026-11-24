@@ -25,10 +25,13 @@ export function MetricCard({
   metric,
   tone,
   layout,
+  fluid = false,
 }: {
   metric: MetricCardMetric;
   tone: MetricCardTone;
   layout: MetricCardLayout;
+  /** 仅 mobile：宽度跟随父级网格列，而非固定 100px（Figma 稿为 375 宽下的 100px 实测值）。 */
+  fluid?: boolean;
 }) {
   const MetricIcon = metric.icon;
   const valueClass = metric.valueTone === "error" ? "text-error" : "text-primary-text";
@@ -40,7 +43,7 @@ export function MetricCard({
 
   if (layout === "mobile") {
     return (
-      <div className="flex h-[106px] w-[100px] shrink-0 flex-col items-center justify-between rounded-md bg-secondarycontainer p-1">
+      <div className={`flex h-[106px] ${fluid ? "min-w-0" : "w-[100px] shrink-0"} flex-col items-center justify-between rounded-md bg-secondarycontainer p-1`}>
         <span className="w-full truncate text-center text-foot12 text-secondary-text" title={metric.label}>
           {metric.label}
         </span>

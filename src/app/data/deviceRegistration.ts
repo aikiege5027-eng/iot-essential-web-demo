@@ -44,12 +44,33 @@ export function createDemoFloors(count = recognizedFloorLabels.length): Registra
   }));
 }
 
-export const SENSOR_PORT_OPTIONS: Record<RegistrationSensorKind, string[]> = {
-  doorA: ["平层感应-上", "平层感应-下"],
-  doorB: ["平层感应-上", "平层感应-下"],
-  machine: ["轿厢回路", "厅门回路"],
-};
+/**
+ * 传感器功能选项（IOT Delivery 12360:76329「传感器选择」）。
+ * 轿门传感器固定两项；机房传感器的回路按轿门数量变化：
+ * 单轿门为 检修 / 厅门 / 轿门 三项，A、B 两个轿门时厅门与轿门各拆成 A / B（共五项）。
+ */
+const DOOR_SENSOR_OPTIONS = ["光电传感器-平层感应_上", "光电传感器-平层感应_下"];
+export function getSensorPortOptions(kind: RegistrationSensorKind, pairedDoors: boolean): string[] {
+  if (kind !== "machine") return DOOR_SENSOR_OPTIONS;
+  return pairedDoors
+    ? ["电流传感器-检修回路", "电流传感器-厅门A回路", "电流传感器-厅门B回路", "电流传感器-轿门A回路", "电流传感器-轿门B回路"]
+    : ["电流传感器-检修回路", "电流传感器-厅门回路", "电流传感器-轿门回路"];
+}
+/** 轿门数量变化后，清掉机房传感器里已不在新选项中的功能，避免保留无效值。 */
+export function sanitizeMachinePorts(ports: string[], pairedDoors: boolean): string[] {
+  const options = getSensorPortOptions("machine", pairedDoors);
+  return ports.map((port) => (options.includes(port) ? port : ""));
+}
 
+/** 选择器里的完整功能名（如「光电传感器-平层感应_上」）在设备数据页显示为「平层感应-上」。 */
+export function sensorFunctionName(full: string): string {
+  const [, ...rest] = full.split("-");
+  return (rest.length ? rest.join("-") : full).replace(/_/g, "-");
+}
+/** 实时数据方格的标签：「平层感应-上」→「平层感应上」。 */
+export function sensorFunctionTileLabel(full: string): string {
+  return sensorFunctionName(full).replace(/-/g, "");
+}
 export const realtimeMetrics = [
   ["当前楼层", "1F [5]"],
   ["运行状态", "正常服务"],

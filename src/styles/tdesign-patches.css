@@ -1271,7 +1271,7 @@
   display: flex;
   height: 56px;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   padding: 0 12px;
 }
 
@@ -1384,7 +1384,6 @@
   gap: 8px;
   padding: 0 16px;
   border: 0;
-  border-bottom: 1px solid var(--component-stroke);
   background-color: var(--bg-color-container);
   color: var(--text-color-primary);
   font-size: var(--text-h7);
@@ -1394,7 +1393,12 @@
 }
 
 .km-registration-scan-sheet__action--primary {
+  border-bottom: 0.5px solid var(--component-stroke);
   color: var(--text-color-brand);
+}
+/* 取消行比上方两行矮：设计稿为 12px 上下内边距（48px），而非 16px（56px）。 */
+.km-registration-scan-sheet__action--cancel {
+  min-height: 48px;
 }
 
 .km-registration-scan-sheet__action:focus-visible {
@@ -1405,11 +1409,322 @@
 
 .km-registration-scan-sheet__divider {
   height: 8px;
-  background-color: var(--bg-color-secondarycontainer);
+  background-color: var(--bg-color-component);
 }
-
-.km-registration-scan-sheet__divider + .km-registration-scan-sheet__action {
-  border-bottom: 0;
+/**
+ * 传感器功能滚轮选择器（IOT Delivery 12360:76329「Picker 选择器」）。
+ * 头部 58 高（取消 左 16 / 标题 居中 / 确认 右 40）；滚轮区 184 高，5 行（24 高 + 16 间距，每格 40）；
+ * 中间行的 40 高选中条用 component 底色、6px 圆角；上下各有 48 高的渐隐遮罩；底部内边距 16。
+ */
+.km-registration-picker {
+  padding-bottom: 16px;
+  background-color: var(--bg-color-container);
+}
+.km-registration-picker__header {
+  position: relative;
+  display: flex;
+  height: 58px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.km-registration-picker__title {
+  margin: 0;
+  color: var(--text-color-primary);
+  font-size: var(--text-h6);
+  font-weight: 600;
+  line-height: var(--text-h6--line-height);
+}
+.km-registration-picker__link {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs, 3px);
+  background-color: transparent;
+  font-size: var(--text-body);
+  font-weight: 400;
+  line-height: var(--text-body--line-height);
+  cursor: pointer;
+}
+.km-registration-picker__link--cancel {
+  left: 16px;
+  color: var(--text-color-secondary);
+}
+.km-registration-picker__link--confirm {
+  right: 40px;
+  color: var(--text-color-brand);
+}
+.km-registration-picker__link:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 2px;
+}
+.km-registration-picker__content {
+  position: relative;
+  height: 184px;
+  padding: 0 16px;
+}
+.km-registration-picker__indicator {
+  position: absolute;
+  top: 72px;
+  right: 16px;
+  left: 16px;
+  height: 40px;
+  border-radius: var(--radius-md, 6px);
+  background-color: var(--bg-color-component);
+}
+.km-registration-picker__wheel {
+  position: relative;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 80px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-top: 80px;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+}
+.km-registration-picker__wheel::-webkit-scrollbar {
+  display: none;
+}
+.km-registration-picker__wheel:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: -2px;
+}
+.km-registration-picker__option {
+  height: 24px;
+  margin-bottom: 16px;
+  padding: 0 8px;
+  overflow: hidden;
+  color: var(--text-color-secondary);
+  font-size: var(--text-h7);
+  font-weight: 400;
+  line-height: var(--text-h7--line-height);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  cursor: pointer;
+}
+.km-registration-picker__option--near {
+  color: color-mix(in srgb, var(--text-color-primary) 60%, transparent);
+}
+.km-registration-picker__option--selected {
+  color: var(--text-color-primary);
+  font-weight: 600;
+}
+.km-registration-picker__mask {
+  position: absolute;
+  right: 16px;
+  left: 16px;
+  height: 48px;
+  pointer-events: none;
+}
+.km-registration-picker__mask--top {
+  top: 0;
+  background: linear-gradient(to bottom, var(--bg-color-container), transparent);
+}
+.km-registration-picker__mask--bottom {
+  bottom: 0;
+  background: linear-gradient(to top, var(--bg-color-container), transparent);
+}
+/**
+ * 移动端悬浮滚动条（MobileOverlayScrollbar）：隐藏文档自带的经典滚动条，避免它占用宽度、
+ * 让页面宽度随内容长短跳动，也避免 Drawer 锁滚动时在右侧留出空白。
+ */
+html.km-overlay-scroll {
+  scrollbar-width: none;
+}
+html.km-overlay-scroll::-webkit-scrollbar {
+  display: none;
+}
+.km-overlay-scrollbar {
+  position: fixed;
+  right: 2px;
+  z-index: 7000;
+  width: 6px;
+  border-radius: 3px;
+  background-color: rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transition: opacity 0.3s ease, background-color 0.2s ease;
+  touch-action: none;
+  pointer-events: none;
+}
+.km-overlay-scrollbar::before {
+  content: "";
+  position: absolute;
+  inset: 0 -4px 0 -8px;
+}
+.km-overlay-scrollbar--active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.km-overlay-scrollbar:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+/* 安装检查「开始检查」按钮（IOT Delivery 10450:6902）：28 高、左右 8 / 上下 3 内边距、6px 圆角、Body 14 Medium。 */
+.km-installation-start.t-button {
+  height: 28px;
+  padding: 3px 8px;
+  border-radius: var(--radius-md, 6px);
+  font-size: var(--text-body);
+  font-weight: 500;
+  line-height: var(--text-body--line-height);
+}
+/* 设备数据页楼层「编辑」态的标签输入框（IOT Delivery 11048:9071）：92 宽、8/5 内边距、4px 圆角、component-border 描边。 */
+.km-floor-label-input {
+  box-sizing: border-box;
+  width: 92px;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--component-border);
+  border-radius: var(--radius-sm, 4px);
+  outline: 0;
+  background-color: var(--bg-color-container);
+  color: var(--text-color-primary);
+  font-size: var(--text-body);
+  font-weight: 400;
+  line-height: var(--text-body--line-height);
+}
+.km-floor-label-input:focus {
+  border-color: var(--brand-color);
+  box-shadow: 0 0 0 2px var(--brand-color-focus);
+}
+/**
+ * 吸顶页签（StickyTabBar）：未吸附时随页面内边距缩进；吸附在顶部导航（56px）下方后横向铺满视口、去掉圆角。
+ * 外层容器通过 -16px 外边距 + 16px 内边距抵消页面内边距。
+ */
+.km-sticky-tabs {
+  position: sticky;
+  top: 56px;
+  z-index: 30;
+  margin: 0 -16px;
+  padding: 0 16px;
+}
+.km-sticky-tabs[data-stuck="true"] {
+  padding: 0;
+  background-color: var(--bg-color-container);
+}
+.km-sticky-tabs[data-stuck="true"] .device-detail-tabs.t-tabs {
+  border-radius: 0;
+}
+/* 连接过程的加载环（IOT Delivery 12362:76331 loading-blue）：品牌色渐变尾巴，粗细由 --ring-width 决定。 */
+.km-loading-ring {
+  display: inline-block;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0%, var(--brand-color) 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--ring-width, 2px)), #000 calc(100% - var(--ring-width, 2px) + 0.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - var(--ring-width, 2px)), #000 calc(100% - var(--ring-width, 2px) + 0.5px));
+  animation: km-registration-spin 0.9s linear infinite;
+}
+/**
+ * Connection 320 模块页签（IOT Delivery 10291:152081 / 10647:73494）。
+ * 「添加传感器」：32 高、品牌色 1px 描边、6px 圆角、12/5 内边距、图标与文字间距 4、文字 Body 14 Medium。
+ * 机房传感器序列号：无描边的多行文本框，右对齐，长序列号折行（10291:153199 中为 44px 行高）。
+ */
+.km-registration-add-sensor.t-button {
+  height: 32px;
+  gap: 4px;
+  padding: 5px 12px;
+  border-color: var(--brand-color);
+  border-radius: var(--radius-md, 6px);
+  background-color: var(--bg-color-container);
+  color: var(--text-color-brand);
+  font-size: var(--text-body);
+  font-weight: 500;
+  line-height: var(--text-body--line-height);
+}
+.km-registration-add-sensor.t-button:hover {
+  border-color: var(--brand-color-hover);
+  background-color: var(--brand-color-light);
+  color: var(--brand-color-hover);
+}
+.km-registration-add-sensor.t-button:active {
+  border-color: var(--brand-color-active);
+  color: var(--brand-color-active);
+}
+.km-registration-sensor-serial {
+  display: block;
+  min-width: 0;
+  flex: 1 1 0;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  overflow: hidden;
+  resize: none;
+  background-color: transparent;
+  color: var(--text-color-primary);
+  caret-color: var(--brand-color);
+  font-size: var(--text-body);
+  font-weight: 400;
+  line-height: var(--text-body--line-height);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.km-registration-sensor-serial::placeholder {
+  color: var(--text-color-disabled);
+  opacity: 1;
+}
+/**
+ * 楼层信息页（IOT Delivery 12360:76330）：总楼层数 / 平均层间距的 56 高输入行（左右内边距 16，
+ * 右侧品牌色文字操作），以及「楼层标签及楼层间距」表格里的 40 高输入框（描边 component-border、4px 圆角）。
+ */
+.km-registration-field--card {
+  padding: 0 16px;
+}
+.km-registration-field__action {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs, 3px);
+  background-color: transparent;
+  color: var(--text-color-brand);
+  font-size: var(--text-h7);
+  font-weight: 400;
+  line-height: var(--text-h7--line-height);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.km-registration-field__action:disabled {
+  color: var(--brand-color-disabled);
+  cursor: not-allowed;
+}
+.km-registration-field__action:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 2px;
+}
+.km-floor-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--component-border);
+  border-radius: var(--radius-sm, 4px);
+  outline: 0;
+  background-color: var(--bg-color-container);
+  color: var(--text-color-primary);
+  font-size: var(--text-h7);
+  font-weight: 400;
+  line-height: var(--text-h7--line-height);
+  text-overflow: ellipsis;
+}
+.km-floor-input::placeholder {
+  color: var(--text-color-placeholder);
+  opacity: 1;
+}
+.km-floor-input:focus {
+  border-color: var(--brand-color);
+  box-shadow: 0 0 0 2px var(--brand-color-focus);
+}
+.km-floor-input:disabled {
+  background-color: var(--bg-color-component-disabled);
+  color: var(--text-color-disabled);
+  cursor: not-allowed;
 }
 
 /**
@@ -1441,7 +1756,8 @@
  * 裸值 3px 圆角（承接为 radius-xs）、Foot 12 Regular（12/20）、左右内边距 8、上下 2，
  * 因此高度 24。折叠标签「+N」使用同一套样式。
  */
-.t-select-input--multiple .t-tag {
+.t-select-input--multiple .t-tag,
+.km-tag-input-multiple .t-tag {
   padding: 2px 8px;
   border-radius: var(--radius-xs, 3px);
   background-color: var(--component-stroke);
@@ -1450,7 +1766,22 @@
   font-weight: 400;
   line-height: var(--text-foot12--line-height);
 }
-
+/*
+ * large 档（40px 输入框，Figma Select size=large multiple 实测）：输入框内边距 上下 4 / 右 12 / 左 4（含 1px 描边），
+ * 标签 32px 高、Body 14/22、左右内边距 12、标签间距 8。TDesign 的 large 标签本身是 32px / 14px（间距只有 4，这里补成 8），
+ * 所以这里不套上面 24px 的小号规格，只保留色值和圆角，并把输入框左内边距从 TDesign 默认的 12px 收到 3px（加描边共 4px）。
+ */
+.t-select-input--multiple .t-tag.t-size-l,
+.km-tag-input-multiple .t-tag.t-size-l {
+  padding: 0 12px;
+  margin-right: 8px;
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+}
+.t-select-input--multiple .t-input.t-size-l,
+.km-tag-input-multiple .t-input.t-size-l {
+  padding-left: 3px;
+}
 /**
  * 全局下拉面板（Dropdown 24901:36226；Select 面板规格相同）。
  *

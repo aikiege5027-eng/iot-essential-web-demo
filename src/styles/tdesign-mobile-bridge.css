@@ -6,7 +6,12 @@
  * 而是仅为挂了 `.km-mobile-message` 的 Mobile Message 复刻必要基础布局。
  * 这样移动端的定制不会覆盖桌面端 `tdesign-react` 的 Message。
  */
+/*
+ * 阴影取自 Figma Light/Shadow/1（0 2px 5px，Message 实例 10596:47765 用 drop-shadow 实现），
+ * 比全局 --elevation-popover（0 4px 5px，Shadow/2）更贴近卡片，不能复用后者。
+ */
 .km-mobile-message.t-message {
+  --km-mobile-message-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   position: relative;
   top: auto;
   right: auto;
@@ -21,10 +26,10 @@
   border: 0;
   border-radius: var(--radius-md, 6px);
   background-color: var(--bg-color-container);
-  box-shadow: var(--elevation-popover);
+  box-shadow: var(--km-mobile-message-shadow);
   --td-message-bg-color: var(--bg-color-container);
   --td-message-border-radius: var(--radius-md, 6px);
-  --td-message-box-shadow: var(--elevation-popover);
+  --td-message-box-shadow: var(--km-mobile-message-shadow);
   --td-message-content-color: var(--text-color-primary);
   --td-message-warning-color: var(--warning-color);
 }
@@ -49,10 +54,25 @@
   flex: 0 0 auto;
   align-items: center;
   margin-right: 8px;
-  color: var(--warning-color);
+  color: var(--km-mobile-message-icon-color, var(--warning-color));
   font-size: 22px;
 }
 
+/* 浮层提示（上传结果）：成功 / 失败图标色，文字单行省略（IOT Delivery 10291:153449 / 10291:153461）。 */
+.km-mobile-message--success {
+  --km-mobile-message-icon-color: var(--success-color);
+}
+.km-mobile-message--error {
+  --km-mobile-message-icon-color: var(--error-color);
+}
+.km-mobile-message--toast .t-message__text-wrap {
+  overflow: hidden;
+}
+.km-mobile-message--toast .t-message__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 /**
  * 设备数据页子模块标签（IOT Delivery 10291:151813）。
  * 后补业务标识：22px 高、14px 节点图标、4px 间距、灰 250 背景与 mobile-grey-700 文字。
