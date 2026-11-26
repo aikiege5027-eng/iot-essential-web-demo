@@ -237,6 +237,7 @@ export default function App() {
             email={currentUser.email}
             currentUser={currentUser}
             onLogout={() => setCurrentUser(null)}
+            onSwitchAccount={(account) => setCurrentUser(account)}
           />
       </div>
     </>

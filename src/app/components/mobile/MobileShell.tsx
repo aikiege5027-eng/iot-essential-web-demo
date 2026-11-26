@@ -26,8 +26,8 @@ export interface MobileNavItem<K extends string = string> {
 }
 
 const copy = {
-  cn: { openMenu: "打开菜单", closeMenu: "关闭菜单", account: "账号", home: "返回首页", back: "返回", language: "语言", menu: "主导航" },
-  en: { openMenu: "Open menu", closeMenu: "Close menu", account: "Account", home: "Go to home", back: "Back", language: "Language", menu: "Main navigation" },
+  cn: { openMenu: "打开菜单", closeMenu: "关闭菜单", account: "账号", home: "返回首页", back: "返回", language: "语言", menu: "主导航", platform: "平台快捷切换", platformIot: "通力", platformQianfan: "仟帆" },
+  en: { openMenu: "Open menu", closeMenu: "Close menu", account: "Account", home: "Go to home", back: "Back", language: "Language", menu: "Main navigation", platform: "Switch platform", platformIot: "KONE", platformQianfan: "Qianfan" },
 };
 
 export interface MobileAccountPresentation {
@@ -51,6 +51,7 @@ export function MobileTopNav({
   accountMenuOpen,
   accountMenuTriggerId,
   brandLogo,
+  platform,
 }: {
   language: MobileLang;
   menuOpen: boolean;
@@ -66,6 +67,8 @@ export function MobileTopNav({
   accountMenuTriggerId?: string;
   /** 可选品牌标识。未传时沿用 KONE 标识。 */
   brandLogo?: ReactNode;
+  /** Demo 用的通力 / 仟帆快速切换；顶栏放得下时显示在这里，放不下时显示在展开菜单里。 */
+  platform?: MobilePlatformSwitch;
 }) {
   const t = copy[language];
   return (
@@ -80,6 +83,16 @@ export function MobileTopNav({
         <span className="truncate text-h7 font-semibold text-primary-text">IoT Essential</span>
       </button>
       <div className="flex items-center gap-2">
+        {platform && (
+          <MenuSegmented
+            compact
+            label={t.platform}
+            value={platform.value}
+            options={platformOptions(t)}
+            onChange={platform.onChange}
+            className={platformBarClass(platform.value)}
+          />
+        )}
         <button
           id={accountMenuTriggerId}
           type="button"
@@ -108,6 +121,59 @@ export function MobileTopNav({
   );
 }
 
+export type MobilePlatform = "iot" | "qianfan";
+
+/**
+ * 通力 / 仟帆切换在顶栏的可用空间：375 宽时通力版右侧只剩约 87px、仟帆版（Logo 容器 112）只剩约 47px，
+ * 最小档分段控件约 78 宽（两侧还要留约 7 的间距，共约 92），所以按版本设宽度阈值：
+ * 通力 ≥ 380、仟帆 ≥ 420 时显示在顶栏，更窄时改放进展开菜单（二者互斥）。Tailwind 需要静态类名，故逐个写出。
+ */
+const platformBarClass = (value: MobilePlatform) => (value === "qianfan" ? "hidden min-[420px]:flex" : "hidden min-[380px]:flex");
+const platformMenuClass = (value: MobilePlatform) => (value === "qianfan" ? "min-[420px]:hidden" : "min-[380px]:hidden");
+// 平台切换在菜单里隐藏时，语言切换要顶到最上面（去掉它原本的上边距由 mt-5 兜底）。
+const platformLanguageClass = (value: MobilePlatform) => (value === "qianfan" ? "min-[420px]:mt-5" : "min-[380px]:mt-5");
+const platformOptions = (t: { platformIot: string; platformQianfan: string }) => [
+  { value: "iot" as const, label: t.platformIot },
+  { value: "qianfan" as const, label: t.platformQianfan },
+];
+export interface MobilePlatformSwitch {
+  value: MobilePlatform;
+  onChange: (value: MobilePlatform) => void;
+}
+
+/** 展开菜单里的分段切换（radioButton-Group）：外框 component-stroke 底、2px 内边距，选中项白底。语言与平台切换共用。 */
+function MenuSegmented<V extends string>({ label, value, options, onChange, className = "", compact = false }: {
+  label: string;
+  value: V;
+  options: { value: V; label: string }[];
+  onChange: (value: V) => void;
+  className?: string;
+  /** 顶栏里的最小档：24 高、12/20 文字、内边距 6，两项共约 78 宽。 */
+  compact?: boolean;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className={`${compact ? "flex shrink-0 gap-0.5" : "mx-4 flex gap-1"} rounded-sm bg-stroke p-0.5 ${className}`}>
+      {options.map((option) => {
+        const active = value === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(option.value)}
+            className={`${compact ? "h-5 px-1.5 text-foot12" : "flex-1 px-4 py-[3px]"} cursor-pointer rounded-[2px] border-0 font-normal transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-base ${
+              active ? "bg-container text-primary-text" : "bg-transparent text-secondary-text"
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /** 菜单展开态：顶栏下方整屏白色面板（7216:26517）。 */
 export function MobileNavMenu<K extends string>({
   id,
@@ -117,6 +183,7 @@ export function MobileNavMenu<K extends string>({
   activeKey,
   onSelect,
   onLanguageChange,
+  platform,
   onClose,
 }: {
   id: string;
@@ -126,6 +193,8 @@ export function MobileNavMenu<K extends string>({
   activeKey: K;
   onSelect: (key: K) => void;
   onLanguageChange: (lang: MobileLang) => void;
+  /** Demo 用的通力 / 仟帆快速切换；不传则不显示。 */
+  platform?: MobilePlatformSwitch;
   onClose: () => void;
 }) {
   const t = copy[language];
@@ -139,27 +208,24 @@ export function MobileNavMenu<K extends string>({
 
   return (
     <div id={id} hidden={!open} className="fixed inset-x-0 bottom-0 top-14 z-40 overflow-y-auto bg-container">
+      {/* Demo 用：通力 / 仟帆快速切换，与桌面顶栏的 PlatformQuickSwitch 一致，直接以各平台默认账号进入 */}
+      {platform && (
+        <MenuSegmented
+          label={t.platform}
+          value={platform.value}
+          options={platformOptions(t)}
+          onChange={platform.onChange}
+          className={`mt-5 ${platformMenuClass(platform.value)}`}
+        />
+      )}
       {/* 中英文切换：radioButton-Group，外框 component-stroke 底、2px 内边距，选中项白底 */}
-      <div role="radiogroup" aria-label={t.language} className="mx-4 mt-5 flex gap-1 rounded-sm bg-stroke p-0.5">
-        {(["cn", "en"] as MobileLang[]).map((lang) => {
-          const active = language === lang;
-          return (
-            <button
-              key={lang}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() => onLanguageChange(lang)}
-              className={`flex-1 cursor-pointer rounded-[2px] border-0 px-4 py-[3px] font-normal transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-base ${
-                active ? "bg-container text-primary-text" : "bg-transparent text-secondary-text"
-              }`}
-            >
-              {lang === "cn" ? "中文" : "English"}
-            </button>
-          );
-        })}
-      </div>
-
+      <MenuSegmented
+        label={t.language}
+        value={language}
+        options={[{ value: "cn", label: "中文" }, { value: "en", label: "English" }]}
+        onChange={onLanguageChange}
+        className={platform ? `mt-3 ${platformLanguageClass(platform.value)}` : "mt-5"}
+      />
       <nav aria-label={t.menu} className="mt-3">
         <ul className="m-0 list-none p-0">
           {items.map((item) => {
@@ -242,6 +308,7 @@ export function MobileShell<K extends string>({
   accountMenuOpen,
   accountMenuTriggerId,
   brandLogo,
+  platform,
   children,
 }: {
   language: MobileLang;
@@ -261,6 +328,8 @@ export function MobileShell<K extends string>({
   accountMenuTriggerId?: string;
   /** 可选品牌标识。未传时沿用 KONE 标识。 */
   brandLogo?: ReactNode;
+  /** Demo 用的通力 / 仟帆快速切换，显示在展开菜单顶部。 */
+  platform?: MobilePlatformSwitch;
   children: ReactNode;
 }) {
   const menuId = useId();
@@ -276,6 +345,7 @@ export function MobileShell<K extends string>({
           onLogoClick?.();
         }}
         onUserClick={onUserClick}
+        platform={platform}
         account={account}
         accountMenuId={accountMenuId}
         accountMenuOpen={accountMenuOpen}
@@ -293,6 +363,7 @@ export function MobileShell<K extends string>({
           onMenuOpenChange(false);
         }}
         onLanguageChange={onLanguageChange}
+        platform={platform}
         onClose={() => onMenuOpenChange(false)}
       />
       <main className="flex min-h-0 flex-1 flex-col">{children}</main>

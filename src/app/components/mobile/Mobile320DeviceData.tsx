@@ -21,10 +21,11 @@ import {
 import { WarningCircleFilledIcon } from "../icons/warning-circle-filled";
 import { RegistrationModuleTabIcon, RegistrationRealtimeTabIcon } from "../icons/registration-icons";
 import elevatorPanelPhoto from "../../../assets/registration-elevator-panel.jpg";
-import { sensorFunctionName, sensorFunctionTileLabel, type RegistrationFloor, type RegistrationSensorConfig } from "../../data/deviceRegistration";
+import { sensorFunctionName, sensorFunctionTileLabel, type RegistrationFloor, type RegistrationSensorConfig, type RegistrationSensorKind } from "../../data/deviceRegistration";
 import { FloorDetails } from "./Mobile320ConnectionView";
 import { sensorTitle } from "./Mobile320ModulePanel";
-import { DeviceSummary, ModuleDetails, RegistrationStatus, SubmoduleTag } from "./Mobile310RegistrationFlow";
+import { createSmlRegistration, DeviceSummary, ModuleDetails, RegistrationNotice, RegistrationStatus, SmlSourceFilter, SubmoduleTag, type DataSource, type SmlRegistration } from "./Mobile310RegistrationFlow";
+import { RegistrationSmlDialog } from "./RegistrationSmlDialog";
 import { MobileBottomBar, MobilePageTitle, type MobileLang } from "./MobileShell";
 
 /**
@@ -45,7 +46,7 @@ const copy = {
     connection: "KONE Connection 320", online: "在线", offline: "未上线", submodule: "子模块",
     serial: "序列号", software: "软件版本", registration: "注册状态", registrationTime: "注册时间", registered: "已注册",
     portName: "端口名称", placement: "安装位置", left: "左侧轿门", right: "右侧轿门", configState: "配置状态", configured: "已配置",
-    configTime: "配置完成时间", functions: "传感器功能",
+    configTime: "配置完成时间", functions: "传感器功能", smlNotice: "当前设备可注册 SML 信息，请及时注册。", registerNow: "立即注册", notConfigured: "未配置", sensorIncomplete: "当前有传感器未完成配置。", configureSensors: "传感器配置",
     floorConfigTime: "楼层配置完成时间", photo: "电梯面板照片", labels: "楼层标签及楼层间距", totalFloors: "总楼层数：",
     edit: "编辑", cancel: "取消", done: "完成", floorLearning: "楼层学习尚未完成，当前楼层间距非最终准确结果。",
     labelRequired: "楼层标签不能为空。",
@@ -60,7 +61,7 @@ const copy = {
     connection: "KONE Connection 320", online: "Online", offline: "Offline", submodule: "Submodule",
     serial: "Serial", software: "Software version", registration: "Registration", registrationTime: "Registration time", registered: "Registered",
     portName: "Port name", placement: "Placement", left: "Left door", right: "Right door", configState: "Configuration", configured: "Configured",
-    configTime: "Configured at", functions: "Sensor functions",
+    configTime: "Configured at", functions: "Sensor functions", smlNotice: "SML information can be registered for this device. Please register it promptly.", registerNow: "Register now", notConfigured: "Not configured", sensorIncomplete: "Some sensors have not finished configuration.", configureSensors: "Configure sensors",
     floorConfigTime: "Floor configured at", photo: "Elevator panel photo", labels: "Floor labels and spacing", totalFloors: "Total floors: ",
     edit: "Edit", cancel: "Cancel", done: "Done", floorLearning: "Floor learning is not finished. Floor spacing is not final yet.",
     labelRequired: "Floor labels cannot be empty.",
@@ -72,7 +73,7 @@ const copy = {
   },
 } as const;
 
-export function Mobile320DeviceData({ language, serial, sensors, floors, skipped, onBack, onRefresh, onFloorLabels, onReconfigure, onComplete }: {
+export function Mobile320DeviceData({ language, serial, sensors, floors, skipped, registered = false, unconfigured = [], smlPending = false, onBack, onRefresh, onFloorLabels, onReconfigure, onConfigureSensors, onComplete }: {
   language: MobileLang;
   serial: string;
   /** 已启用的传感器（轿门 A / B、机房）。 */
@@ -80,14 +81,25 @@ export function Mobile320DeviceData({ language, serial, sensors, floors, skipped
   floors: RegistrationFloor[];
   /** 之前是否跳过了安装检查。 */
   skipped: boolean;
+  /** 已注册设备（设计稿 10291:155068）：底部只有一个通栏的「重新配置」，没有「完成」。 */
+  registered?: boolean;
+  /** 已注册但尚未配置的传感器（设计稿 10291:154884）：顶部提示、该卡片未上线 / 未配置，底部变成「传感器配置」。 */
+  unconfigured?: RegistrationSensorKind[];
+  /** 已注册设备线下新增了 SML（设计与 310 一致）：顶部提示「立即注册」，注册后模块信息与实时数据多一套 SML 数据。 */
+  smlPending?: boolean;
   onBack: () => void;
   onRefresh: () => void;
   onFloorLabels: (labels: string[]) => void;
   onReconfigure: () => void;
+  onConfigureSensors?: () => void;
   onComplete: () => void;
 }) {
   const t = copy[language];
   const [tab, setTab] = useState<Tab>("module");
+  const [smlDialogOpen, setSmlDialogOpen] = useState(false);
+  const [sml, setSml] = useState<SmlRegistration | null>(null);
+  // 刚注册完 SML 默认先看 SML 数据，可以切回云管家；楼层信息不区分数据来源。
+  const [source, setSource] = useState<DataSource>("cloud");
   const paired = sensors.some((sensor) => sensor.kind === "doorB");
 
   return (
@@ -98,7 +110,9 @@ export function Mobile320DeviceData({ language, serial, sensors, floors, skipped
         onBack={onBack}
         extra={<button type="button" onClick={onRefresh} className="cursor-pointer rounded-sm border-0 bg-transparent p-1 text-body font-normal text-link focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-base">{t.refresh}</button>}
       />
-      <div className="flex-1 px-4 pt-4 pb-4">
+      <div className="flex-1 px-4 pb-4">
+        {unconfigured.length > 0 && <RegistrationNotice message={t.sensorIncomplete} />}
+        {smlPending && !sml && <RegistrationNotice message={t.smlNotice} action={<Button size="small" theme="primary" onClick={() => setSmlDialogOpen(true)}>{t.registerNow}</Button>} />}
         <DeviceSummary language={language} />
         <StickyTabBar>
           <MobileDeviceDetailTabs
@@ -114,14 +128,25 @@ export function Mobile320DeviceData({ language, serial, sensors, floors, skipped
           />
         </StickyTabBar>
         <div className="mt-4 flex flex-col gap-3">
-          {tab === "module" && <ModuleTab language={language} serial={serial} sensors={sensors} paired={paired} />}
+          {sml && tab !== "floor" && <SmlSourceFilter language={language} value={source} onChange={setSource} className="mb-1" />}
+          {tab === "module" && <ModuleTab language={language} serial={serial} sensors={sensors} paired={paired} unconfigured={unconfigured} sml={sml} source={source} />}
           {tab === "floor" && <FloorTab language={language} floors={floors} skipped={skipped} onFloorLabels={onFloorLabels} />}
-          {tab === "realtime" && <RealtimeTab language={language} sensors={sensors} paired={paired} skipped={skipped} />}
+          {tab === "realtime" && <RealtimeTab language={language} sensors={sensors.filter((sensor) => !unconfigured.includes(sensor.kind))} paired={paired} skipped={skipped} sml={sml} source={source} />}
         </div>
       </div>
+      <RegistrationSmlDialog
+        language={language}
+        visible={smlDialogOpen}
+        onCancel={() => setSmlDialogOpen(false)}
+        onConfirm={(value) => { setSml(createSmlRegistration(value)); setSource("sml"); setSmlDialogOpen(false); }}
+      />
       <MobileBottomBar>
-        <Button className="km-mobile-button--secondary" theme="default" size="large" block onClick={onReconfigure}>{t.reconfigure}</Button>
-        <Button theme="primary" size="large" block onClick={onComplete}>{t.complete}</Button>
+        {unconfigured.length > 0 ? (
+          <Button theme="primary" size="large" block onClick={onConfigureSensors}>{t.configureSensors}</Button>
+        ) : (
+          <Button className="km-mobile-button--secondary" theme="default" size="large" block onClick={onReconfigure}>{t.reconfigure}</Button>
+        )}
+        {!registered && <Button theme="primary" size="large" block onClick={onComplete}>{t.complete}</Button>}
       </MobileBottomBar>
     </div>
   );
@@ -133,8 +158,17 @@ function moduleName(kind: RegistrationSensorConfig["kind"], paired: boolean) {
   return paired ? (kind === "doorA" ? "Nexus-DoorA" : "Nexus-DoorB") : "Nexus-Door";
 }
 
-function ModuleTab({ language, serial, sensors, paired }: { language: MobileLang; serial: string; sensors: RegistrationSensorConfig[]; paired: boolean }) {
+function ModuleTab({ language, serial, sensors, paired, unconfigured, sml, source }: { language: MobileLang; serial: string; sensors: RegistrationSensorConfig[]; paired: boolean; unconfigured: RegistrationSensorKind[]; sml: SmlRegistration | null; source: DataSource }) {
   const t = copy[language];
+  if (source === "sml" && sml) {
+    return (
+      <div id="connection-320-data-module-panel" role="tabpanel" className="flex flex-col gap-3">
+        <DetailSection title="SML" titleId="data-sml-title" extra={<RegistrationStatus online offlineLabel={t.offline} onlineLabel={t.online} />} contentClassName="px-3 py-[11px]">
+          <ModuleDetails rows={[[t.serial, sml.serial], [t.software, sml.software], [t.registration, t.registered], [t.registrationTime, sml.registrationTime]]} />
+        </DetailSection>
+      </div>
+    );
+  }
   return (
     <div id="connection-320-data-module-panel" role="tabpanel" className="flex flex-col gap-3">
       <DetailSection
@@ -147,13 +181,14 @@ function ModuleTab({ language, serial, sensors, paired }: { language: MobileLang
       </DetailSection>
       {sensors.map((sensor) => {
         const machine = sensor.kind === "machine";
+        const pending = unconfigured.includes(sensor.kind);
         const rows: (readonly [string, string])[] = [
           [t.serial, sensor.serial || "-"],
           [t.portName, machine ? "USB-LoRa" : "USB"],
           ...(machine ? [] : [[t.placement, sensor.placement === "left" ? t.left : sensor.placement === "right" ? t.right : "-"] as const]),
           [t.software, "30.20.7"],
-          [t.configState, t.configured],
-          [t.configTime, CONFIG_TIME],
+          [t.configState, pending ? t.notConfigured : t.configured],
+          ...(pending ? [] : [[t.configTime, CONFIG_TIME] as const]),
         ];
         return (
           <DetailSection
@@ -162,7 +197,7 @@ function ModuleTab({ language, serial, sensors, paired }: { language: MobileLang
             titleId={`data-${sensor.kind}-title`}
             timestamp={<SubmoduleTag label={t.submodule} />}
             timestampClassName="-ml-1"
-            extra={<RegistrationStatus online offlineLabel={t.offline} onlineLabel={t.online} />}
+            extra={<RegistrationStatus online={!pending} offlineLabel={t.offline} onlineLabel={t.online} />}
             contentClassName="flex flex-col gap-3 px-3 py-[11px]"
           >
             <ModuleDetails rows={rows} />
@@ -267,7 +302,7 @@ function functionMetric(full: string, index: number): MetricCardMetric {
   return { id, label, value: "302", icon: ElevatorDoorIcon, valueTone: "error" };
 }
 
-function RealtimeTab({ language, sensors, paired, skipped }: { language: MobileLang; sensors: RegistrationSensorConfig[]; paired: boolean; skipped: boolean }) {
+function RealtimeTab({ language, sensors, paired, skipped, sml, source }: { language: MobileLang; sensors: RegistrationSensorConfig[]; paired: boolean; skipped: boolean; sml: SmlRegistration | null; source: DataSource }) {
   const t = copy[language];
   const runtime: MetricCardMetric[] = [
     { id: "current-floor", label: t.currentFloor, value: "1F [5]", icon: LayersIcon, trailing: <ArrowUpIcon aria-hidden="true" className="size-[22px] text-primary-text" /> },
@@ -277,6 +312,15 @@ function RealtimeTab({ language, sensors, paired, skipped }: { language: MobileL
     ...(paired ? [{ id: "door-b", label: t.doorB, value: t.open, icon: ElevatorDoorOpenIcon }] : []),
     { id: "door-zone", label: t.doorZone, value: t.inZone, icon: WarningTriangleIcon },
   ];
+  if (source === "sml" && sml) {
+    return (
+      <div id="connection-320-data-realtime-panel" role="tabpanel" className="flex flex-col gap-3">
+        <DetailSection title="SML" titleId="data-sml-live-title" timestamp={DATA_TIME} contentClassName="p-3">
+          <Tiles metrics={runtime} tone="brand" />
+        </DetailSection>
+      </div>
+    );
+  }
   return (
     <div id="connection-320-data-realtime-panel" role="tabpanel" className="flex flex-col gap-3">
       <DetailSection title={t.runtime} titleId="data-runtime-title" timestamp={DATA_TIME} contentClassName="flex flex-col gap-2 p-3">

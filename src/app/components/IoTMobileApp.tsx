@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { MessagePlugin } from "tdesign-react";
-import type { AppAccount, AppEdition } from "../data/accounts";
+import { ACCOUNTS, EDITION_DEFAULT_EMAILS, type AppAccount, type AppEdition } from "../data/accounts";
 import type { QueryDevice } from "../data/deviceQuery";
 import { MobileLiveDataContent } from "./MobileLiveDataContent";
 import { MobileDeviceArchiveContent } from "./MobileDeviceArchiveContent";
@@ -63,6 +63,7 @@ export default function IoTMobileApp({
   email,
   currentUser,
   onLogout,
+  onSwitchAccount,
 }: {
   activePageOverride?: PageKey;
   onActivePageChange?: (page: PageKey) => void;
@@ -79,6 +80,8 @@ export default function IoTMobileApp({
   email: string;
   currentUser: AppAccount;
   onLogout: () => void;
+  /** Demo 用：通力 / 仟帆快速切换时，以目标平台的默认账号进入。 */
+  onSwitchAccount?: (account: AppAccount) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
@@ -192,7 +195,18 @@ export default function IoTMobileApp({
         avatarUrl: currentUser.avatar,
         label: language === "cn" ? currentUser.name : currentUser.nameEn,
       }}
-      brandLogo={edition === "qianfan" ? <img src={qianFanLogo} alt="" className="h-11 w-32 shrink-0 object-contain object-left" /> : undefined}
+      platform={onSwitchAccount ? {
+        value: edition,
+        onChange: (next) => {
+          if (next === edition) return;
+          const account = ACCOUNTS.find((candidate) => candidate.email === EDITION_DEFAULT_EMAILS[next]);
+          if (!account) return;
+          setMenuOpen(false);
+          setProfileOpen(false);
+          onSwitchAccount(account);
+        },
+      } : undefined}
+      brandLogo={edition === "qianfan" ? <img src={qianFanLogo} alt="" className="h-9 w-28 shrink-0 object-contain object-left" /> : undefined}
     >
       {profileOpen ? (
         <MobileProfilePage language={language} user={currentUser} onLogout={onLogout} />

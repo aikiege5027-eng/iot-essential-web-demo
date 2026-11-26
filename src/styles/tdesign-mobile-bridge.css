@@ -49,6 +49,15 @@
   white-space: normal;
 }
 
+/* 文案右侧的操作（如「立即注册」小号主按钮）：与图标、文字顶对齐（文案折成多行时按钮也停在第一行），不压缩。 */
+.km-mobile-message .t-message__link {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  align-self: flex-start;
+  margin-left: 12px;
+}
+
 .km-mobile-message .t-message__icon--left {
   display: flex;
   flex: 0 0 auto;
@@ -197,6 +206,105 @@
 .km-mobile-registration-dialog .t-dialog__button.t-button--primary::before,
 .km-mobile-registration-dialog .t-dialog__button.t-button--primary::after {
   border: 0;
+}
+
+/*
+ * 注册 SML 弹窗 = Mobile Dialog 的「输入类对话框」变体（China Design system for mobile 24386:5278，
+ * title + content + input，节点 27360:22499；只有 title + input 时为 27360:22500）。与确认类弹窗的差别：
+ * - 标题与描述间距 8，描述与输入框间距 16，内容区底部内边距 24；描述按 DTU 序列号输入框的辅助文字用 Foot 12 次要色，
+ *   不用 16/24（17 个字在 263px 内会折行并留下孤字）；
+ * - 输入框 48 高、控件底色、圆角 6、内边距 12/16、16/24 文字、占位符 text-color-placeholder，无描边；
+ *   右侧扫码图标沿用 DTU 序列号输入框（`.km-registration-scan-trigger`，间距 16）；
+ * - 聚焦态采用 Web Input 的 focus（China Design system for web）：白底、1px 品牌色描边、2px 品牌焦点色外环；
+ * - 操作区是「文字按钮」主题：56 高，上边 0.5px 描边，两个按钮之间 40 高竖线，
+ *   取消用主文字色、确认用品牌色，均 16/24 Semibold，白底无填充。
+ */
+.km-mobile-registration-dialog.km-mobile-sml-dialog .t-dialog__content {
+  padding-bottom: 24px;
+}
+/* 弹窗正文默认 overflow-y:auto（连带把 overflow-x 也变成裁切），会切掉输入框聚焦时 2px 外环的左右两侧；
+   这个弹窗内容很短、不需要滚动，改成 visible。 */
+.km-mobile-registration-dialog.km-mobile-sml-dialog .t-dialog__body,
+.km-mobile-registration-dialog.km-mobile-sml-dialog .t-dialog__body-text {
+  overflow: visible;
+}
+.km-mobile-sml-dialog .km-mobile-sml-dialog__field {
+  margin-top: 16px;
+  text-align: left;
+}
+.km-mobile-sml-dialog__control {
+  display: flex;
+  height: 48px;
+  align-items: center;
+  gap: 16px;
+  box-sizing: border-box;
+  padding: 11px 15px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md, 6px);
+  background-color: var(--bg-color-component);
+}
+.km-mobile-sml-dialog__control:focus-within {
+  border-color: var(--brand-color);
+  background-color: var(--bg-color-container);
+  box-shadow: 0 0 0 2px var(--brand-color-focus);
+}
+.km-mobile-sml-dialog__control[data-invalid="true"] {
+  border-color: var(--error-color);
+}
+.km-mobile-sml-dialog__control[data-invalid="true"]:focus-within {
+  box-shadow: 0 0 0 2px var(--error-color-focus, var(--brand-color-focus));
+}
+.km-mobile-sml-dialog__input {
+  min-width: 0;
+  flex: 1 1 auto;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  caret-color: var(--brand-color);
+  color: var(--text-color-primary);
+  font-size: var(--text-h7);
+  line-height: var(--text-h7--line-height);
+}
+.km-mobile-sml-dialog__input::placeholder {
+  color: var(--text-color-placeholder);
+  opacity: 1;
+}
+.km-mobile-sml-dialog__error {
+  margin: 4px 0 0;
+  color: var(--error-color);
+  font-size: var(--text-foot12);
+  line-height: var(--text-foot12--line-height);
+}
+.km-mobile-registration-dialog.km-mobile-sml-dialog .t-dialog__footer {
+  padding: 0;
+  border-top: 0.5px solid var(--component-stroke);
+}
+.km-mobile-registration-dialog.km-mobile-sml-dialog .t-dialog__button,
+.km-mobile-registration-dialog.km-mobile-sml-dialog .t-dialog__button.t-button--light,
+.km-mobile-registration-dialog.km-mobile-sml-dialog .t-dialog__button.t-button--primary {
+  height: 56px;
+  padding: 16px 20px;
+  border: 0;
+  border-radius: var(--radius-md, 6px);
+  background-color: var(--bg-color-container);
+  color: var(--text-color-primary);
+}
+.km-mobile-registration-dialog.km-mobile-sml-dialog .t-dialog__button.t-button--primary {
+  color: var(--text-color-brand);
+}
+.km-mobile-registration-dialog.km-mobile-sml-dialog .t-dialog__button:hover,
+.km-mobile-registration-dialog.km-mobile-sml-dialog .t-dialog__button:active {
+  background-color: var(--bg-color-container-hover);
+}
+.km-mobile-registration-dialog.km-mobile-sml-dialog .t-dialog__button + .t-dialog__button {
+  margin-left: 0;
+  /* 两个按钮之间 40 高的 0.5px 竖线（设计稿 Divider 26625:6463）。 */
+  background-image: linear-gradient(var(--component-stroke), var(--component-stroke));
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: 0.5px 40px;
 }
 
 /**

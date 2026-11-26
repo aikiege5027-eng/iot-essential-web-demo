@@ -6,6 +6,7 @@ import { RegistrationPendingDialog } from "./RegistrationPendingDialog";
 import { RegistrationActionSheet } from "./RegistrationActionSheet";
 import { RegistrationLoadingToast, RegistrationTopMessage } from "./RegistrationToasts";
 import { Mobile320ConnectionView } from "./Mobile320ConnectionView";
+import { getRegisteredSml, setRegisteredSml } from "../../data/smlRegistrationStore";
 import { Mobile320DeviceData } from "./Mobile320DeviceData";
 import { Mobile320InstallationView } from "./Mobile320InstallationView";
 import { RegistrationSkipDialog } from "./RegistrationSkipDialog";
@@ -18,8 +19,20 @@ import {
   ADVANCED_EQUIPMENT_NUMBER,
   CONNECTION_310_POST_REGISTRATION_EQUIPMENT_NUMBER,
   createDemoFloors,
+  createRegistered320Sensors,
   DEMO_DTU_SERIAL,
   DEMO_MACHINE_SENSOR_SERIAL,
+  REGISTERED_320_EQUIPMENT_NUMBER,
+  REGISTERED_310_EQUIPMENT_NUMBER,
+  REGISTERED_310_SML_EQUIPMENT_NUMBER,
+  REGISTERED_320_INCOMPLETE_EQUIPMENT_NUMBER,
+  REGISTERED_320_SML_EQUIPMENT_NUMBER,
+  SML_DEVICE_EQUIPMENT_NUMBER,
+  CLOUD_MODULES_310_SML,
+  DEVICE_INFO_310_SML,
+  createSmlDeviceInfo,
+  LCE_SML_REGISTERED_EQUIPMENT_NUMBER,
+  DEMO_SML_SERIAL,
   realtimeMetrics,
   sanitizeMachinePorts,
   type RegistrationFloor,
@@ -128,6 +141,14 @@ export function MobileDeviceRegistration({ language, onReturnHome }: { language:
   const [functionChecks, setFunctionChecks] = useState<FunctionChecks>({ door: "idle", travel: "idle" });
   const [skipOpen, setSkipOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
+  // 已注册设备（32032000）直接查看设备数据：只展示 重新配置，不经过配置与安装检查。
+  // 32032001：已注册但机房传感器未配置，顶部提示、底部「传感器配置」。
+  const [registeredView, setRegisteredView] = useState(false);
+  const [sensorsPending, setSensorsPending] = useState(false);
+  // 31031000：已注册的 310 设备，直接显示设备数据页。
+  const [registered310, setRegistered310] = useState(false);
+  // 31031001：同样已注册，但线下新增了 SML 传感器，顶部提示可以注册 SML 信息。
+  const [smlPending, setSmlPending] = useState(false);
   const [incompleteOpen, setIncompleteOpen] = useState(false);
   const installationRunRef = useRef(0);
 
@@ -166,11 +187,40 @@ export function MobileDeviceRegistration({ language, onReturnHome }: { language:
     resetInstallationRun();
     setTab("module");
     setCompleteOpen(false);
+    setRegisteredView(false);
+    setSensorsPending(false);
+    setRegistered310(false);
+    setSmlPending(false);
   };
 
   useEffect(() => {
     if (phase !== "verifying") return;
-    const timer = window.setTimeout(() => setPhase("confirmed"), 1000);
+    const timer = window.setTimeout(() => {
+      if (equipment === REGISTERED_310_EQUIPMENT_NUMBER || equipment === REGISTERED_310_SML_EQUIPMENT_NUMBER || equipment === LCE_SML_REGISTERED_EQUIPMENT_NUMBER) {
+        setRegistered310(true);
+        setSmlPending(equipment === REGISTERED_310_SML_EQUIPMENT_NUMBER);
+        setTab("module");
+        setPhase("connection310data");
+        return;
+      }
+      if (equipment === REGISTERED_320_EQUIPMENT_NUMBER || equipment === REGISTERED_320_INCOMPLETE_EQUIPMENT_NUMBER || equipment === REGISTERED_320_SML_EQUIPMENT_NUMBER) {
+        // 已注册设备：验证通过后直接进入设备数据页，不需要再填 DTU 序列号。
+        const incomplete = equipment === REGISTERED_320_INCOMPLETE_EQUIPMENT_NUMBER;
+        const [registeredDoorA, registeredDoorB, registeredMachine] = createRegistered320Sensors(DEMO_DTU_SERIAL, !incomplete);
+        setSensorsPending(incomplete);
+        setSmlPending(equipment === REGISTERED_320_SML_EQUIPMENT_NUMBER);
+        setSerial(DEMO_DTU_SERIAL);
+        setDoorA(registeredDoorA);
+        setDoorB(registeredDoorB);
+        setMachine(registeredMachine);
+        resetInstallationRun();
+        setTab("module");
+        setRegisteredView(true);
+        setPhase("postcheck");
+        return;
+      }
+      setPhase("confirmed");
+    }, 1000);
     return () => window.clearTimeout(timer);
   }, [phase]);
 
@@ -269,7 +319,7 @@ export function MobileDeviceRegistration({ language, onReturnHome }: { language:
   const beginRegistration = () => {
     if (!serial.trim()) return;
     setTab("module");
-    if (usesConnection310PostRegistrationFlow) {
+    if (usesConnection310PostRegistrationFlow || equipment === SML_DEVICE_EQUIPMENT_NUMBER) {
       setPhase("connection310data");
       return;
     }
@@ -505,7 +555,7 @@ export function MobileDeviceRegistration({ language, onReturnHome }: { language:
   }
 
   if (phase === "connection310data") {
-    return <Mobile310RegistrationFlow language={language} onRestart={reset} onReturnHome={onReturnHome} />;
+    return <Mobile310RegistrationFlow language={language} onRestart={reset} onReturnHome={onReturnHome} registered={registered310} smlPending={registered310 && smlPending} mainModule={equipment === SML_DEVICE_EQUIPMENT_NUMBER ? { title: "SML", serial: serial.trim() } : undefined} cloudModules={equipment === REGISTERED_310_SML_EQUIPMENT_NUMBER ? CLOUD_MODULES_310_SML : undefined} device={equipment === REGISTERED_310_SML_EQUIPMENT_NUMBER ? DEVICE_INFO_310_SML : equipment === SML_DEVICE_EQUIPMENT_NUMBER || equipment === LCE_SML_REGISTERED_EQUIPMENT_NUMBER ? createSmlDeviceInfo(equipment) : undefined} initialSml={equipment === REGISTERED_310_SML_EQUIPMENT_NUMBER ? getRegisteredSml(equipment) : equipment === LCE_SML_REGISTERED_EQUIPMENT_NUMBER ? { serial: DEMO_SML_SERIAL, software: "1.0.4", registrationTime: "2026/03/02 00:00:00" } : null} cloudPending={equipment === LCE_SML_REGISTERED_EQUIPMENT_NUMBER} onSmlChange={(next) => setRegisteredSml(equipment, next)} />;
   }
 
   if (phase === "connecting") {
@@ -540,11 +590,14 @@ export function MobileDeviceRegistration({ language, onReturnHome }: { language:
           serial={serial.trim()}
           sensors={configuredSensors}
           floors={floors}
-          skipped={!checksComplete}
-          onBack={() => setIncompleteOpen(true)}
+          skipped={!registeredView && !checksComplete}
+          registered={registeredView}
+          unconfigured={registeredView && sensorsPending ? ["machine"] : []}
+          smlPending={registeredView && smlPending}
+          onBack={() => registeredView ? reset() : setIncompleteOpen(true)}
           onRefresh={() => MessagePlugin.success(language === "cn" ? "数据已刷新" : "Data refreshed", 3000)}
           onFloorLabels={(labels) => setFloors((current) => current.map((floor, index) => ({ ...floor, label: labels[index] ?? floor.label })))}
-          onReconfigure={() => { resetInstallationRun(); setPhase("config320"); setTab("module"); }}
+          onReconfigure={() => { resetInstallationRun(); setRegisteredView(false); setSensorsPending(false); setPhase("config320"); setTab("module"); }}
           onComplete={reset}
         />
         <RegistrationPendingDialog language={language} visible={incompleteOpen} onRestart={() => { setIncompleteOpen(false); reset(); }} onStay={() => setIncompleteOpen(false)} />

@@ -93,6 +93,15 @@ import MobileDialog from "tdesign-mobile-react/es/dialog/Dialog";
 `Dialog` 与桌面组件也有同名 `.t-dialog` 选择器。直接引入逻辑模块，不导入其通用 CSS；在 `tdesign-mobile-bridge.css` 用 `.km-mobile-registration-dialog` 补齐 311px 宽、12px 圆角、**32px 顶部 / 24px 两侧**内容区内边距、24px 操作区内边距、18/26 标题和 16/24 内容排版。footer 的 `light` 按钮为品牌浅底 + 品牌字，`primary` 按钮为品牌实底 + 白字；两者均为 40px 高。样式只能限定在 Mobile class，不能覆盖全局 `.t-dialog`。
 
 
+### 输入类对话框（Dialog with Input）
+
+同一个 Figma 节点 [24386:5278] 里还有「输入类」变体（title + input，节点 27360:22500；title + content + input，节点 27360:22499）。它不是确认类弹窗加一个输入框，三处规格不同，样式在 `.km-mobile-sml-dialog`（叠加在 `.km-mobile-registration-dialog` 上，使用方 `RegistrationSmlDialog.tsx`）：
+
+- 标题与输入框间距 16，内容区底部内边距 24（确认类标题与正文间距是 8）。
+- 输入框 48 高，`bg-color-component` 底，圆角 6，内边距 12/16，16/24 文字，占位符 `text-color-placeholder`，无描边；聚焦用统一焦点环。
+- 操作区是**文字按钮**主题而不是填充按钮：56 高，上边 0.5px `component-stroke`，两个按钮之间 40 高竖线，取消用 `text-color-primary`、确认用 `text-color-brand`，16/24 Semibold，白底。整体高度：只有标题和输入框时 311×202。
+- 设计稿没有输入框的错误态；现有的红色描边与输入框下方 12px 红字是本项目补的，需要设计确认。
+
 ## 设备详情实时数据 Cell
 
 实时数据、传感器数据和最近一次运行的指标单元以 IOT Delivery `5532:18053` 为准，统一使用 `src/app/components/device-detail/MetricCard.tsx`。不要在注册页、Web 设备详情或 Mobile 设备详情重写小方块。`layout="web"` 使用横向 Cell，`layout="mobile"` 使用 100×106 的纵向 Cell；颜色由 `tone="brand" | "sensor" | "neutral"` 决定。neutral 变体使用 Grey 250 图标底与 `metric-icon-neutral`（Mobile Figma Grey 700）图标。方向箭头等内容通过 `trailing` 传入，不能用 Unicode 字符代替 Figma 图标。
