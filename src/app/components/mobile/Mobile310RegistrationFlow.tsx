@@ -86,7 +86,7 @@ export function SmlSourceFilter({ language, value, onChange, className = "" }: {
 }
 /** Mobile-only Connection 310 post-registration flow for the exact 31031031 fixture. */
 /** `registered`：已注册设备（31031000），直接显示已同步完成的数据，没有注册完成弹窗和底部「完成」按钮。 */
-export function Mobile310RegistrationFlow({ language, onRestart, onReturnHome, registered = false, smlPending = false, mainModule, cloudModules, device, initialSml = null, onSmlChange, cloudPending = false }: { language: MobileLang; onRestart: () => void; onReturnHome?: () => void; registered?: boolean; smlPending?: boolean; mainModule?: { title: string; serial: string }; /** 云管家侧的完整模块列表（多个主模块 + 子模块）；不传则沿用单个 Connection 310 + 子模块。 */ cloudModules?: CloudModule[]; /** 设备卡片信息；不传则用默认演示设备。 */ device?: RegistrationDeviceInfo; /** 进入页面时这台设备已经注册过的 SML（再次进入同一设备号时带出）。 */ initialSml?: SmlRegistration | null; /** SML 注册 / 解绑后通知外层保存，供再次进入时带出。 */ onSmlChange?: (sml: SmlRegistration | null) => void; /** 设备已注册 SML、云管家尚未注册（LCE 设备 00000001）：顶部提示补注册云管家，注册后云管家数据加载进来。 */ cloudPending?: boolean }) {
+export function Mobile310RegistrationFlow({ language, onRestart, onReturnHome, registered = false, smlPending = false, mainModule, cloudModules, device, initialSml = null, onSmlChange, cloudPending = false, initialCloudSerial = null, onCloudChange }: { language: MobileLang; onRestart: () => void; onReturnHome?: () => void; registered?: boolean; smlPending?: boolean; mainModule?: { title: string; serial: string }; /** 云管家侧的完整模块列表（多个主模块 + 子模块）；不传则沿用单个 Connection 310 + 子模块。 */ cloudModules?: CloudModule[]; /** 设备卡片信息；不传则用默认演示设备。 */ device?: RegistrationDeviceInfo; /** 进入页面时这台设备已经注册过的 SML（再次进入同一设备号时带出）。 */ initialSml?: SmlRegistration | null; /** SML 注册 / 解绑后通知外层保存，供再次进入时带出。 */ onSmlChange?: (sml: SmlRegistration | null) => void; /** 设备已注册 SML、云管家尚未注册（LCE 设备 00000001）：顶部提示补注册云管家，注册后云管家数据加载进来。 */ cloudPending?: boolean; /** 云管家早已补注册过时带出（再次进入同一设备号）。 */ initialCloudSerial?: string | null; /** 补注册云管家后通知外层保存序列号。 */ onCloudChange?: (serial: string) => void }) {
   const t = copy[language];
   const [state, setState] = useState<Connection310State>(registered ? "ready" : "offline");
   const [tab, setTab] = useState<Connection310Tab>("module");
@@ -95,13 +95,15 @@ export function Mobile310RegistrationFlow({ language, onRestart, onReturnHome, r
   const [smlDialogOpen, setSmlDialogOpen] = useState(false);
   const [cloudDialogOpen, setCloudDialogOpen] = useState(false);
   // 补注册云管家后加载进来的模块（只在 cloudPending 的设备上使用）。
-  const [registeredCloudModules, setRegisteredCloudModules] = useState<CloudModule[] | null>(null);
+  const [registeredCloudModules, setRegisteredCloudModules] = useState<CloudModule[] | null>(initialCloudSerial ? createCloudModules(initialCloudSerial) : null);
+  // 本次进入页面时刚补注册的云管家：底部是「解绑 + 完成」；再次进入时云管家早已注册，底部只有「解绑」。
+  const [justRegisteredCloud, setJustRegisteredCloud] = useState(false);
   const [unbindOpen, setUnbindOpen] = useState(false);
   const [sml, setSml] = useState<SmlRegistration | null>(initialSml);
   // 本次进入页面时刚注册的 SML：底部是「解绑 + 完成」；再次进入时 SML 早已注册，底部只有「解绑」。
   const [justRegistered, setJustRegistered] = useState(false);
   // 刚注册完 SML 默认先看 SML 数据，可以切回云管家。
-  const [source, setSource] = useState<DataSource>(initialSml ? "sml" : "cloud");
+  const [source, setSource] = useState<DataSource>(initialCloudSerial ? "cloud" : initialSml ? "sml" : "cloud");
   const hasCloud = !cloudPending || registeredCloudModules !== null;
 
   useEffect(() => {
@@ -158,14 +160,15 @@ export function Mobile310RegistrationFlow({ language, onRestart, onReturnHome, r
       {ready && registered && sml && (
         <MobileBottomBar>
           <Button className="km-mobile-button--secondary" theme="default" size="large" block onClick={() => setUnbindOpen(true)}>{t.unbind}</Button>
-          {justRegistered && <Button theme="primary" size="large" block onClick={onRestart}>{t.complete}</Button>}
+          {(justRegistered || justRegisteredCloud) && <Button theme="primary" size="large" block onClick={onRestart}>{t.complete}</Button>}
         </MobileBottomBar>
       )}
       {ready && !registered && (
         <MobileBottomBar>
           {/* 全新注册的 SML 设备（主模块就是 SML）：同样可以解绑 */}
           {mainModule && <Button className="km-mobile-button--secondary" theme="default" size="large" block onClick={() => setUnbindOpen(true)}>{t.unbind}</Button>}
-          <Button theme="primary" size="large" block onClick={() => setCompleteOpen(true)}>{t.complete}</Button>
+          {/* 全新注册的 SML 设备：「完成」直接回到设备注册首页；其他 310 设备仍弹出「设备注册完成」 */}
+          <Button theme="primary" size="large" block onClick={mainModule ? onRestart : () => setCompleteOpen(true)}>{t.complete}</Button>
         </MobileBottomBar>
       )}
       <RegistrationSmlDialog
@@ -173,7 +176,7 @@ export function Mobile310RegistrationFlow({ language, onRestart, onReturnHome, r
         language={language}
         visible={cloudDialogOpen}
         onCancel={() => setCloudDialogOpen(false)}
-        onConfirm={(serial) => { setRegisteredCloudModules(createCloudModules(serial)); setSource("cloud"); setCloudDialogOpen(false); }}
+        onConfirm={(serial) => { setRegisteredCloudModules(createCloudModules(serial)); onCloudChange?.(serial); setJustRegisteredCloud(true); setSource("cloud"); setCloudDialogOpen(false); }}
       />
       <RegistrationSmlUnbindDialog
         language={language}

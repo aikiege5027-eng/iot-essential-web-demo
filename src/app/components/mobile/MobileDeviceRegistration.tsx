@@ -6,7 +6,7 @@ import { RegistrationPendingDialog } from "./RegistrationPendingDialog";
 import { RegistrationActionSheet } from "./RegistrationActionSheet";
 import { RegistrationLoadingToast, RegistrationTopMessage } from "./RegistrationToasts";
 import { Mobile320ConnectionView } from "./Mobile320ConnectionView";
-import { getRegisteredSml, setRegisteredSml } from "../../data/smlRegistrationStore";
+import { getRegisteredCloudSerial, getRegisteredSml, setRegisteredCloudSerial, setRegisteredSml } from "../../data/smlRegistrationStore";
 import { Mobile320DeviceData } from "./Mobile320DeviceData";
 import { Mobile320InstallationView } from "./Mobile320InstallationView";
 import { RegistrationSkipDialog } from "./RegistrationSkipDialog";
@@ -555,7 +555,7 @@ export function MobileDeviceRegistration({ language, onReturnHome }: { language:
   }
 
   if (phase === "connection310data") {
-    return <Mobile310RegistrationFlow language={language} onRestart={reset} onReturnHome={onReturnHome} registered={registered310} smlPending={registered310 && smlPending} mainModule={equipment === SML_DEVICE_EQUIPMENT_NUMBER ? { title: "SML", serial: serial.trim() } : undefined} cloudModules={equipment === REGISTERED_310_SML_EQUIPMENT_NUMBER ? CLOUD_MODULES_310_SML : undefined} device={equipment === REGISTERED_310_SML_EQUIPMENT_NUMBER ? DEVICE_INFO_310_SML : equipment === SML_DEVICE_EQUIPMENT_NUMBER || equipment === LCE_SML_REGISTERED_EQUIPMENT_NUMBER ? createSmlDeviceInfo(equipment) : undefined} initialSml={equipment === REGISTERED_310_SML_EQUIPMENT_NUMBER ? getRegisteredSml(equipment) : equipment === LCE_SML_REGISTERED_EQUIPMENT_NUMBER ? { serial: DEMO_SML_SERIAL, software: "1.0.4", registrationTime: "2026/03/02 00:00:00" } : null} cloudPending={equipment === LCE_SML_REGISTERED_EQUIPMENT_NUMBER} onSmlChange={(next) => setRegisteredSml(equipment, next)} />;
+    return <Mobile310RegistrationFlow language={language} onRestart={reset} onReturnHome={onReturnHome} registered={registered310} smlPending={registered310 && smlPending} mainModule={equipment === SML_DEVICE_EQUIPMENT_NUMBER ? { title: "SML", serial: serial.trim() } : undefined} cloudModules={equipment === REGISTERED_310_SML_EQUIPMENT_NUMBER ? CLOUD_MODULES_310_SML : undefined} device={equipment === REGISTERED_310_SML_EQUIPMENT_NUMBER ? DEVICE_INFO_310_SML : equipment === SML_DEVICE_EQUIPMENT_NUMBER || equipment === LCE_SML_REGISTERED_EQUIPMENT_NUMBER ? createSmlDeviceInfo(equipment) : undefined} initialSml={equipment === REGISTERED_310_SML_EQUIPMENT_NUMBER ? getRegisteredSml(equipment) ?? null : equipment === LCE_SML_REGISTERED_EQUIPMENT_NUMBER ? (getRegisteredSml(equipment) === undefined ? { serial: DEMO_SML_SERIAL, software: "1.0.4", registrationTime: "2026/03/02 00:00:00" } : getRegisteredSml(equipment)) : null} cloudPending={equipment === LCE_SML_REGISTERED_EQUIPMENT_NUMBER} initialCloudSerial={equipment === LCE_SML_REGISTERED_EQUIPMENT_NUMBER ? getRegisteredCloudSerial(equipment) : null} onCloudChange={(serial) => setRegisteredCloudSerial(equipment, serial)} onSmlChange={(next) => setRegisteredSml(equipment, next)} />;
   }
 
   if (phase === "connecting") {
